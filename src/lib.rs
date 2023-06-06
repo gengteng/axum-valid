@@ -1,3 +1,6 @@
+#![doc = include_str!("../README.md")]
+#![deny(unsafe_code, missing_docs, clippy::unwrap_used)]
+
 use axum::extract::rejection::{FormRejection, JsonRejection, PathRejection, QueryRejection};
 use axum::extract::{FromRequest, FromRequestParts, Path, Query};
 use axum::http::request::Parts;
@@ -13,7 +16,9 @@ pub struct Valid<T>(pub T);
 /// If the valid extractor fails it'll use this "rejection" type.
 /// This rejection type can be converted into a response.
 pub enum ValidRejection<E> {
+    /// Validation errors
     Valid(ValidationErrors),
+    /// Inner extractor error
     Inner(E),
 }
 

@@ -1,7 +1,7 @@
 [package]
 name = "axum-valid"
-version = "0.2.0"
-description = "Validator for axum"
+version = "0.2.1"
+description = "Validation tools for axum using the validator library."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
 homepage = "https://github.com/gengteng/axum-valid"
