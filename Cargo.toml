@@ -1,0 +1,26 @@
+[package]
+name = "axum-valid"
+version = "0.1.0"
+description = "Validator for axum"
+authors = ["GengTeng <me@gteng.org>"]
+license = "MIT"
+keywords = [
+    "http",
+    "web",
+    "framework",
+    "validator",
+]
+categories = [
+    "asynchronous",
+    "network-programming",
+    "web-programming",
+]
+edition = "2021"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = "0.6.18"
+serde = "1.0.163"
+validator = "0.16.0"
