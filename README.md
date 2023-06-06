@@ -1,6 +1,6 @@
 # axum-valid
 
-The Valid crate provides a `Valid` type that can be used in combination with `Json`, `Path`, `Query`, and `Form` types to validate the entities that implement the `Validate` trait.
+This crate provides a `Valid` type that can be used in combination with `Json`, `Path`, `Query`, and `Form` types to validate the entities that implement the `Validate` trait.
 
 ## Usage
 
@@ -9,7 +9,6 @@ use validator::Validate;
 use serde::Deserialize;
 
 #[derive(Debug, Validate, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Pager {
     #[validate(range(min = 1, max = 50))]
     pub page_size: usize,
