@@ -55,40 +55,40 @@ impl From<FormRejection> for ValidRejection<FormRejection> {
     }
 }
 
-pub trait Inner0 {
-    type Inner: Validate;
+pub trait HasValidate {
+    type Validate: Validate;
     type Rejection;
-    fn inner0_ref(&self) -> &Self::Inner;
+    fn get_validate(&self) -> &Self::Validate;
 }
 
-impl<T: Validate> Inner0 for Json<T> {
-    type Inner = T;
+impl<T: Validate> HasValidate for Json<T> {
+    type Validate = T;
     type Rejection = JsonRejection;
-    fn inner0_ref(&self) -> &T {
+    fn get_validate(&self) -> &T {
         &self.0
     }
 }
 
-impl<T: Validate> Inner0 for Form<T> {
-    type Inner = T;
+impl<T: Validate> HasValidate for Form<T> {
+    type Validate = T;
     type Rejection = FormRejection;
-    fn inner0_ref(&self) -> &T {
+    fn get_validate(&self) -> &T {
         &self.0
     }
 }
 
-impl<T: Validate> Inner0 for Query<T> {
-    type Inner = T;
+impl<T: Validate> HasValidate for Query<T> {
+    type Validate = T;
     type Rejection = QueryRejection;
-    fn inner0_ref(&self) -> &T {
+    fn get_validate(&self) -> &T {
         &self.0
     }
 }
 
-impl<T: Validate> Inner0 for Path<T> {
-    type Inner = T;
+impl<T: Validate> HasValidate for Path<T> {
+    type Validate = T;
     type Rejection = QueryRejection;
-    fn inner0_ref(&self) -> &T {
+    fn get_validate(&self) -> &T {
         &self.0
     }
 }
@@ -98,16 +98,16 @@ impl<S, B, T> FromRequest<S, B> for Valid<T>
 where
     S: Send + Sync + 'static,
     B: Send + Sync + 'static,
-    T: Inner0 + FromRequest<S, B>,
-    T::Inner: Validate,
-    <T as Inner0>::Rejection: IntoResponse,
-    ValidRejection<<T as Inner0>::Rejection>: From<<T as FromRequest<S, B>>::Rejection>,
+    T: HasValidate + FromRequest<S, B>,
+    T::Validate: Validate,
+    <T as HasValidate>::Rejection: IntoResponse,
+    ValidRejection<<T as HasValidate>::Rejection>: From<<T as FromRequest<S, B>>::Rejection>,
 {
-    type Rejection = ValidRejection<<T as Inner0>::Rejection>;
+    type Rejection = ValidRejection<<T as HasValidate>::Rejection>;
 
     async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
         let valid = T::from_request(req, state).await?;
-        valid.inner0_ref().validate()?;
+        valid.get_validate().validate()?;
         Ok(Valid(valid))
     }
 }
@@ -116,16 +116,16 @@ where
 impl<S, T> FromRequestParts<S> for Valid<T>
 where
     S: Send + Sync + 'static,
-    T: Inner0 + FromRequestParts<S>,
-    T::Inner: Validate,
-    <T as Inner0>::Rejection: IntoResponse,
-    ValidRejection<<T as Inner0>::Rejection>: From<<T as FromRequestParts<S>>::Rejection>,
+    T: HasValidate + FromRequestParts<S>,
+    T::Validate: Validate,
+    <T as HasValidate>::Rejection: IntoResponse,
+    ValidRejection<<T as HasValidate>::Rejection>: From<<T as FromRequestParts<S>>::Rejection>,
 {
-    type Rejection = ValidRejection<<T as Inner0>::Rejection>;
+    type Rejection = ValidRejection<<T as HasValidate>::Rejection>;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let valid = T::from_request_parts(parts, state).await?;
-        valid.inner0_ref().validate()?;
+        valid.get_validate().validate()?;
         Ok(Valid(valid))
     }
 }
