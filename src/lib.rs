@@ -6,9 +6,12 @@ use axum::response::{IntoResponse, Response};
 use axum::{async_trait, Form, Json};
 use validator::{Validate, ValidationErrors};
 
+/// Valid entity extractor
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Valid<T>(pub T);
 
+/// If the valid extractor fails it'll use this "rejection" type.
+/// This rejection type can be converted into a response.
 pub enum ValidRejection<E> {
     Valid(ValidationErrors),
     Inner(E),
@@ -55,9 +58,14 @@ impl From<FormRejection> for ValidRejection<FormRejection> {
     }
 }
 
+/// Trait for types that can provide a reference that can be validated for correctness.
 pub trait HasValidate {
+    /// Inner type that can be validated for correctness
     type Validate: Validate;
-    type Rejection;
+    /// If the inner extractor fails it'll use this "rejection" type.
+    /// A rejection is a kind of error that can be converted into a response.
+    type Rejection: IntoResponse;
+    /// get the inner type
     fn get_validate(&self) -> &Self::Validate;
 }
 
@@ -100,7 +108,6 @@ where
     B: Send + Sync + 'static,
     T: HasValidate + FromRequest<S, B>,
     T::Validate: Validate,
-    <T as HasValidate>::Rejection: IntoResponse,
     ValidRejection<<T as HasValidate>::Rejection>: From<<T as FromRequest<S, B>>::Rejection>,
 {
     type Rejection = ValidRejection<<T as HasValidate>::Rejection>;
@@ -118,7 +125,6 @@ where
     S: Send + Sync + 'static,
     T: HasValidate + FromRequestParts<S>,
     T::Validate: Validate,
-    <T as HasValidate>::Rejection: IntoResponse,
     ValidRejection<<T as HasValidate>::Rejection>: From<<T as FromRequestParts<S>>::Rejection>,
 {
     type Rejection = ValidRejection<<T as HasValidate>::Rejection>;
