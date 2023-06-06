@@ -24,5 +24,4 @@ edition = "2021"
 
 [dependencies]
 axum = "0.6.18"
-serde = "1.0.163"
 validator = "0.16.0"

@@ -1,11 +1,9 @@
-use axum::body::HttpBody;
 use axum::extract::rejection::{FormRejection, JsonRejection, PathRejection, QueryRejection};
 use axum::extract::{FromRequest, FromRequestParts, Path, Query};
 use axum::http::request::Parts;
 use axum::http::{Request, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::{async_trait, BoxError, Form, Json};
-use serde::de::DeserializeOwned;
+use axum::{async_trait, Form, Json};
 use validator::{Validate, ValidationErrors};
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -39,42 +37,9 @@ impl From<JsonRejection> for ValidRejection<JsonRejection> {
     }
 }
 
-#[async_trait]
-impl<T, S, B> FromRequest<S, B> for Valid<Json<T>>
-where
-    T: DeserializeOwned + Validate,
-    B: HttpBody + Send + 'static,
-    B::Data: Send,
-    B::Error: Into<BoxError>,
-    S: Send + Sync,
-{
-    type Rejection = ValidRejection<JsonRejection>;
-
-    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
-        let json = Json::<T>::from_request(req, state).await?;
-        json.0.validate()?;
-        Ok(Valid(json))
-    }
-}
-
 impl From<QueryRejection> for ValidRejection<QueryRejection> {
     fn from(value: QueryRejection) -> Self {
         Self::Inner(value)
-    }
-}
-
-#[async_trait]
-impl<T, S> FromRequestParts<S> for Valid<Query<T>>
-where
-    T: DeserializeOwned + Validate,
-    S: Send + Sync,
-{
-    type Rejection = ValidRejection<QueryRejection>;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let query = Query::<T>::from_request_parts(parts, state).await?;
-        query.validate()?;
-        Ok(Valid(query))
     }
 }
 
@@ -84,41 +49,83 @@ impl From<PathRejection> for ValidRejection<PathRejection> {
     }
 }
 
-#[async_trait]
-impl<T, S> FromRequestParts<S> for Valid<Path<T>>
-where
-    T: DeserializeOwned + Validate + Send,
-    S: Send + Sync,
-{
-    type Rejection = ValidRejection<PathRejection>;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let path = Path::<T>::from_request_parts(parts, state).await?;
-        path.validate()?;
-        Ok(Valid(path))
-    }
-}
-
 impl From<FormRejection> for ValidRejection<FormRejection> {
     fn from(value: FormRejection) -> Self {
         Self::Inner(value)
     }
 }
 
+pub trait Inner0 {
+    type Inner: Validate;
+    type Rejection;
+    fn inner0_ref(&self) -> &Self::Inner;
+}
+
+impl<T: Validate> Inner0 for Json<T> {
+    type Inner = T;
+    type Rejection = JsonRejection;
+    fn inner0_ref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T: Validate> Inner0 for Form<T> {
+    type Inner = T;
+    type Rejection = FormRejection;
+    fn inner0_ref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T: Validate> Inner0 for Query<T> {
+    type Inner = T;
+    type Rejection = QueryRejection;
+    fn inner0_ref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T: Validate> Inner0 for Path<T> {
+    type Inner = T;
+    type Rejection = QueryRejection;
+    fn inner0_ref(&self) -> &T {
+        &self.0
+    }
+}
+
 #[async_trait]
-impl<T, S, B> FromRequest<S, B> for Valid<Form<T>>
+impl<S, B, T> FromRequest<S, B> for Valid<T>
 where
-    T: DeserializeOwned + Validate,
-    B: HttpBody + Send + 'static,
-    B::Data: Send,
-    B::Error: Into<BoxError>,
-    S: Send + Sync,
+    S: Send + Sync + 'static,
+    B: Send + Sync + 'static,
+    T: Inner0 + FromRequest<S, B>,
+    T::Inner: Validate,
+    <T as Inner0>::Rejection: IntoResponse,
+    ValidRejection<<T as Inner0>::Rejection>: From<<T as FromRequest<S, B>>::Rejection>,
 {
-    type Rejection = ValidRejection<FormRejection>;
+    type Rejection = ValidRejection<<T as Inner0>::Rejection>;
 
     async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
-        let form = Form::<T>::from_request(req, state).await?;
-        form.validate()?;
-        Ok(Valid(form))
+        let valid = T::from_request(req, state).await?;
+        valid.inner0_ref().validate()?;
+        Ok(Valid(valid))
+    }
+}
+
+#[async_trait]
+impl<S, T> FromRequestParts<S> for Valid<T>
+where
+    S: Send + Sync + 'static,
+    T: Inner0 + FromRequestParts<S>,
+    T::Inner: Validate,
+    <T as Inner0>::Rejection: IntoResponse,
+    ValidRejection<<T as Inner0>::Rejection>: From<<T as FromRequestParts<S>>::Rejection>,
+{
+    type Rejection = ValidRejection<<T as Inner0>::Rejection>;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let valid = T::from_request_parts(parts, state).await?;
+        valid.inner0_ref().validate()?;
+        Ok(Valid(valid))
     }
 }
