@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Validator for axum"
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
+homepage = "https://github.com/gengteng/axum-valid"
+repository = "https://github.com/gengteng/axum-valid"
 keywords = [
     "http",
     "web",
