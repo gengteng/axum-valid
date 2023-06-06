@@ -1,6 +1,6 @@
 [package]
 name = "axum-valid"
-version = "0.2.0"
+version = "0.1.0"
 description = "Validator for axum"
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
@@ -23,5 +23,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = "0.6"
-validator = "0.16"
+axum = "0.6.18"
+validator = "0.16.0"
