@@ -106,9 +106,9 @@ where
     type Rejection = ValidRejection<<T as HasValidate>::Rejection>;
 
     async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
-        let valid = T::from_request(req, state).await?;
-        valid.get_validate().validate()?;
-        Ok(Valid(valid))
+        let inner = T::from_request(req, state).await?;
+        inner.get_validate().validate()?;
+        Ok(Valid(inner))
     }
 }
 
@@ -124,8 +124,8 @@ where
     type Rejection = ValidRejection<<T as HasValidate>::Rejection>;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let valid = T::from_request_parts(parts, state).await?;
-        valid.get_validate().validate()?;
-        Ok(Valid(valid))
+        let inner = T::from_request_parts(parts, state).await?;
+        inner.get_validate().validate()?;
+        Ok(Valid(inner))
     }
 }
