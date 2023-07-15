@@ -100,7 +100,7 @@ impl<T: Validate> HasValidate for Query<T> {
 
 impl<T: Validate> HasValidate for Path<T> {
     type Validate = T;
-    type Rejection = QueryRejection;
+    type Rejection = PathRejection;
     fn get_validate(&self) -> &T {
         &self.0
     }
