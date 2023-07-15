@@ -4,6 +4,10 @@ This crate provides a `Valid` type that can be used in combination with `Json`, 
 
 ## Usage
 
+```shell
+cargo add axum-valid
+```
+
 ```rust
 use validator::Validate;
 use serde::Deserialize;
