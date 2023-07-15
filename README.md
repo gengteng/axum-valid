@@ -11,6 +11,7 @@ cargo add axum-valid
 ```rust
 use validator::Validate;
 use serde::Deserialize;
+use axum_valid::Valid;
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct Pager {
