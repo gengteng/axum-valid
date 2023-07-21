@@ -25,8 +25,12 @@ validator = "0.16.0"
 
 [dev-dependencies]
 anyhow = "1.0.71"
+axum = { version = "0.6.18" }
 tokio = { version = "1.28.2", features = ["full"] }
+hyper = { version = "0.14.26", features = ["full"] }
 reqwest = { version = "0.11.18", features = ["json"] }
+serde = { version = "1.0.163", features = ["derive"] }
+validator = { version = "0.16.0", features = ["derive"] }
 
 [features]
 default = ["json", "form", "query"]
