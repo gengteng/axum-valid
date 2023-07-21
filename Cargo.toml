@@ -1,6 +1,6 @@
 [package]
 name = "axum-valid"
-version = "0.2.2"
+version = "0.2.3"
 description = "Validation tools for axum using the validator library."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
@@ -20,5 +20,16 @@ categories = [
 edition = "2021"
 
 [dependencies]
-axum = "0.6.18"
+axum = { version = "0.6.18", default-features = false }
 validator = "0.16.0"
+
+[dev-dependencies]
+anyhow = "1.0.71"
+tokio = { version = "1.28.2", features = ["full"] }
+reqwest = { version = "0.11.18", features = ["json"] }
+
+[features]
+default = ["json", "form", "query"]
+json = ["axum/json"]
+form = ["axum/form"]
+query = ["axum/query"]

@@ -1,12 +1,19 @@
 #![doc = include_str!("../README.md")]
 #![deny(unsafe_code, missing_docs, clippy::unwrap_used)]
 
-use axum::extract::rejection::{FormRejection, JsonRejection, PathRejection, QueryRejection};
-use axum::extract::{FromRequest, FromRequestParts, Path, Query};
+#[cfg(feature = "form")]
+pub mod form;
+#[cfg(feature = "json")]
+pub mod json;
+pub mod path;
+#[cfg(feature = "query")]
+pub mod query;
+
+use axum::async_trait;
+use axum::extract::{FromRequest, FromRequestParts};
 use axum::http::request::Parts;
 use axum::http::{Request, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::{async_trait, Form, Json};
 use validator::{Validate, ValidationErrors};
 
 /// Valid entity extractor
@@ -39,30 +46,6 @@ impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
     }
 }
 
-impl From<JsonRejection> for ValidRejection<JsonRejection> {
-    fn from(value: JsonRejection) -> Self {
-        Self::Inner(value)
-    }
-}
-
-impl From<QueryRejection> for ValidRejection<QueryRejection> {
-    fn from(value: QueryRejection) -> Self {
-        Self::Inner(value)
-    }
-}
-
-impl From<PathRejection> for ValidRejection<PathRejection> {
-    fn from(value: PathRejection) -> Self {
-        Self::Inner(value)
-    }
-}
-
-impl From<FormRejection> for ValidRejection<FormRejection> {
-    fn from(value: FormRejection) -> Self {
-        Self::Inner(value)
-    }
-}
-
 /// Trait for types that can provide a reference that can be validated for correctness.
 pub trait HasValidate {
     /// Inner type that can be validated for correctness
@@ -72,38 +55,6 @@ pub trait HasValidate {
     type Rejection: IntoResponse;
     /// get the inner type
     fn get_validate(&self) -> &Self::Validate;
-}
-
-impl<T: Validate> HasValidate for Json<T> {
-    type Validate = T;
-    type Rejection = JsonRejection;
-    fn get_validate(&self) -> &T {
-        &self.0
-    }
-}
-
-impl<T: Validate> HasValidate for Form<T> {
-    type Validate = T;
-    type Rejection = FormRejection;
-    fn get_validate(&self) -> &T {
-        &self.0
-    }
-}
-
-impl<T: Validate> HasValidate for Query<T> {
-    type Validate = T;
-    type Rejection = QueryRejection;
-    fn get_validate(&self) -> &T {
-        &self.0
-    }
-}
-
-impl<T: Validate> HasValidate for Path<T> {
-    type Validate = T;
-    type Rejection = PathRejection;
-    fn get_validate(&self) -> &T {
-        &self.0
-    }
 }
 
 #[async_trait]
