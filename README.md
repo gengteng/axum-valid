@@ -12,6 +12,8 @@ cargo add axum-valid
 use validator::Validate;
 use serde::Deserialize;
 use axum_valid::Valid;
+use axum::extract::Query;
+use axum::Json;
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct Pager {
@@ -35,3 +37,5 @@ pub async fn get_page_by_json(
     assert!((1..).contains(&pager.page_no));
 }
 ```
+
+For more usage examples, please refer to the `basic.rs` and `custom.rs` files in the `tests` directory.

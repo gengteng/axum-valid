@@ -1,3 +1,10 @@
+//! # Basic extractors validation
+//!
+//! * `Path`
+//! * `Query`
+//! * `Form`
+//! * `Json`
+
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
@@ -14,7 +21,7 @@ mod route {
     pub const JSON: &'static str = "/json";
 }
 
-#[tokio::main]
+#[tokio::test]
 async fn main() -> anyhow::Result<()> {
     let router = Router::new()
         .route(route::PATH, get(extract_path))
