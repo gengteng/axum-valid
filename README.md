@@ -1,5 +1,6 @@
 # axum-valid
 
+![crates.io](https://img.shields.io/crates/v/axum-valid)
 ![LICENSE](https://img.shields.io/badge/license-MIT-blue)
 [![dependency status](https://deps.rs/repo/github/gengteng/axum-valid/status.svg)](https://deps.rs/repo/github/gengteng/axum-valid)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/gengteng/axum-valid/.github/workflows/main.yml?branch=main)](https://github.com/gengteng/axum-valid/actions/workflows/ci.yml)
