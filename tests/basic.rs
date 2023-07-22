@@ -15,10 +15,10 @@ use std::net::SocketAddr;
 use validator::Validate;
 
 mod route {
-    pub const PATH: &'static str = "/path/:v0/:v1";
-    pub const QUERY: &'static str = "/query";
-    pub const FORM: &'static str = "/form";
-    pub const JSON: &'static str = "/json";
+    pub const PATH: &str = "/path/:v0/:v1";
+    pub const QUERY: &str = "/query";
+    pub const FORM: &str = "/form";
+    pub const JSON: &str = "/json";
 }
 
 #[tokio::test]

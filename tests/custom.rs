@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use validator::Validate;
 
-const MY_DATA_HEADER: &'static str = "My-Data";
+const MY_DATA_HEADER: &str = "My-Data";
 
 // 1. Implement your own extractor.
 //  1.1. Define you own extractor type.
@@ -56,7 +56,7 @@ where
             return Err(MyDataRejection::Null);
         };
 
-        serde_json::from_slice(value.as_bytes()).map_err(|e| MyDataRejection::InvalidJson(e))
+        serde_json::from_slice(value.as_bytes()).map_err(MyDataRejection::InvalidJson)
     }
 }
 
@@ -67,7 +67,7 @@ impl HasValidate for MyData {
     type Rejection = MyDataRejection;
 
     fn get_validate(&self) -> &Self::Validate {
-        &self
+        self
     }
 }
 
