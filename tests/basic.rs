@@ -11,6 +11,7 @@ use axum::routing::{get, post};
 use axum::{Form, Json, Router};
 use axum_valid::Valid;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::net::SocketAddr;
 use validator::Validate;
 
@@ -63,6 +64,12 @@ async fn main() -> anyhow::Result<()> {
     assert_eq!(valid_path_response.status(), StatusCode::OK);
 
     let invalid_path_response = client
+        .get(format!("{}/path/invalid/path", server_url))
+        .send()
+        .await?;
+    assert_eq!(invalid_path_response.status(), StatusCode::BAD_REQUEST);
+
+    let invalid_path_response = client
         .get(format!(
             "{}/path/{}/{}",
             server_url, invalid_parameters.v0, invalid_parameters.v1
@@ -83,6 +90,13 @@ async fn main() -> anyhow::Result<()> {
 
     let invalid_query_response = client
         .get(&query_url)
+        .query(&[("invalid", "query")])
+        .send()
+        .await?;
+    assert_eq!(invalid_query_response.status(), StatusCode::BAD_REQUEST);
+
+    let invalid_query_response = client
+        .get(&query_url)
         .query(&invalid_parameters)
         .send()
         .await?;
@@ -100,6 +114,16 @@ async fn main() -> anyhow::Result<()> {
 
     let invalid_form_response = client
         .post(&form_url)
+        .form(&[("invalid", "form")])
+        .send()
+        .await?;
+    assert_eq!(
+        invalid_form_response.status(),
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+
+    let invalid_form_response = client
+        .post(&form_url)
         .form(&invalid_parameters)
         .send()
         .await?;
@@ -114,6 +138,16 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
     assert_eq!(valid_json_response.status(), StatusCode::OK);
+
+    let invalid_json_response = client
+        .post(&json_url)
+        .json(&json!({"invalid": "json"}))
+        .send()
+        .await?;
+    assert_eq!(
+        invalid_json_response.status(),
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
 
     let invalid_json_response = client
         .post(&json_url)
