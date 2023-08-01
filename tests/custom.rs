@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use validator::Validate;
 
+mod utils;
+
 const MY_DATA_HEADER: &str = "My-Data";
 
 // 1. Implement your own extractor.
@@ -124,10 +126,7 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     assert_eq!(invalid_my_data_response.status(), VALIDATION_ERROR_STATUS);
     #[cfg(feature = "into_json")]
-    assert!(invalid_my_data_response
-        .json::<serde_json::Value>()
-        .await
-        .is_ok());
+    utils::check_json(invalid_my_data_response).await;
     println!("Valid<MyData> works.");
 
     drop(server_guard);

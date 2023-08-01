@@ -47,16 +47,14 @@ impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
         match self {
             ValidRejection::Valid(validate_error) => {
                 #[cfg(feature = "into_json")]
-                match serde_json::to_string(&validate_error) {
-                    Ok(json) => (VALIDATION_ERROR_STATUS, json),
-                    Err(error) => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Failed to serialize validation error into JSON ({validate_error}): {error}"),
-                    ),
+                {
+                    (VALIDATION_ERROR_STATUS, axum::Json(validate_error)).into_response()
                 }
                 #[cfg(not(feature = "into_json"))]
-                (VALIDATION_ERROR_STATUS, validate_error.to_string())
-            }.into_response(),
+                {
+                    (VALIDATION_ERROR_STATUS, validate_error.to_string()).into_response()
+                }
+            }
             ValidRejection::Inner(json_error) => json_error.into_response(),
         }
     }

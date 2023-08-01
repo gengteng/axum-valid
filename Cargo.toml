@@ -1,6 +1,6 @@
 [package]
 name = "axum-valid"
-version = "0.4.1"
+version = "0.4.2"
 description = "Validation tools for axum using the validator library."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
@@ -23,11 +23,6 @@ edition = "2021"
 axum = { version = "0.6.18", default-features = false }
 validator = "0.16.0"
 
-[dependencies.serde_json]
-package = "serde_json"
-version = "1.0.103"
-optional = true
-
 [dev-dependencies]
 anyhow = "1.0.71"
 axum = { version = "0.6.18" }
@@ -37,11 +32,12 @@ reqwest = { version = "0.11.18", features = ["json"] }
 serde = { version = "1.0.163", features = ["derive"] }
 validator = { version = "0.16.0", features = ["derive"] }
 serde_json = "1.0.103"
+mime = "0.3.17"
 
 [features]
 default = ["json", "form", "query"]
 json = ["axum/json"]
 form = ["axum/form"]
 query = ["axum/query"]
-into_json = ["serde_json"]
+into_json = ["json"]
 422 = []
