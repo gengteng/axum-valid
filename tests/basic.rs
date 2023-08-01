@@ -9,7 +9,7 @@ use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
-use axum_valid::Valid;
+use axum_valid::{Valid, VALIDATION_ERROR_STATUS};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::SocketAddr;
@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
         ))
         .send()
         .await?;
-    assert_eq!(invalid_path_response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(invalid_path_response.status(), VALIDATION_ERROR_STATUS);
     #[cfg(feature = "into_json")]
     assert!(invalid_path_response
         .json::<serde_json::Value>()
@@ -105,7 +105,7 @@ async fn main() -> anyhow::Result<()> {
         .query(&invalid_parameters)
         .send()
         .await?;
-    assert_eq!(invalid_query_response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(invalid_query_response.status(), VALIDATION_ERROR_STATUS);
     #[cfg(feature = "into_json")]
     assert!(invalid_query_response
         .json::<serde_json::Value>()
@@ -137,7 +137,7 @@ async fn main() -> anyhow::Result<()> {
         .form(&invalid_parameters)
         .send()
         .await?;
-    assert_eq!(invalid_form_response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(invalid_form_response.status(), VALIDATION_ERROR_STATUS);
     #[cfg(feature = "into_json")]
     assert!(invalid_form_response
         .json::<serde_json::Value>()
@@ -169,7 +169,7 @@ async fn main() -> anyhow::Result<()> {
         .json(&invalid_parameters)
         .send()
         .await?;
-    assert_eq!(invalid_json_response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(invalid_json_response.status(), VALIDATION_ERROR_STATUS);
     #[cfg(feature = "into_json")]
     assert!(invalid_json_response
         .json::<serde_json::Value>()

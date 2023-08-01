@@ -16,6 +16,13 @@ use axum::http::{Request, StatusCode};
 use axum::response::{IntoResponse, Response};
 use validator::{Validate, ValidationErrors};
 
+/// Http status code returned when there are validation errors.
+#[cfg(feature = "422")]
+pub const VALIDATION_ERROR_STATUS: StatusCode = StatusCode::UNPROCESSABLE_ENTITY;
+/// Http status code returned when there are validation errors.
+#[cfg(not(feature = "422"))]
+pub const VALIDATION_ERROR_STATUS: StatusCode = StatusCode::BAD_REQUEST;
+
 /// Valid entity extractor
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Valid<T>(pub T);
@@ -41,14 +48,14 @@ impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
             ValidRejection::Valid(validate_error) => {
                 #[cfg(feature = "into_json")]
                 match serde_json::to_string(&validate_error) {
-                    Ok(json) => (StatusCode::BAD_REQUEST, json),
+                    Ok(json) => (VALIDATION_ERROR_STATUS, json),
                     Err(error) => (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         format!("Failed to serialize validation error into JSON ({validate_error}): {error}"),
                     ),
                 }
                 #[cfg(not(feature = "into_json"))]
-                (StatusCode::BAD_REQUEST, validate_error.to_string())
+                (VALIDATION_ERROR_STATUS, validate_error.to_string())
             }.into_response(),
             ValidRejection::Inner(json_error) => json_error.into_response(),
         }

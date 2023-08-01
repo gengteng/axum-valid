@@ -44,8 +44,11 @@ pub async fn get_page_by_json(
 }
 ```
 
+When validation errors occur, the extractor will automatically return 400 with validation errors as the HTTP message body.
+
 For more usage examples, please refer to the `basic.rs` and `custom.rs` files in the `tests` directory.
 
 ## Features
 
+`422`: Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails.
 `into_json`: When this feature is enabled, validation errors will be serialized into JSON format and returned as the HTTP body.

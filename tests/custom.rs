@@ -6,7 +6,7 @@ use axum::http::request::Parts;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::Router;
-use axum_valid::{HasValidate, Valid, ValidRejection};
+use axum_valid::{HasValidate, Valid, ValidRejection, VALIDATION_ERROR_STATUS};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
@@ -122,7 +122,7 @@ async fn main() -> anyhow::Result<()> {
         .header(MY_DATA_HEADER, serde_json::to_string(&invalid_my_data)?)
         .send()
         .await?;
-    assert_eq!(invalid_my_data_response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(invalid_my_data_response.status(), VALIDATION_ERROR_STATUS);
     #[cfg(feature = "into_json")]
     assert!(invalid_my_data_response
         .json::<serde_json::Value>()

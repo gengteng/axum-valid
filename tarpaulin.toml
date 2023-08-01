@@ -2,3 +2,9 @@
 
 [feature_into_json]
 features = "into_json"
+
+[feature_422]
+features = "422"
+
+[feature_422_into_json]
+features = "422 into_json"
