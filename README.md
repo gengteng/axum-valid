@@ -45,3 +45,7 @@ pub async fn get_page_by_json(
 ```
 
 For more usage examples, please refer to the `basic.rs` and `custom.rs` files in the `tests` directory.
+
+## Features
+
+`into_json`: When this feature is enabled, validation errors will be serialized into JSON format and returned as the HTTP body.

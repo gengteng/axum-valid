@@ -39,8 +39,17 @@ impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
     fn into_response(self) -> Response {
         match self {
             ValidRejection::Valid(validate_error) => {
-                (StatusCode::BAD_REQUEST, validate_error.to_string()).into_response()
-            }
+                #[cfg(feature = "into_json")]
+                match serde_json::to_string(&validate_error) {
+                    Ok(json) => (StatusCode::BAD_REQUEST, json),
+                    Err(error) => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to serialize validation error into JSON ({validate_error}): {error}"),
+                    ),
+                }
+                #[cfg(not(feature = "into_json"))]
+                (StatusCode::BAD_REQUEST, validate_error.to_string())
+            }.into_response(),
             ValidRejection::Inner(json_error) => json_error.into_response(),
         }
     }

@@ -123,6 +123,11 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
     assert_eq!(invalid_my_data_response.status(), StatusCode::BAD_REQUEST);
+    #[cfg(feature = "into_json")]
+    assert!(invalid_my_data_response
+        .json::<serde_json::Value>()
+        .await
+        .is_ok());
     println!("Valid<MyData> works.");
 
     drop(server_guard);

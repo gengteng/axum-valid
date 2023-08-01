@@ -77,6 +77,11 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
     assert_eq!(invalid_path_response.status(), StatusCode::BAD_REQUEST);
+    #[cfg(feature = "into_json")]
+    assert!(invalid_path_response
+        .json::<serde_json::Value>()
+        .await
+        .is_ok());
     println!("Valid<Path<...>> works.");
 
     // Valid<Query<...>>
@@ -101,6 +106,11 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
     assert_eq!(invalid_query_response.status(), StatusCode::BAD_REQUEST);
+    #[cfg(feature = "into_json")]
+    assert!(invalid_query_response
+        .json::<serde_json::Value>()
+        .await
+        .is_ok());
     println!("Valid<Query<...>> works.");
 
     // Valid<Form<...>>
@@ -128,6 +138,11 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
     assert_eq!(invalid_form_response.status(), StatusCode::BAD_REQUEST);
+    #[cfg(feature = "into_json")]
+    assert!(invalid_form_response
+        .json::<serde_json::Value>()
+        .await
+        .is_ok());
     println!("Valid<Form<...>> works.");
 
     // Valid<Json<...>>
@@ -155,6 +170,11 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
     assert_eq!(invalid_json_response.status(), StatusCode::BAD_REQUEST);
+    #[cfg(feature = "into_json")]
+    assert!(invalid_json_response
+        .json::<serde_json::Value>()
+        .await
+        .is_ok());
     println!("Valid<Json<...>> works.");
 
     drop(server_guard);
