@@ -59,11 +59,23 @@ async fn test_main() -> anyhow::Result<()> {
 
     #[cfg(feature = "extra")]
     let router = router
-        .route(route::extra::CACHED, post(extra::extract_cached))
+        .route(extra::route::CACHED, post(extra::extract_cached))
         .route(
-            route::extra::WITH_REJECTION,
+            extra::route::WITH_REJECTION,
             post(extra::extract_with_rejection),
         );
+
+    #[cfg(feature = "extra_query")]
+    let router = router.route(
+        extra_query::route::EXTRA_QUERY,
+        post(extra_query::extract_extra_query),
+    );
+
+    #[cfg(feature = "extra_form")]
+    let router = router.route(
+        extra_form::route::EXTRA_FORM,
+        post(extra_form::extract_extra_form),
+    );
 
     let server = axum::Server::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16)))
         .serve(router.into_make_service());
@@ -134,13 +146,29 @@ async fn test_main() -> anyhow::Result<()> {
         use axum_extra::extract::{Cached, WithRejection};
         use extra::TestRejection;
         test_executor
-            .execute::<Cached<Parameters>>(Method::POST, route::extra::CACHED)
+            .execute::<Cached<Parameters>>(Method::POST, extra::route::CACHED)
             .await?;
         test_executor
             .execute::<WithRejection<Parameters, TestRejection>>(
                 Method::POST,
-                route::extra::WITH_REJECTION,
+                extra::route::WITH_REJECTION,
             )
+            .await?;
+    }
+
+    #[cfg(feature = "extra_query")]
+    {
+        use axum_extra::extract::Query;
+        test_executor
+            .execute::<Query<Parameters>>(Method::POST, extra_query::route::EXTRA_QUERY)
+            .await?;
+    }
+
+    #[cfg(feature = "extra_form")]
+    {
+        use axum_extra::extract::Form;
+        test_executor
+            .execute::<Form<Parameters>>(Method::POST, extra_form::route::EXTRA_FORM)
             .await?;
     }
 
@@ -211,12 +239,6 @@ mod route {
     pub const QUERY: &str = "/query";
     pub const FORM: &str = "/form";
     pub const JSON: &str = "/json";
-
-    #[cfg(feature = "extra")]
-    pub mod extra {
-        pub const CACHED: &str = "/cached";
-        pub const WITH_REJECTION: &str = "/with_rejection";
-    }
 }
 
 async fn extract_path(Valid(Path(parameters)): Valid<Path<Parameters>>) -> StatusCode {
@@ -327,6 +349,10 @@ mod extra {
     use axum_extra::extract::{Cached, WithRejection};
     use reqwest::RequestBuilder;
 
+    pub mod route {
+        pub const CACHED: &str = "/cached";
+        pub const WITH_REJECTION: &str = "/with_rejection";
+    }
     pub const PARAMETERS_HEADER: &str = "parameters-header";
     pub const CACHED_REJECTION_STATUS: StatusCode = StatusCode::FORBIDDEN;
 
@@ -424,6 +450,42 @@ mod extra {
 
     pub async fn extract_with_rejection(
         Valid(WithRejection(parameters, _)): Valid<WithRejection<Parameters, TestRejection>>,
+    ) -> StatusCode {
+        validate_again(parameters)
+    }
+}
+
+#[cfg(feature = "extra_query")]
+mod extra_query {
+    use crate::test::{validate_again, Parameters};
+    use crate::Valid;
+    use axum::http::StatusCode;
+    use axum_extra::extract::Query;
+
+    pub mod route {
+        pub const EXTRA_QUERY: &str = "/extra_query";
+    }
+
+    pub async fn extract_extra_query(
+        Valid(Query(parameters)): Valid<Query<Parameters>>,
+    ) -> StatusCode {
+        validate_again(parameters)
+    }
+}
+
+#[cfg(feature = "extra_form")]
+pub mod extra_form {
+    use crate::test::{validate_again, Parameters};
+    use crate::Valid;
+    use axum::http::StatusCode;
+    use axum_extra::extract::Form;
+
+    pub mod route {
+        pub const EXTRA_FORM: &str = "/extra_form";
+    }
+
+    pub async fn extract_extra_form(
+        Valid(Form(parameters)): Valid<Form<Parameters>>,
     ) -> StatusCode {
         validate_again(parameters)
     }

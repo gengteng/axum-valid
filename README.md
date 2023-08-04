@@ -59,10 +59,9 @@ When validation errors occur, the extractor will automatically return 400 with v
 | typed_header   | Enables support for `TypedHeader`                                                                    | ❌       | ✅     |
 | msgpack        | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                   | ❌       | ❌     |
 | yaml           | Enables support for `Yaml` from `axum-yaml`                                                          | ❌       | ❌     |
-| extra_protobuf | Enables support for `Protobuf` from `axum-extra`                                                     | ❌       | ❌     |
 | extra          | Enables support for `Cached`, `WithRejection` from `axum-extra`                                      | ❌       | ✅     |
-| extra_query    | Enables support for `Query` from `axum-extra`                                                        | ❌       | ❌     |
-| extra_form     | Enables support for `Form` from `axum-extra`                                                         | ❌       | ❌     |
+| extra_query    | Enables support for `Query` from `axum-extra`                                                        | ❌       | ✅     |
+| extra_form     | Enables support for `Form` from `axum-extra`                                                         | ❌       | ✅     |
 | extra_protobuf | Enables support for `Protobuf` from `axum-extra`                                                     | ❌       | ❌     |
 | extra_all      | Enables support for all extractors above from `axum-extra`                                           | ❌       | 🚧    |
 | all_types      | Enables support for all extractors above                                                             | ❌       | 🚧    |

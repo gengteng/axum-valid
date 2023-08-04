@@ -11,3 +11,27 @@ impl<T: Validate> HasValidate for Query<T> {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::{ValidTest, ValidTestParameter};
+    use axum::http::StatusCode;
+    use axum_extra::extract::Query;
+    use reqwest::RequestBuilder;
+
+    impl<T: ValidTestParameter> ValidTest for Query<T> {
+        const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
+
+        fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
+            builder.query(&T::valid())
+        }
+
+        fn set_error_request(builder: RequestBuilder) -> RequestBuilder {
+            builder.query(T::error())
+        }
+
+        fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {
+            builder.query(&T::invalid())
+        }
+    }
+}
