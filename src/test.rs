@@ -87,6 +87,17 @@ async fn test_main() -> anyhow::Result<()> {
         post(extra_protobuf::extract_extra_protobuf),
     );
 
+    #[cfg(feature = "yaml")]
+    let router = router.route(yaml::route::YAML, post(yaml::extract_yaml));
+
+    #[cfg(feature = "msgpack")]
+    let router = router
+        .route(msgpack::route::MSGPACK, post(msgpack::extract_msgpack))
+        .route(
+            msgpack::route::MSGPACK_RAW,
+            post(msgpack::extract_msgpack_raw),
+        );
+
     let server = axum::Server::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16)))
         .serve(router.into_make_service());
     let server_addr = server.local_addr();
@@ -204,6 +215,25 @@ async fn test_main() -> anyhow::Result<()> {
         use axum_extra::protobuf::Protobuf;
         test_executor
             .execute::<Protobuf<Parameters>>(Method::POST, extra_protobuf::route::EXTRA_PROTOBUF)
+            .await?;
+    }
+
+    #[cfg(feature = "yaml")]
+    {
+        use axum_yaml::Yaml;
+        test_executor
+            .execute::<Yaml<Parameters>>(Method::POST, yaml::route::YAML)
+            .await?;
+    }
+
+    #[cfg(feature = "msgpack")]
+    {
+        use axum_msgpack::{MsgPack, MsgPackRaw};
+        test_executor
+            .execute::<MsgPack<Parameters>>(Method::POST, msgpack::route::MSGPACK)
+            .await?;
+        test_executor
+            .execute::<MsgPackRaw<Parameters>>(Method::POST, msgpack::route::MSGPACK_RAW)
             .await?;
     }
 
@@ -557,6 +587,47 @@ mod extra_protobuf {
 
     pub async fn extract_extra_protobuf(
         Valid(Protobuf(parameters)): Valid<Protobuf<Parameters>>,
+    ) -> StatusCode {
+        validate_again(parameters)
+    }
+}
+
+#[cfg(feature = "yaml")]
+mod yaml {
+    use crate::test::{validate_again, Parameters};
+    use crate::Valid;
+    use axum::http::StatusCode;
+    use axum_yaml::Yaml;
+
+    pub mod route {
+        pub const YAML: &str = "/yaml";
+    }
+
+    pub async fn extract_yaml(Valid(Yaml(parameters)): Valid<Yaml<Parameters>>) -> StatusCode {
+        validate_again(parameters)
+    }
+}
+
+#[cfg(feature = "msgpack")]
+mod msgpack {
+    use crate::test::{validate_again, Parameters};
+    use crate::Valid;
+    use axum::http::StatusCode;
+    use axum_msgpack::{MsgPack, MsgPackRaw};
+
+    pub mod route {
+        pub const MSGPACK: &str = "/msgpack";
+        pub const MSGPACK_RAW: &str = "/msgpack_raw";
+    }
+
+    pub async fn extract_msgpack(
+        Valid(MsgPack(parameters)): Valid<MsgPack<Parameters>>,
+    ) -> StatusCode {
+        validate_again(parameters)
+    }
+
+    pub async fn extract_msgpack_raw(
+        Valid(MsgPackRaw(parameters)): Valid<MsgPackRaw<Parameters>>,
     ) -> StatusCode {
         validate_again(parameters)
     }

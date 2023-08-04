@@ -50,24 +50,24 @@ When validation errors occur, the extractor will automatically return 400 with v
 
 ## Features
 
-| Feature        | Description                                                                                          | Default | Tests |
-|----------------|------------------------------------------------------------------------------------------------------|---------|-------|
-| default        | Enables support for `Path`, `Query`, `Json` and `Form`                                               | ✅       | ✅     |
-| json           | Enables support for `Json`                                                                           | ✅       | ✅     |
-| query          | Enables support for `Query`                                                                          | ✅       | ✅     |
-| form           | Enables support for `Form`                                                                           | ✅       | ✅     |
-| typed_header   | Enables support for `TypedHeader`                                                                    | ❌       | ✅     |
-| msgpack        | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                   | ❌       | ❌     |
-| yaml           | Enables support for `Yaml` from `axum-yaml`                                                          | ❌       | ❌     |
-| extra          | Enables support for `Cached`, `WithRejection` from `axum-extra`                                      | ❌       | ✅     |
-| extra_query    | Enables support for `Query` from `axum-extra`                                                        | ❌       | ✅     |
-| extra_form     | Enables support for `Form` from `axum-extra`                                                         | ❌       | ✅     |
-| extra_protobuf | Enables support for `Protobuf` from `axum-extra`                                                     | ❌       | ✅     |
-| extra_all      | Enables support for all extractors above from `axum-extra`                                           | ❌       | ✅     |
-| all            | Enables support for all extractors above                                                             | ❌       | 🚧    |
-| 422            | Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails | ❌       | ✅     |
-| into_json      | Validation errors will be serialized into JSON format and returned as the HTTP body                  | ❌       | ✅     |
-| full           | Enables all features                                                                                 | ❌       | 🚧    |
+| Feature         | Description                                                                                          | Default | Tests |
+|-----------------|------------------------------------------------------------------------------------------------------|---------|-------|
+| default         | Enables support for `Path`, `Query`, `Json` and `Form`                                               | ✅       | ✅     |
+| json            | Enables support for `Json`                                                                           | ✅       | ✅     |
+| query           | Enables support for `Query`                                                                          | ✅       | ✅     |
+| form            | Enables support for `Form`                                                                           | ✅       | ✅     |
+| typed_header    | Enables support for `TypedHeader`                                                                    | ❌       | ✅     |
+| msgpack         | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                   | ❌       | ❌     |
+| yaml            | Enables support for `Yaml` from `axum-yaml`                                                          | ❌       | ❌     |
+| extra           | Enables support for `Cached`, `WithRejection` from `axum-extra`                                      | ❌       | ✅     |
+| extra_query     | Enables support for `Query` from `axum-extra`                                                        | ❌       | ✅     |
+| extra_form      | Enables support for `Form` from `axum-extra`                                                         | ❌       | ✅     |
+| extra_protobuf  | Enables support for `Protobuf` from `axum-extra`                                                     | ❌       | ✅     |
+| all_extra_types | Enables support for all extractors above from `axum-extra`                                           | ❌       | ✅     |
+| all_types       | Enables support for all extractors above                                                             | ❌       | 🚧    |
+| 422             | Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails | ❌       | ✅     |
+| into_json       | Validation errors will be serialized into JSON format and returned as the HTTP body                  | ❌       | ✅     |
+| full            | Enables all features                                                                                 | ❌       | 🚧    |
 ## License
 
 This project is licensed under the MIT License.
