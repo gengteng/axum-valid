@@ -6,7 +6,9 @@
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/gengteng/axum-valid/.github/workflows/main.yml?branch=main)](https://github.com/gengteng/axum-valid/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gengteng/axum-valid/badge.svg?branch=main)](https://coveralls.io/github/gengteng/axum-valid?branch=main)
 
-This crate provides a `Valid` type that can be used in combination with `Json`, `Path`, `Query`, and `Form` types to validate the entities that implement the `Validate` trait.
+This crate provides a `Valid` type that can be used in combination with `Json`, `Path`, `Query`, and `Form` types to validate the entities that implement the `Validate` trait from the `validator` crate.
+
+Additional extractors like `TypedHeader`, `MsgPack`, `Yaml` etc. are supported through optional features.
 
 ## Usage
 
@@ -46,9 +48,33 @@ pub async fn get_page_by_json(
 
 When validation errors occur, the extractor will automatically return 400 with validation errors as the HTTP message body.
 
-For more usage examples, please refer to the `basic.rs` and `custom.rs` files in the `tests` directory.
-
 ## Features
 
-* `422`: Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails.
-* `into_json`: When this feature is enabled, validation errors will be serialized into JSON format and returned as the HTTP body.
+| Feature        | Description                                                                                          | Default | Tests |
+|----------------|------------------------------------------------------------------------------------------------------|---------|-------|
+| default        | Enables support for `Path`, `Query`, `Json` and `Form`                                               | ✅       | ✅     |
+| json           | Enables support for `Json`                                                                           | ✅       | ✅     |
+| query          | Enables support for `Query`                                                                          | ✅       | ✅     |
+| form           | Enables support for `Form`                                                                           | ✅       | ✅     |
+| typed_header   | Enables support for `TypedHeader`                                                                    | ❌       | ✅     |
+| msgpack        | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                   | ❌       | ❌     |
+| yaml           | Enables support for `Yaml` from `axum-yaml`                                                          | ❌       | ❌     |
+| extra_protobuf | Enables support for `Protobuf` from `axum-extra`                                                     | ❌       | ❌     |
+| extra          | Enables support for `Cached`, `WithRejection` from `axum-extra`                                      | ❌       | ✅     |
+| extra_query    | Enables support for `Query` from `axum-extra`                                                        | ❌       | ❌     |
+| extra_form     | Enables support for `Form` from `axum-extra`                                                         | ❌       | ❌     |
+| extra_protobuf | Enables support for `Protobuf` from `axum-extra`                                                     | ❌       | ❌     |
+| extra_all      | Enables support for all extractors above from `axum-extra`                                           | ❌       | 🚧    |
+| all_types      | Enables support for all extractors above                                                             | ❌       | 🚧    |
+| 422            | Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails | ❌       | ✅     |
+| into_json      | Validation errors will be serialized into JSON format and returned as the HTTP body                  | ❌       | ✅     |
+
+## License
+
+This project is licensed under the MIT License.
+
+## References
+
+* [axum](https://crates.io/crates/axum)
+* [validator](https://crates.io/crates/validator)
+* [serde](https://crates.io/crates/serde)

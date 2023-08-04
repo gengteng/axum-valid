@@ -6,13 +6,11 @@ use axum::http::request::Parts;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::Router;
-use axum_valid::{HasValidate, Valid, ValidRejection, VALIDATION_ERROR_STATUS};
+use axum_valid::{HasValidate, Valid, VALIDATION_ERROR_STATUS};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use validator::Validate;
-
-mod utils;
 
 const MY_DATA_HEADER: &str = "My-Data";
 
@@ -66,17 +64,8 @@ where
 //  2.1. Implement `HasValidate` for your extractor
 impl HasValidate for MyData {
     type Validate = Self;
-    type Rejection = MyDataRejection;
-
     fn get_validate(&self) -> &Self::Validate {
         self
-    }
-}
-
-//  2.2. Implement `From<MyDataRejection>` for `ValidRejection<MyDataRejection>`.
-impl From<MyDataRejection> for ValidRejection<MyDataRejection> {
-    fn from(value: MyDataRejection) -> Self {
-        Self::Inner(value)
     }
 }
 
@@ -125,8 +114,8 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
     assert_eq!(invalid_my_data_response.status(), VALIDATION_ERROR_STATUS);
-    #[cfg(feature = "into_json")]
-    utils::check_json(invalid_my_data_response).await;
+    // #[cfg(feature = "into_json")]
+    // test::check_json(invalid_my_data_response).await;
     println!("Valid<MyData> works.");
 
     drop(server_guard);

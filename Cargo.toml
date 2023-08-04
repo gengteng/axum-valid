@@ -1,6 +1,6 @@
 [package]
 name = "axum-valid"
-version = "0.4.2"
+version = "0.5.0"
 description = "Validation tools for axum using the validator library."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
@@ -23,15 +23,30 @@ edition = "2021"
 axum = { version = "0.6.18", default-features = false }
 validator = "0.16.0"
 
+[dependencies.axum-msgpack]
+version = "0.3.0"
+default-features = false
+optional = true
+
+[dependencies.axum-yaml]
+version = "0.3.0"
+default-features = false
+optional = true
+
+[dependencies.axum-extra]
+version = "0.7.6"
+default-features = false
+optional = true
+
 [dev-dependencies]
-anyhow = "1.0.71"
-axum = { version = "0.6.18" }
-tokio = { version = "1.28.2", features = ["full"] }
-hyper = { version = "0.14.26", features = ["full"] }
+anyhow = "1.0.72"
+axum = { version = "0.6.19" }
+tokio = { version = "1.29.1", features = ["full"] }
+hyper = { version = "0.14.27", features = ["full"] }
 reqwest = { version = "0.11.18", features = ["json"] }
-serde = { version = "1.0.163", features = ["derive"] }
+serde = { version = "1.0.180", features = ["derive"] }
 validator = { version = "0.16.0", features = ["derive"] }
-serde_json = "1.0.103"
+serde_json = "1.0.104"
 mime = "0.3.17"
 
 [features]
@@ -39,5 +54,14 @@ default = ["json", "form", "query"]
 json = ["axum/json"]
 form = ["axum/form"]
 query = ["axum/query"]
+typed_header = ["axum/headers"]
+msgpack = ["axum-msgpack"]
+yaml = ["axum-yaml"]
 into_json = ["json"]
 422 = []
+extra = ["axum-extra"]
+extra_query = ["axum-extra/query"]
+extra_form = ["axum-extra/form"]
+extra_protobuf = ["axum-extra/protobuf"]
+extra_all = ["extra","extra_query", "extra_form", "extra_protobuf"]
+all_types = ["json", "form", "query", "typed_header", "msgpack", "yaml", "extra_all"]
