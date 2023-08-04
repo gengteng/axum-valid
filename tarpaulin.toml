@@ -1,13 +1,10 @@
 [feature_default]
 
-[feature_all_types]
-features = "all_types"
-
-[feature_into_json]
+[feature_all_types_into_json]
 features = "all_types into_json"
 
-[feature_422]
+[feature_all_types_422]
 features = "all_types 422"
 
-[feature_422_into_json]
+[feature_all_types_422_into_json]
 features = "all_types 422 into_json"
