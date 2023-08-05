@@ -19,6 +19,8 @@ pub mod typed_header;
 #[cfg(feature = "yaml")]
 pub mod yaml;
 
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 use axum::async_trait;
 use axum::extract::{FromRequest, FromRequestParts};
 use axum::http::request::Parts;
@@ -54,12 +56,24 @@ impl<E> DerefMut for Valid<E> {
 
 /// If the valid extractor fails it'll use this "rejection" type.
 /// This rejection type can be converted into a response.
+#[derive(Debug)]
 pub enum ValidRejection<E> {
     /// Validation errors
     Valid(ValidationErrors),
     /// Inner extractor error
     Inner(E),
 }
+
+impl<E: Display> Display for ValidRejection<E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ValidRejection::Valid(errors) => write!(f, "{errors}"),
+            ValidRejection::Inner(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl<E: Debug + Display> Error for ValidRejection<E> {}
 
 impl<E> From<ValidationErrors> for ValidRejection<E> {
     fn from(value: ValidationErrors) -> Self {
