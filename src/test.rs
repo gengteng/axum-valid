@@ -1,5 +1,6 @@
+use crate::test::extra::{ParametersRejection, WithRejectionValidRejection};
 use crate::tests::{ValidTest, ValidTestParameter};
-use crate::{Valid, VALIDATION_ERROR_STATUS};
+use crate::{HasValidate, Valid, VALIDATION_ERROR_STATUS};
 use axum::extract::{Path, Query};
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
@@ -47,6 +48,14 @@ impl ValidTestParameter for Parameters {
     }
 }
 
+impl HasValidate for Parameters {
+    type Validate = Parameters;
+
+    fn get_validate(&self) -> &Self::Validate {
+        self
+    }
+}
+
 #[tokio::test]
 async fn test_main() -> anyhow::Result<()> {
     let router = Router::new()
@@ -67,6 +76,10 @@ async fn test_main() -> anyhow::Result<()> {
         .route(
             extra::route::WITH_REJECTION,
             post(extra::extract_with_rejection),
+        )
+        .route(
+            extra::route::WITH_REJECTION_VALID,
+            post(extra::extract_with_rejection_valid),
         );
 
     #[cfg(feature = "extra_query")]
@@ -182,14 +195,20 @@ async fn test_main() -> anyhow::Result<()> {
     #[cfg(feature = "extra")]
     {
         use axum_extra::extract::{Cached, WithRejection};
-        use extra::TestRejection;
+        use extra::ValidWithRejectionRejection;
         test_executor
             .execute::<Cached<Parameters>>(Method::POST, extra::route::CACHED)
             .await?;
         test_executor
-            .execute::<WithRejection<Parameters, TestRejection>>(
+            .execute::<WithRejection<Parameters, ValidWithRejectionRejection>>(
                 Method::POST,
                 extra::route::WITH_REJECTION,
+            )
+            .await?;
+        test_executor
+            .execute::<WithRejection<Valid<Parameters>, WithRejectionValidRejection<ParametersRejection>>>(
+                Method::POST,
+                extra::route::WITH_REJECTION_VALID,
             )
             .await?;
     }
@@ -290,12 +309,15 @@ impl TestExecutor {
         let invalid_response = T::set_invalid_request(invalid_builder).send().await?;
         assert_eq!(
             invalid_response.status(),
-            VALIDATION_ERROR_STATUS,
+            T::INVALID_STATUS_CODE,
             "Invalid '{}' test failed.",
             type_name
         );
         #[cfg(feature = "into_json")]
-        check_json(type_name, invalid_response).await;
+        if T::JSON_SERIALIZABLE {
+            check_json(type_name, invalid_response).await;
+        }
+
         println!("All '{}' tests passed.", type_name);
 
         Ok(())
@@ -424,7 +446,7 @@ mod typed_header {
 mod extra {
     use crate::test::{validate_again, Parameters};
     use crate::tests::{Rejection, ValidTest, ValidTestParameter};
-    use crate::Valid;
+    use crate::{Valid, ValidRejection};
     use axum::extract::FromRequestParts;
     use axum::http::request::Parts;
     use axum::http::StatusCode;
@@ -435,6 +457,7 @@ mod extra {
     pub mod route {
         pub const CACHED: &str = "/cached";
         pub const WITH_REJECTION: &str = "/with_rejection";
+        pub const WITH_REJECTION_VALID: &str = "/with_rejection_valid";
     }
     pub const PARAMETERS_HEADER: &str = "parameters-header";
     pub const CACHED_REJECTION_STATUS: StatusCode = StatusCode::FORBIDDEN;
@@ -503,25 +526,27 @@ mod extra {
         }
     }
 
-    pub struct TestRejection {
-        _inner: ParametersRejection,
+    pub struct ValidWithRejectionRejection {
+        inner: ParametersRejection,
     }
 
-    impl Rejection for TestRejection {
+    impl Rejection for ValidWithRejectionRejection {
         const STATUS_CODE: StatusCode = StatusCode::CONFLICT;
     }
 
-    impl IntoResponse for TestRejection {
+    impl IntoResponse for ValidWithRejectionRejection {
         fn into_response(self) -> Response {
-            Self::STATUS_CODE.into_response()
+            let mut response = self.inner.into_response();
+            *response.status_mut() = Self::STATUS_CODE;
+            response
         }
     }
 
     // satisfy the `WithRejection`'s extractor trait bound
     // R: From<E::Rejection> + IntoResponse
-    impl From<ParametersRejection> for TestRejection {
-        fn from(_inner: ParametersRejection) -> Self {
-            Self { _inner }
+    impl From<ParametersRejection> for ValidWithRejectionRejection {
+        fn from(inner: ParametersRejection) -> Self {
+            Self { inner }
         }
     }
 
@@ -532,7 +557,43 @@ mod extra {
     }
 
     pub async fn extract_with_rejection(
-        Valid(WithRejection(parameters, _)): Valid<WithRejection<Parameters, TestRejection>>,
+        Valid(WithRejection(parameters, _)): Valid<
+            WithRejection<Parameters, ValidWithRejectionRejection>,
+        >,
+    ) -> StatusCode {
+        validate_again(parameters)
+    }
+
+    pub struct WithRejectionValidRejection<E> {
+        inner: ValidRejection<E>,
+    }
+
+    impl<E> From<ValidRejection<E>> for WithRejectionValidRejection<E> {
+        fn from(inner: ValidRejection<E>) -> Self {
+            Self { inner }
+        }
+    }
+
+    impl<E: IntoResponse> IntoResponse for WithRejectionValidRejection<E> {
+        fn into_response(self) -> Response {
+            match self.inner {
+                ValidRejection::Valid(v) => {
+                    (StatusCode::IM_A_TEAPOT, v.to_string()).into_response()
+                }
+                ValidRejection::Inner(i) => {
+                    let mut res = i.into_response();
+                    *res.status_mut() = StatusCode::IM_A_TEAPOT;
+                    res
+                }
+            }
+        }
+    }
+
+    pub async fn extract_with_rejection_valid(
+        WithRejection(Valid(parameters), _): WithRejection<
+            Valid<Parameters>,
+            WithRejectionValidRejection<ParametersRejection>,
+        >,
     ) -> StatusCode {
         validate_again(parameters)
     }

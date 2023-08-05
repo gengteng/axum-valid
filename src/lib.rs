@@ -155,8 +155,13 @@ pub mod tests {
     /// 3. For an invalid request according to Valid, the server should return VALIDATION_ERROR_STATUS as the error code.
     ///
     pub trait ValidTest {
-        /// Http status code when inner extractor failed
+        /// The HTTP status code returned when inner extractor failed.
         const ERROR_STATUS_CODE: StatusCode;
+        /// The HTTP status code returned when the outer extractor fails.
+        /// Use crate::VALIDATION_ERROR_STATUS by default.
+        const INVALID_STATUS_CODE: StatusCode = crate::VALIDATION_ERROR_STATUS;
+        /// If the response body can be serialized into JSON format
+        const JSON_SERIALIZABLE: bool = true;
         /// Build a valid request, the server should return `200 OK`.
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder;
         /// Build an invalid request according to the extractor, the server should return `Self::ERROR_STATUS_CODE`
