@@ -1,4 +1,3 @@
-use crate::test::extra::{ParametersRejection, WithRejectionValidRejection};
 use crate::tests::{ValidTest, ValidTestParameter};
 use crate::{HasValidate, Valid, VALIDATION_ERROR_STATUS};
 use axum::extract::{Path, Query};
@@ -195,7 +194,9 @@ async fn test_main() -> anyhow::Result<()> {
     #[cfg(feature = "extra")]
     {
         use axum_extra::extract::{Cached, WithRejection};
-        use extra::ValidWithRejectionRejection;
+        use extra::{
+            ParametersRejection, ValidWithRejectionRejection, WithRejectionValidRejection,
+        };
         test_executor
             .execute::<Cached<Parameters>>(Method::POST, extra::route::CACHED)
             .await?;

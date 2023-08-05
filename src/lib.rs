@@ -19,13 +19,13 @@ pub mod typed_header;
 #[cfg(feature = "yaml")]
 pub mod yaml;
 
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
 use axum::async_trait;
 use axum::extract::{FromRequest, FromRequestParts};
 use axum::http::request::Parts;
 use axum::http::{Request, StatusCode};
 use axum::response::{IntoResponse, Response};
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
 use validator::{Validate, ValidationErrors};
 
@@ -54,6 +54,13 @@ impl<E> DerefMut for Valid<E> {
     }
 }
 
+impl<E> Valid<E> {
+    /// Consume the `Valid` extractor and returns the inner type.
+    pub fn into_inner(self) -> E {
+        self.0
+    }
+}
+
 /// If the valid extractor fails it'll use this "rejection" type.
 /// This rejection type can be converted into a response.
 #[derive(Debug)]
@@ -73,7 +80,14 @@ impl<E: Display> Display for ValidRejection<E> {
     }
 }
 
-impl<E: Debug + Display> Error for ValidRejection<E> {}
+impl<E: Error + 'static> Error for ValidRejection<E> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ValidRejection::Valid(ve) => Some(ve),
+            ValidRejection::Inner(e) => Some(e),
+        }
+    }
+}
 
 impl<E> From<ValidationErrors> for ValidRejection<E> {
     fn from(value: ValidationErrors) -> Self {
@@ -146,8 +160,13 @@ where
 
 #[cfg(test)]
 pub mod tests {
+    use crate::{Valid, ValidRejection};
     use reqwest::{RequestBuilder, StatusCode};
     use serde::Serialize;
+    use std::error::Error;
+    use std::io;
+    use std::ops::{Deref, DerefMut};
+    use validator::{ValidationError, ValidationErrors};
 
     /// # Valid test parameter
     pub trait ValidTestParameter: Serialize + 'static {
@@ -187,5 +206,46 @@ pub mod tests {
     #[cfg(feature = "extra")]
     pub trait Rejection {
         const STATUS_CODE: StatusCode;
+    }
+
+    const TEST: &str = "test";
+
+    #[test]
+    fn deref_deref_mut_into_inner() {
+        let mut inner = String::from(TEST);
+        let mut v = Valid(inner.clone());
+        assert_eq!(&inner, v.deref());
+        inner.push_str(TEST);
+        v.deref_mut().push_str(TEST);
+        assert_eq!(&inner, v.deref());
+        assert_eq!(inner, v.into_inner());
+    }
+
+    #[test]
+    fn display_error() {
+        // ValidRejection::Valid Display
+        let mut ve = ValidationErrors::new();
+        ve.add(TEST, ValidationError::new(TEST));
+        let vr = ValidRejection::<String>::Valid(ve.clone());
+        assert_eq!(vr.to_string(), ve.to_string());
+
+        // ValidRejection::Inner Display
+        let inner = String::from(TEST);
+        let vr = ValidRejection::<String>::Inner(inner.clone());
+        assert_eq!(inner.to_string(), vr.to_string());
+
+        // ValidRejection::Valid Error
+        let mut ve = ValidationErrors::new();
+        ve.add(TEST, ValidationError::new(TEST));
+        let vr = ValidRejection::<io::Error>::Valid(ve.clone());
+        assert!(
+            matches!(vr.source(), Some(source) if source.downcast_ref::<ValidationErrors>().is_some())
+        );
+
+        // ValidRejection::Valid Error
+        let vr = ValidRejection::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, TEST));
+        assert!(
+            matches!(vr.source(), Some(source) if source.downcast_ref::<io::Error>().is_some())
+        );
     }
 }
