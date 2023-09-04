@@ -57,6 +57,7 @@ When validation errors occur, the extractor will automatically return 400 with v
 | query           | Enables support for `Query`                                                                          | ✅       | ✅     |
 | form            | Enables support for `Form`                                                                           | ✅       | ✅     |
 | typed_header    | Enables support for `TypedHeader`                                                                    | ❌       | ✅     |
+| typed_multipart | Enables support for `TypedMultipart` from `axum_typed_multipart`                                     | ❌       | ✅     |
 | msgpack         | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                   | ❌       | ✅     |
 | yaml            | Enables support for `Yaml` from `axum-yaml`                                                          | ❌       | ✅     |
 | extra           | Enables support for `Cached`, `WithRejection` from `axum-extra`                                      | ❌       | ✅     |

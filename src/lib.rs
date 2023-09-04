@@ -16,6 +16,8 @@ pub mod query;
 pub mod test;
 #[cfg(feature = "typed_header")]
 pub mod typed_header;
+#[cfg(feature = "typed_multipart")]
+pub mod typed_multipart;
 #[cfg(feature = "yaml")]
 pub mod yaml;
 

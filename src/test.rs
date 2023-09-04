@@ -14,6 +14,10 @@ use validator::Validate;
 
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
+#[cfg_attr(
+    feature = "typed_multipart",
+    derive(axum_typed_multipart::TryFromMultipart)
+)]
 pub struct Parameters {
     #[validate(range(min = 5, max = 10))]
     #[cfg_attr(feature = "extra_protobuf", prost(int32, tag = "1"))]
@@ -67,6 +71,12 @@ async fn test_main() -> anyhow::Result<()> {
     let router = router.route(
         typed_header::route::TYPED_HEADER,
         post(typed_header::extract_typed_header),
+    );
+
+    #[cfg(feature = "typed_multipart")]
+    let router = router.route(
+        typed_multipart::route::TYPED_MULTIPART,
+        post(typed_multipart::extract_typed_header),
     );
 
     #[cfg(feature = "extra")]
@@ -188,6 +198,17 @@ async fn test_main() -> anyhow::Result<()> {
         use axum::TypedHeader;
         test_executor
             .execute::<TypedHeader<Parameters>>(Method::POST, typed_header::route::TYPED_HEADER)
+            .await?;
+    }
+
+    #[cfg(feature = "typed_multipart")]
+    {
+        use axum_typed_multipart::TypedMultipart;
+        test_executor
+            .execute::<TypedMultipart<Parameters>>(
+                Method::POST,
+                typed_multipart::route::TYPED_MULTIPART,
+            )
             .await?;
     }
 
@@ -440,6 +461,32 @@ mod typed_header {
         let mut iter = vec.iter();
         assert_eq!(parameter, Parameters::decode(&mut iter)?);
         Ok(())
+    }
+}
+
+#[cfg(feature = "typed_multipart")]
+mod typed_multipart {
+    use crate::test::{validate_again, Parameters};
+    use crate::Valid;
+    use axum::http::StatusCode;
+    use axum_typed_multipart::TypedMultipart;
+
+    pub mod route {
+        pub const TYPED_MULTIPART: &str = "/typed_multipart";
+    }
+
+    impl From<&Parameters> for reqwest::multipart::Form {
+        fn from(value: &Parameters) -> Self {
+            reqwest::multipart::Form::new()
+                .text("v0", value.v0.to_string())
+                .text("v1", value.v1.clone())
+        }
+    }
+
+    pub(super) async fn extract_typed_header(
+        Valid(TypedMultipart(parameters)): Valid<TypedMultipart<Parameters>>,
+    ) -> StatusCode {
+        validate_again(parameters)
     }
 }
 
