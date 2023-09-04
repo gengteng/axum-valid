@@ -74,10 +74,15 @@ async fn test_main() -> anyhow::Result<()> {
     );
 
     #[cfg(feature = "typed_multipart")]
-    let router = router.route(
-        typed_multipart::route::TYPED_MULTIPART,
-        post(typed_multipart::extract_typed_header),
-    );
+    let router = router
+        .route(
+            typed_multipart::route::TYPED_MULTIPART,
+            post(typed_multipart::extract_typed_multipart),
+        )
+        .route(
+            typed_multipart::route::BASE_MULTIPART,
+            post(typed_multipart::extract_base_multipart),
+        );
 
     #[cfg(feature = "extra")]
     let router = router
@@ -203,7 +208,13 @@ async fn test_main() -> anyhow::Result<()> {
 
     #[cfg(feature = "typed_multipart")]
     {
-        use axum_typed_multipart::TypedMultipart;
+        use axum_typed_multipart::{BaseMultipart, TypedMultipart, TypedMultipartError};
+        test_executor
+            .execute::<BaseMultipart<Parameters, TypedMultipartError>>(
+                Method::POST,
+                typed_multipart::route::BASE_MULTIPART,
+            )
+            .await?;
         test_executor
             .execute::<TypedMultipart<Parameters>>(
                 Method::POST,
@@ -469,10 +480,11 @@ mod typed_multipart {
     use crate::test::{validate_again, Parameters};
     use crate::Valid;
     use axum::http::StatusCode;
-    use axum_typed_multipart::TypedMultipart;
+    use axum_typed_multipart::{BaseMultipart, TypedMultipart, TypedMultipartError};
 
     pub mod route {
         pub const TYPED_MULTIPART: &str = "/typed_multipart";
+        pub const BASE_MULTIPART: &str = "/base_multipart";
     }
 
     impl From<&Parameters> for reqwest::multipart::Form {
@@ -483,10 +495,16 @@ mod typed_multipart {
         }
     }
 
-    pub(super) async fn extract_typed_header(
+    pub(super) async fn extract_typed_multipart(
         Valid(TypedMultipart(parameters)): Valid<TypedMultipart<Parameters>>,
     ) -> StatusCode {
         validate_again(parameters)
+    }
+
+    pub(super) async fn extract_base_multipart(
+        Valid(BaseMultipart { data, .. }): Valid<BaseMultipart<Parameters, TypedMultipartError>>,
+    ) -> StatusCode {
+        validate_again(data)
     }
 }
 
