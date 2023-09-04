@@ -7,10 +7,10 @@ license = "MIT"
 homepage = "https://github.com/gengteng/axum-valid"
 repository = "https://github.com/gengteng/axum-valid"
 keywords = [
-    "http",
-    "web",
     "axum",
     "validator",
+    "extractor",
+    "web",
 ]
 categories = [
     "asynchronous",
@@ -45,7 +45,7 @@ optional = true
 
 [dev-dependencies]
 anyhow = "1.0.72"
-axum = { version = "0.6.19" }
+axum = { version = "0.6.20" }
 tokio = { version = "1.29.1", features = ["full"] }
 hyper = { version = "0.14.27", features = ["full"] }
 reqwest = { version = "0.11.18", features = ["json", "multipart"] }
