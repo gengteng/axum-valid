@@ -1,11 +1,12 @@
 [package]
 name = "axum-valid"
-version = "0.6.0"
+version = "0.7.0"
 description = "Provide validator extractor for your axum application."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
 homepage = "https://github.com/gengteng/axum-valid"
 repository = "https://github.com/gengteng/axum-valid"
+documentation = "https://docs.rs/axum-valid"
 keywords = [
     "axum",
     "validator",
@@ -18,6 +19,9 @@ categories = [
     "web-programming",
 ]
 edition = "2021"
+
+[package.metadata.docs.rs]
+features = ["all_types"]
 
 [dependencies]
 axum = { version = "0.6.18", default-features = false }
@@ -70,9 +74,10 @@ yaml = ["axum-yaml"]
 into_json = ["json"]
 422 = []
 extra = ["axum-extra"]
+extra_typed_path = ["axum-extra/typed-routing"]
 extra_query = ["axum-extra/query"]
 extra_form = ["axum-extra/form"]
 extra_protobuf = ["axum-extra/protobuf"]
-all_extra_types = ["extra", "extra_query", "extra_form", "extra_protobuf"]
+all_extra_types = ["extra", "extra_typed_path", "extra_query", "extra_form", "extra_protobuf"]
 all_types = ["json", "form", "query", "typed_header", "typed_multipart", "msgpack", "yaml", "all_extra_types"]
 full = ["all_types", "422", "into_json"]

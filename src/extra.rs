@@ -1,5 +1,220 @@
-//! # Implementation of the `HasValidate` trait for the extractor in `axum-extra`.
+//! # Support for `Cached<T>` and `WithRejection<T, R>`
 //!
+//! ## Feature
+//!
+//! Enable the `extra` feature to use `Valid<Cached<T>>`, `Valid<WithRejection<T, R>>` and `WithRejection<Valid<T>, R>`.
+//!
+//! ## `Valid<Cached<T>>`
+//!
+//! ### Usage
+//!
+//! 0. Implement your own extractor `T`.
+//! 1. Implement `Clone` and `Validate` for your extractor type `T`.
+//! 2. In your handler function, use `Valid<Cached<T>>` as some parameter's type.
+//!
+//! ### Example
+//!
+//! ```no_run
+//! use axum::extract::FromRequestParts;
+//! use axum::http::request::Parts;
+//! use axum::response::{IntoResponse, Response};
+//! use axum::routing::post;
+//! use axum::Router;
+//! use axum_extra::extract::Cached;
+//! use axum_valid::Valid;
+//! use validator::Validate;
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let router = Router::new().route("/cached", post(handler));
+//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//!         .serve(router.into_make_service())
+//!         .await?;
+//!     Ok(())
+//! }
+//! async fn handler(Valid(Cached(parameter)): Valid<Cached<Parameter>>) {
+//!     assert!(parameter.validate().is_ok());
+//! }
+//! #[derive(Validate, Clone)]
+//! pub struct Parameter {
+//!     #[validate(range(min = 5, max = 10))]
+//!     pub v0: i32,
+//!     #[validate(length(min = 1, max = 10))]
+//!     pub v1: String,
+//! }
+//!
+//! pub struct ParameterRejection;
+//!
+//! impl IntoResponse for ParameterRejection {
+//!     fn into_response(self) -> Response {
+//!         todo!()
+//!     }
+//! }
+//!
+//! #[axum::async_trait]
+//! impl<S> FromRequestParts<S> for Parameter
+//! where
+//!     S: Send + Sync,
+//! {
+//!     type Rejection = ParameterRejection;
+//!
+//!     async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!         todo!()
+//!     }
+//! }
+//! ```
+//!
+//! ## `Valid<WithRejection<T, R>>`
+//!
+//! ### Usage
+//!
+//! 0. Implement your own extractor `T` and rejection type `R`.
+//! 1. Implement `Validate` for your extractor type `T`.
+//! 2. In your handler function, use `Valid<WithRejection<T, R>>` as some parameter's type.
+//!
+//! ### Example
+//!
+//! ```no_run
+//! use axum::extract::FromRequestParts;
+//! use axum::http::request::Parts;
+//! use axum::http::StatusCode;
+//! use axum::response::{IntoResponse, Response};
+//! use axum::routing::post;
+//! use axum::Router;
+//! use axum_extra::extract::WithRejection;
+//! use axum_valid::Valid;
+//! use validator::Validate;
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let router = Router::new().route("/valid_with_rejection", post(handler));
+//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//!         .serve(router.into_make_service())
+//!         .await?;
+//!     Ok(())
+//! }
+//! async fn handler(
+//!     Valid(WithRejection(parameter, _)): Valid<
+//!         WithRejection<Parameter, ValidWithRejectionRejection>,
+//!     >,
+//! ) {
+//!     assert!(parameter.validate().is_ok());
+//! }
+//!
+//! #[derive(Validate)]
+//! pub struct Parameter {
+//!     #[validate(range(min = 5, max = 10))]
+//!     pub v0: i32,
+//!     #[validate(length(min = 1, max = 10))]
+//!     pub v1: String,
+//! }
+//!
+//! pub struct ValidWithRejectionRejection;
+//!
+//! impl IntoResponse for ValidWithRejectionRejection {
+//!     fn into_response(self) -> Response {
+//!         StatusCode::BAD_REQUEST.into_response()
+//!     }
+//! }
+//!
+//! #[axum::async_trait]
+//! impl<S> FromRequestParts<S> for Parameter
+//! where
+//!     S: Send + Sync,
+//! {
+//!     type Rejection = ValidWithRejectionRejection;
+//!
+//!     async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!         todo!()
+//!     }
+//! }
+//! ```
+//!
+//! ## `WithRejection<Valid<T>, R>`
+//!
+//! ### Usage
+//!
+//! 0. Implement your own extractor `T` and rejection type `R`.
+//! 1. Implement `Validate` and `HasValidate` for your extractor type `T`.
+//! 2. Implement `From<ValidRejection<T::Rejection>>` for `R`.
+//! 3. In your handler function, use `WithRejection<Valid<T>, R>` as some parameter's type.
+//!
+//! ### Example
+//!
+//! ```no_run
+//! use axum::extract::FromRequestParts;
+//! use axum::http::request::Parts;
+//! use axum::response::{IntoResponse, Response};
+//! use axum::routing::post;
+//! use axum::Router;
+//! use axum_extra::extract::WithRejection;
+//! use axum_valid::{HasValidate, Valid, ValidRejection};
+//! use validator::Validate;
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let router = Router::new().route("/with_rejection_valid", post(handler));
+//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//!         .serve(router.into_make_service())
+//!         .await?;
+//!     Ok(())
+//! }
+//! async fn handler(
+//!     WithRejection(Valid(parameter), _): WithRejection<
+//!         Valid<Parameter>,
+//!         WithRejectionValidRejection,
+//!     >,
+//! ) {
+//!     assert!(parameter.validate().is_ok());
+//! }
+//!
+//! #[derive(Validate)]
+//! pub struct Parameter {
+//!     #[validate(range(min = 5, max = 10))]
+//!     pub v0: i32,
+//!     #[validate(length(min = 1, max = 10))]
+//!     pub v1: String,
+//! }
+//!
+//! impl HasValidate for Parameter {
+//!     type Validate = Self;
+//!
+//!     fn get_validate(&self) -> &Self::Validate {
+//!         self
+//!     }
+//! }
+//!
+//! pub struct ParameterRejection;
+//!
+//! impl IntoResponse for ParameterRejection {
+//!     fn into_response(self) -> Response {
+//!         todo!()
+//!     }
+//! }
+//!
+//! #[axum::async_trait]
+//! impl<S> FromRequestParts<S> for Parameter
+//! where
+//!     S: Send + Sync,
+//! {
+//!     type Rejection = ParameterRejection;
+//!
+//!     async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!         todo!()
+//!     }
+//! }
+//!
+//! pub struct WithRejectionValidRejection;
+//!
+//! impl From<ValidRejection<ParameterRejection>> for WithRejectionValidRejection {
+//!     fn from(_inner: ValidRejection<ParameterRejection>) -> Self {
+//!         todo!()
+//!     }
+//! }
+//!
+//! impl IntoResponse for WithRejectionValidRejection {
+//!     fn into_response(self) -> Response {
+//!         todo!()
+//!     }
+//! }
+//! ```
 
 #[cfg(feature = "extra_form")]
 pub mod form;
@@ -7,6 +222,8 @@ pub mod form;
 pub mod protobuf;
 #[cfg(feature = "extra_query")]
 pub mod query;
+#[cfg(feature = "extra_typed_path")]
+pub mod typed_path;
 
 use crate::HasValidate;
 use axum_extra::extract::{Cached, WithRejection};

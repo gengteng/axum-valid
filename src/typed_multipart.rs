@@ -1,5 +1,54 @@
-//! # Implementation of the `HasValidate` trait for the `TypedMultipart` extractor.
+//! # Support for `TypedMultipart<T>` and `BaseMultipart<T, R>` from `axum_typed_multipart`
 //!
+//! ## Feature
+//!
+//! Enable the `typed_multipart` feature to use `Valid<TypedMultipart<T>>` and `Valid<BaseMultipart<T, R>>`.
+//!
+//! ## Usage
+//!
+//! 1. Implement `TryFromMultipart` and `Validate` for your data type `T`.
+//! 2. In your handler function, use `Valid<TypedMultipart<T>>` or `Valid<BaseMultipart<T, E>` as some parameter's type.
+//!
+//! ## Example
+//!
+//! ```no_run
+//! use axum::routing::post;
+//! use axum::Router;
+//! use axum_typed_multipart::{BaseMultipart, TryFromMultipart, TypedMultipart, TypedMultipartError};
+//! use axum_valid::Valid;
+//! use validator::Validate;
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let router = Router::new()
+//!         .route("/typed_multipart", post(handler))
+//!         .route("/base_multipart", post(base_handler));
+//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//!         .serve(router.into_make_service())
+//!         .await?;
+//!     Ok(())
+//! }
+//!
+//! async fn handler(Valid(TypedMultipart(parameter)): Valid<TypedMultipart<Parameter>>) {
+//!     assert!(parameter.validate().is_ok());
+//! }
+//!
+//! async fn base_handler(
+//!     Valid(BaseMultipart {
+//!         data: parameter, ..
+//!     }): Valid<BaseMultipart<Parameter, TypedMultipartError>>,
+//! ) {
+//!     assert!(parameter.validate().is_ok());
+//! }
+//!
+//! #[derive(TryFromMultipart, Validate)]
+//! struct Parameter {
+//!     #[validate(range(min = 5, max = 10))]
+//!     v0: i32,
+//!     #[validate(length(min = 1, max = 10))]
+//!     v1: String,
+//! }
+//! ```
 
 use crate::HasValidate;
 use axum_typed_multipart::{BaseMultipart, TypedMultipart};

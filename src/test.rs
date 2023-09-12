@@ -96,6 +96,12 @@ async fn test_main() -> anyhow::Result<()> {
             post(extra::extract_with_rejection_valid),
         );
 
+    #[cfg(feature = "extra_typed_path")]
+    let router = router.route(
+        extra_typed_path::route::EXTRA_TYPED_PATH,
+        get(extra_typed_path::extract_extra_typed_path),
+    );
+
     #[cfg(feature = "extra_query")]
     let router = router.route(
         extra_query::route::EXTRA_QUERY,
@@ -244,6 +250,61 @@ async fn test_main() -> anyhow::Result<()> {
                 extra::route::WITH_REJECTION_VALID,
             )
             .await?;
+    }
+
+    #[cfg(feature = "extra_typed_path")]
+    {
+        {
+            let extra_typed_path_type_name = "T: TypedPath";
+            let valid_extra_typed_path_response = test_executor
+                .client()
+                .get(format!(
+                    "{}/extra_typed_path/{}/{}",
+                    server_url, VALID_PARAMETERS.v0, VALID_PARAMETERS.v1
+                ))
+                .send()
+                .await?;
+            assert_eq!(
+                valid_extra_typed_path_response.status(),
+                StatusCode::OK,
+                "Valid '{}' test failed.",
+                extra_typed_path_type_name
+            );
+
+            let error_extra_typed_path_response = test_executor
+                .client()
+                .get(format!("{}/extra_typed_path/not_i32/path", server_url))
+                .send()
+                .await?;
+            assert_eq!(
+                error_extra_typed_path_response.status(),
+                StatusCode::BAD_REQUEST,
+                "Error '{}' test failed.",
+                extra_typed_path_type_name
+            );
+
+            let invalid_extra_typed_path_response = test_executor
+                .client()
+                .get(format!(
+                    "{}/extra_typed_path/{}/{}",
+                    server_url, INVALID_PARAMETERS.v0, INVALID_PARAMETERS.v1
+                ))
+                .send()
+                .await?;
+            assert_eq!(
+                invalid_extra_typed_path_response.status(),
+                VALIDATION_ERROR_STATUS,
+                "Invalid '{}' test failed.",
+                extra_typed_path_type_name
+            );
+            #[cfg(feature = "into_json")]
+            check_json(
+                extra_typed_path_type_name,
+                invalid_extra_typed_path_response,
+            )
+            .await;
+            println!("All {} tests passed.", extra_typed_path_type_name);
+        }
     }
 
     #[cfg(feature = "extra_query")]
@@ -411,7 +472,7 @@ fn validate_again<V: Validate>(validate: V) -> StatusCode {
 mod typed_header {
 
     pub(crate) mod route {
-        pub const TYPED_HEADER: &str = "/typedHeader";
+        pub const TYPED_HEADER: &str = "/typed_header";
     }
 
     use super::{validate_again, Parameters};
@@ -662,6 +723,41 @@ mod extra {
         >,
     ) -> StatusCode {
         validate_again(parameters)
+    }
+}
+
+#[cfg(feature = "extra_typed_path")]
+mod extra_typed_path {
+    use crate::test::validate_again;
+    use crate::{HasValidate, Valid};
+    use axum::http::StatusCode;
+    use axum_extra::routing::TypedPath;
+    use serde::Deserialize;
+    use validator::Validate;
+
+    pub mod route {
+        pub const EXTRA_TYPED_PATH: &str = "/extra_typed_path/:v0/:v1";
+    }
+
+    #[derive(Validate, TypedPath, Deserialize)]
+    #[typed_path("/extra_typed_path/:v0/:v1")]
+    pub struct TypedPathParam {
+        #[validate(range(min = 5, max = 10))]
+        v0: i32,
+        #[validate(length(min = 1, max = 10))]
+        v1: String,
+    }
+
+    impl HasValidate for TypedPathParam {
+        type Validate = Self;
+
+        fn get_validate(&self) -> &Self::Validate {
+            self
+        }
+    }
+
+    pub async fn extract_extra_typed_path(Valid(param): Valid<TypedPathParam>) -> StatusCode {
+        validate_again(param)
     }
 }
 

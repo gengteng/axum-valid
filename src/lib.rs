@@ -116,6 +116,9 @@ impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
 }
 
 /// Trait for types that can provide a reference that can be validated for correctness.
+///
+/// Extractor types `T` that implement this trait can be used with `Valid`.
+///
 pub trait HasValidate {
     /// Inner type that can be validated for correctness
     type Validate: Validate;
