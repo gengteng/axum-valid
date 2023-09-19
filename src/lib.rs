@@ -38,7 +38,17 @@ pub const VALIDATION_ERROR_STATUS: StatusCode = StatusCode::UNPROCESSABLE_ENTITY
 #[cfg(not(feature = "422"))]
 pub const VALIDATION_ERROR_STATUS: StatusCode = StatusCode::BAD_REQUEST;
 
-/// Valid entity extractor
+/// # `Valid` data extractor
+///
+/// This extractor can be used in combination with axum's extractors like
+/// Json, Form, Query, Path, etc to validate their inner data automatically.
+/// It can also work with custom extractors that implement the `HasValidate` trait.
+///
+/// See the docs for each integration module to find examples of using
+/// `Valid` with that extractor:
+///
+/// For examples with custom extractors, check out the `tests/custom.rs` file.
+///
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Valid<E>(pub E);
 

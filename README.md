@@ -21,7 +21,8 @@ use validator::Validate;
 use serde::Deserialize;
 use axum_valid::Valid;
 use axum::extract::Query;
-use axum::Json;
+use axum::{Json, Router};
+use axum::routing::{get, post};
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct Pager {
@@ -59,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
 
 When validation errors occur, the extractor will automatically return 400 with validation errors as the HTTP message body.
 
-To see how each extractor can be used with `Valid`, please refer to the example in the [documentation](#modules) of the corresponding module.
+To see how each extractor can be used with `Valid`, please refer to the example in the [documentation](https://docs.rs/axum-valid) of the corresponding module.
 
 ## Features
 
@@ -83,6 +84,11 @@ To see how each extractor can be used with `Valid`, please refer to the example 
 | 422              | Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails | ❌       | ✅       | ✅     |
 | into_json        | Validation errors will be serialized into JSON format and returned as the HTTP body                  | ❌       | ✅       | ✅     |
 | full             | Enables all features                                                                                 | ❌       | ✅       | ✅     |
+
+## Compatibility
+
+* axum-valid 0.7.x works with axum-extra v0.7.x
+* axum-valid 0.8.x works with axum-extra v0.8.x
 
 ## License
 

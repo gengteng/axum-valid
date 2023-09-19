@@ -1,18 +1,29 @@
-//! # Support for `Cached<T>` and `WithRejection<T, R>`
+//! # Support for extractors from `axum-extra`
 //!
 //! ## Feature
 //!
 //! Enable the `extra` feature to use `Valid<Cached<T>>`, `Valid<WithRejection<T, R>>` and `WithRejection<Valid<T>, R>`.
 //!
-//! ## `Valid<Cached<T>>`
+//! ## Modules
 //!
-//! ### Usage
+//! * [`self`] : `Cache<T>`
+//! * [`self`] : `WithRejection<T, R>`
+//! * [`form`] : `Form<T>`
+//! * [`protobuf`] : `Protobuf<T>`
+//! * [`query`] : `Query<T>`
+//! * [`typed_path`] : `T: TypedPath`
+//!
+//! ## `Cached<T>` and `WithRejection<T, R>`
+//!
+//! ### `Valid<Cached<T>>`
+//!
+//! #### Usage
 //!
 //! 0. Implement your own extractor `T`.
 //! 1. Implement `Clone` and `Validate` for your extractor type `T`.
 //! 2. In your handler function, use `Valid<Cached<T>>` as some parameter's type.
 //!
-//! ### Example
+//! #### Example
 //!
 //! ```no_run
 //! use axum::extract::FromRequestParts;
@@ -63,15 +74,15 @@
 //! }
 //! ```
 //!
-//! ## `Valid<WithRejection<T, R>>`
+//! ### `Valid<WithRejection<T, R>>`
 //!
-//! ### Usage
+//! #### Usage
 //!
 //! 0. Implement your own extractor `T` and rejection type `R`.
 //! 1. Implement `Validate` for your extractor type `T`.
 //! 2. In your handler function, use `Valid<WithRejection<T, R>>` as some parameter's type.
 //!
-//! ### Example
+//! #### Example
 //!
 //! ```no_run
 //! use axum::extract::FromRequestParts;
@@ -128,16 +139,16 @@
 //! }
 //! ```
 //!
-//! ## `WithRejection<Valid<T>, R>`
+//! ### `WithRejection<Valid<T>, R>`
 //!
-//! ### Usage
+//! #### Usage
 //!
 //! 0. Implement your own extractor `T` and rejection type `R`.
 //! 1. Implement `Validate` and `HasValidate` for your extractor type `T`.
 //! 2. Implement `From<ValidRejection<T::Rejection>>` for `R`.
 //! 3. In your handler function, use `WithRejection<Valid<T>, R>` as some parameter's type.
 //!
-//! ### Example
+//! #### Example
 //!
 //! ```no_run
 //! use axum::extract::FromRequestParts;

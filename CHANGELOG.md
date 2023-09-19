@@ -8,6 +8,16 @@
 
 ### Fixed
 
+## axum-valid 0.8.0 (2023-09-19)
+
+### Added
+
+* Upgraded `axum-extra` dependencies to version 0.8.0
+
+### Changed
+
+### Fixed
+
 ## axum-valid 0.7.0 (2023-09-12)
 
 ### Added
