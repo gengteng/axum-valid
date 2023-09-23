@@ -703,16 +703,9 @@ mod extra {
 
     impl<E: IntoResponse> IntoResponse for WithRejectionValidRejection<E> {
         fn into_response(self) -> Response {
-            match self.inner {
-                ValidRejection::Valid(v) => {
-                    (StatusCode::IM_A_TEAPOT, v.to_string()).into_response()
-                }
-                ValidRejection::Inner(i) => {
-                    let mut res = i.into_response();
-                    *res.status_mut() = StatusCode::IM_A_TEAPOT;
-                    res
-                }
-            }
+            let mut res = self.inner.into_response();
+            *res.status_mut() = StatusCode::IM_A_TEAPOT;
+            res
         }
     }
 
