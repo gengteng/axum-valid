@@ -137,28 +137,34 @@ impl<E> From<ValidationErrors> for ValidError<E> {
     }
 }
 
-impl<E: IntoResponse> IntoResponse for ValidError<E> {
-    fn into_response(self) -> Response {
-        match self {
-            ValidError::Valid(validate_error) => {
-                #[cfg(feature = "into_json")]
-                {
-                    (VALIDATION_ERROR_STATUS, axum::Json(validate_error)).into_response()
-                }
-                #[cfg(not(feature = "into_json"))]
-                {
-                    (VALIDATION_ERROR_STATUS, validate_error.to_string()).into_response()
-                }
-            }
-            ValidError::Inner(json_error) => json_error.into_response(),
-        }
-    }
-}
-
 /// Validation Rejection
 pub struct ValidRejection<E> {
     error: ValidError<E>,
     response_builder: fn(ValidationErrors) -> Response,
+}
+
+impl<E: Display> Display for ValidRejection<E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self.error {
+            ValidError::Valid(errors) => write!(f, "{errors}"),
+            ValidError::Inner(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl<E: Debug> Debug for ValidRejection<E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.error, f)
+    }
+}
+
+impl<E: Error + 'static> Error for ValidRejection<E> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self.error {
+            ValidError::Valid(ve) => Some(ve),
+            ValidError::Inner(e) => Some(e),
+        }
+    }
 }
 
 impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
