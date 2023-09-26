@@ -73,11 +73,28 @@ impl<E> Valid<E> {
     }
 }
 
-/// Validation context
+/// `ValidationContext` configures the response returned when validation fails.
+///
+/// By providing a ValidationContext to the Valid extractor, you can customize
+/// the HTTP status code and response body returned on validation failure.
+///
 #[derive(Debug, Copy, Clone)]
 pub struct ValidationContext {
     /// Validation error response builder
-    pub response_builder: fn(ValidationErrors) -> Response,
+    response_builder: fn(ValidationErrors) -> Response,
+}
+
+#[cfg(feature = "json")]
+fn json_response_builder(ve: ValidationErrors) -> Response {
+    {
+        (VALIDATION_ERROR_STATUS, axum::Json(ve)).into_response()
+    }
+}
+
+fn string_response_builder(ve: ValidationErrors) -> Response {
+    {
+        (VALIDATION_ERROR_STATUS, ve.to_string()).into_response()
+    }
 }
 
 impl Default for ValidationContext {
@@ -85,15 +102,63 @@ impl Default for ValidationContext {
         fn response_builder(ve: ValidationErrors) -> Response {
             #[cfg(feature = "into_json")]
             {
-                (VALIDATION_ERROR_STATUS, axum::Json(ve)).into_response()
+                json_response_builder(ve)
             }
             #[cfg(not(feature = "into_json"))]
             {
-                (VALIDATION_ERROR_STATUS, ve.to_string()).into_response()
+                string_response_builder(ve)
             }
         }
 
         Self { response_builder }
+    }
+}
+
+impl ValidationContext {
+    /// Construct a `ValidationContext` with a custom response builder function
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use axum::{response::IntoResponse, Json};
+    /// use axum::http::StatusCode;
+    /// use axum::response::Response;
+    /// use validator::ValidationErrors;
+    /// use axum_valid::ValidationContext;
+    ///
+    ///
+    /// fn custom_response(errors: ValidationErrors) -> Response {
+    ///   // return response with custom status code and body
+    ///   (StatusCode::NOT_FOUND, Json(errors)).into_response()
+    /// }
+    ///
+    /// let context = ValidationContext::custom(custom_response);
+    /// ```
+    pub fn custom(response_builder: fn(ValidationErrors) -> Response) -> Self {
+        Self { response_builder }
+    }
+
+    /// Construct a ValidationContext that returns a string response
+    ///
+    /// This will return a response with the validation errors formatted as a string
+    /// The response status code will be `400 Bad Request` by default, or `422 Unprocessable Entity` if the `422` feature is enabled.
+    pub fn string() -> Self {
+        Self {
+            response_builder: string_response_builder,
+        }
+    }
+
+    /// Construct a ValidationContext that returns a JSON response
+    ///
+    /// This will return a response with the validation errors serialized as JSON.
+    /// The response status code will be `400 Bad Request` by default, or `422 Unprocessable Entity` if the `422` feature is enabled.
+    ///
+    /// Requires the `json` feature to be enabled.
+    #[cfg(feature = "json")]
+    pub fn json() -> Self {
+        Self {
+            response_builder: json_response_builder,
+        }
     }
 }
 
@@ -103,8 +168,13 @@ impl FromRef<()> for ValidationContext {
     }
 }
 
-/// If the valid extractor fails it'll use this "rejection" type.
-/// This rejection type can be converted into a response.
+/// `ValidError` is the error type returned when the `Valid` extractor fails.
+///
+/// It has two variants:
+///
+/// - Valid: Contains validation errors (ValidationErrors) when validation fails.
+/// - Inner: Contains the inner extractor error when the internal extractor fails.
+///
 #[derive(Debug)]
 pub enum ValidError<E> {
     /// Validation errors
@@ -137,7 +207,10 @@ impl<E> From<ValidationErrors> for ValidError<E> {
     }
 }
 
-/// Validation Rejection
+/// `ValidRejection` is returned when the `Valid` extractor fails.
+///
+/// It contains the underlying `ValidError` and handles converting it
+/// into a proper HTTP response.
 pub struct ValidRejection<E> {
     error: ValidError<E>,
     response_builder: fn(ValidationErrors) -> Response,
