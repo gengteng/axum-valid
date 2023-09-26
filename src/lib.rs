@@ -190,7 +190,7 @@ pub trait HasValidate {
 #[async_trait]
 impl<S, B, E> FromRequest<S, B> for Valid<E>
 where
-    S: Send + Sync + 'static,
+    S: Send + Sync,
     B: Send + Sync + 'static,
     E: HasValidate + FromRequest<S, B>,
     E::Validate: Validate,
@@ -220,7 +220,7 @@ where
 #[async_trait]
 impl<S, E> FromRequestParts<S> for Valid<E>
 where
-    S: Send + Sync + 'static,
+    S: Send + Sync,
     E: HasValidate + FromRequestParts<S>,
     E::Validate: Validate,
     ValidationContext: FromRef<S>,
