@@ -29,7 +29,7 @@ use axum::response::{IntoResponse, Response};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut};
-use validator::{Validate, ValidationErrors};
+use validator::{Validate, ValidateArgs, ValidationErrors};
 
 /// Http status code returned when there are validation errors.
 #[cfg(feature = "422")]
@@ -68,6 +68,31 @@ impl<E> DerefMut for Valid<E> {
 
 impl<E> Valid<E> {
     /// Consume the `Valid` extractor and returns the inner type.
+    pub fn into_inner(self) -> E {
+        self.0
+    }
+}
+
+///
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ValidArgs<E>(pub E);
+
+impl<E> Deref for ValidArgs<E> {
+    type Target = E;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<E> DerefMut for ValidArgs<E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<E> ValidArgs<E> {
+    /// Consume the `ValidArgs` extractor and returns the inner type.
     pub fn into_inner(self) -> E {
         self.0
     }
@@ -260,6 +285,14 @@ pub trait HasValidate {
     fn get_validate(&self) -> &Self::Validate;
 }
 
+///
+pub trait HasValidateArgs<'v> {
+    /// Inner type that can be validated for correctness
+    type ValidateArgs: ValidateArgs<'v>;
+    /// Get the inner value
+    fn get_validate_args(&self) -> &Self::ValidateArgs;
+}
+
 #[async_trait]
 impl<S, B, E> FromRequest<S, B> for Valid<E>
 where
@@ -316,6 +349,69 @@ where
                 response_builder: context.response_builder,
             })?;
         Ok(Valid(inner))
+    }
+}
+
+#[async_trait]
+impl<'v, S, B, E> FromRequest<S, B> for ValidArgs<E>
+where
+    S: Send + Sync,
+    B: Send + Sync + 'static,
+    E: HasValidateArgs<'v> + FromRequest<S, B>,
+    E::ValidateArgs: ValidateArgs<'v>,
+    <<E as HasValidateArgs<'v>>::ValidateArgs as ValidateArgs<'v>>::Args: FromRef<S>,
+    ValidationContext: FromRef<S>,
+{
+    type Rejection = ValidRejection<<E as FromRequest<S, B>>::Rejection>;
+
+    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+        let context: ValidationContext = FromRef::from_ref(state);
+        let inner = E::from_request(req, state)
+            .await
+            .map_err(|e| ValidRejection {
+                error: ValidError::Inner(e),
+                response_builder: context.response_builder,
+            })?;
+        let args = FromRef::from_ref(state);
+        inner
+            .get_validate_args()
+            .validate_args(args)
+            .map_err(|e| ValidRejection {
+                error: ValidError::Valid(e),
+                response_builder: context.response_builder,
+            })?;
+        Ok(ValidArgs(inner))
+    }
+}
+
+#[async_trait]
+impl<'v, S, E> FromRequestParts<S> for ValidArgs<E>
+where
+    S: Send + Sync,
+    E: HasValidateArgs<'v> + FromRequestParts<S>,
+    E::ValidateArgs: ValidateArgs<'v>,
+    <<E as HasValidateArgs<'v>>::ValidateArgs as ValidateArgs<'v>>::Args: FromRef<S>,
+    ValidationContext: FromRef<S>,
+{
+    type Rejection = ValidRejection<<E as FromRequestParts<S>>::Rejection>;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let context: ValidationContext = FromRef::from_ref(state);
+        let inner = E::from_request_parts(parts, state)
+            .await
+            .map_err(|e| ValidRejection {
+                error: ValidError::Inner(e),
+                response_builder: context.response_builder,
+            })?;
+        let args = FromRef::from_ref(state);
+        inner
+            .get_validate_args()
+            .validate_args(args)
+            .map_err(|e| ValidRejection {
+                error: ValidError::Valid(e),
+                response_builder: context.response_builder,
+            })?;
+        Ok(ValidArgs(inner))
     }
 }
 
