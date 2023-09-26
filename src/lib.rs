@@ -45,7 +45,7 @@ pub const VALIDATION_ERROR_STATUS: StatusCode = StatusCode::BAD_REQUEST;
 /// It can also work with custom extractors that implement the `HasValidate` trait.
 ///
 /// See the docs for each integration module to find examples of using
-/// `Valid` with that extractor:
+/// `Valid` with that extractor.
 ///
 /// For examples with custom extractors, check out the `tests/custom.rs` file.
 ///
