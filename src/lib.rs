@@ -73,7 +73,17 @@ impl<E> Valid<E> {
     }
 }
 
+/// `ValidArgs` can be used with extractors from the various modules.
+/// Refer to the examples for `Valid` in each module - the usage of
+/// `ValidArgs` is similar, except the inner data type implements
+/// `ValidateArgs` instead of `Validate`.
 ///
+/// `ValidateArgs` is usually automatically implemented by validator's
+/// derive macros. Refer to validator's documentation for details.
+///
+/// Note that the documentation for each module currently only shows  
+/// examples of `Valid`, and does not demonstrate concrete usage of
+/// `ValidArgs`, but the usage is analogous.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ValidArgs<E>(pub E);
 
