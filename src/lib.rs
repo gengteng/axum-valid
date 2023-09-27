@@ -66,6 +66,12 @@ impl<E> DerefMut for Valid<E> {
     }
 }
 
+impl<T: Display> Display for ValidArgs<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 impl<E> Valid<E> {
     /// Consume the `Valid` extractor and returns the inner type.
     pub fn into_inner(self) -> E {
@@ -98,6 +104,12 @@ impl<E> Deref for ValidArgs<E> {
 impl<E> DerefMut for ValidArgs<E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<T: Display> Display for Valid<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 

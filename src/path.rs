@@ -37,13 +37,20 @@
 //! }
 //! ```
 
-use crate::HasValidate;
+use crate::{HasValidate, HasValidateArgs};
 use axum::extract::Path;
-use validator::Validate;
+use validator::{Validate, ValidateArgs};
 
 impl<T: Validate> HasValidate for Path<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Path<T> {
+    type ValidateArgs = T;
+    fn get_validate_args(&self) -> &Self::ValidateArgs {
         &self.0
     }
 }

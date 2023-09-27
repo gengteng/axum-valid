@@ -49,16 +49,14 @@
 //! }
 //! ```
 
-use crate::Valid;
+use crate::{Valid, ValidArgs};
 use axum_extra::routing::TypedPath;
-use std::fmt::{Display, Formatter};
-
-impl<T: Display> Display for Valid<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
+use std::fmt::Display;
 
 impl<T: TypedPath + Display> TypedPath for Valid<T> {
+    const PATH: &'static str = T::PATH;
+}
+
+impl<T: TypedPath + Display> TypedPath for ValidArgs<T> {
     const PATH: &'static str = T::PATH;
 }
