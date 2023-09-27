@@ -182,7 +182,7 @@ impl ValidationContext<()> {
     ///
     /// fn custom_response(errors: ValidationErrors) -> Response {
     ///   // return response with custom status code and body
-    ///   (StatusCode::NOT_FOUND, Json(errors)).into_response()
+    ///   (StatusCode::IM_A_TEAPOT, Json(errors)).into_response()
     /// }
     ///
     /// let context = ValidationContext::custom(custom_response);
@@ -290,6 +290,12 @@ impl<Arguments> ValidationContext<Arguments> {
             response_builder: self.response_builder,
             arguments: (),
         }
+    }
+}
+
+impl FromRef<()> for ValidationContext<()> {
+    fn from_ref(_: &()) -> Self {
+        ValidationContext::default()
     }
 }
 
