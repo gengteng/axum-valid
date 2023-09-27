@@ -211,12 +211,6 @@ impl ValidationContext {
     }
 }
 
-impl FromRef<()> for ValidationContext {
-    fn from_ref(_: &()) -> Self {
-        ValidationContext::default()
-    }
-}
-
 /// `ValidError` is the error type returned when the `Valid` extractor fails.
 ///
 /// It has two variants:
