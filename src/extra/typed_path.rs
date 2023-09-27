@@ -49,7 +49,7 @@
 //! }
 //! ```
 
-use crate::{Valid, ValidArgs};
+use crate::{Valid, ValidEx};
 use axum_extra::routing::TypedPath;
 use std::fmt::Display;
 
@@ -57,6 +57,6 @@ impl<T: TypedPath + Display> TypedPath for Valid<T> {
     const PATH: &'static str = T::PATH;
 }
 
-impl<T: TypedPath + Display> TypedPath for ValidArgs<T> {
+impl<T: TypedPath + Display> TypedPath for ValidEx<T> {
     const PATH: &'static str = T::PATH;
 }

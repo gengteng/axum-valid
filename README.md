@@ -8,6 +8,8 @@
 
 This crate provides a `Valid` type that can be used in combination with `Json`, `Path`, `Query`, and `Form` extractors to validate the entities that implement the `Validate` trait from the `validator` crate.
 
+It also provides a `ValidEx` type that works similarly to `Valid`, but can perform validation requiring additional arguments by using types that implement the `ValidateArgs` trait.
+
 Additional extractors like `TypedHeader`, `MsgPack`, `Yaml` etc. are supported through optional features. The full list of supported extractors is in the Features section below.
 
 ## Basic usage

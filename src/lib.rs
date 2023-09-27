@@ -66,7 +66,7 @@ impl<E> DerefMut for Valid<E> {
     }
 }
 
-impl<T: Display> Display for ValidArgs<T> {
+impl<T: Display> Display for ValidEx<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
@@ -79,9 +79,11 @@ impl<E> Valid<E> {
     }
 }
 
-/// `ValidArgs` can be used with extractors from the various modules.
+/// # `ValidEx` data extractor
+///
+/// `ValidEx` can be used with extractors from the various modules.
 /// Refer to the examples for `Valid` in each module - the usage of
-/// `ValidArgs` is similar, except the inner data type implements
+/// `ValidEx` is similar, except the inner data type implements
 /// `ValidateArgs` instead of `Validate`.
 ///
 /// `ValidateArgs` is usually automatically implemented by validator's
@@ -89,11 +91,11 @@ impl<E> Valid<E> {
 ///
 /// Note that the documentation for each module currently only shows  
 /// examples of `Valid`, and does not demonstrate concrete usage of
-/// `ValidArgs`, but the usage is analogous.
+/// `ValidEx`, but the usage is analogous.
 #[derive(Debug, Clone, Copy, Default)]
-pub struct ValidArgs<E>(pub E);
+pub struct ValidEx<E>(pub E);
 
-impl<E> Deref for ValidArgs<E> {
+impl<E> Deref for ValidEx<E> {
     type Target = E;
 
     fn deref(&self) -> &Self::Target {
@@ -101,7 +103,7 @@ impl<E> Deref for ValidArgs<E> {
     }
 }
 
-impl<E> DerefMut for ValidArgs<E> {
+impl<E> DerefMut for ValidEx<E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -113,8 +115,8 @@ impl<T: Display> Display for Valid<T> {
     }
 }
 
-impl<E> ValidArgs<E> {
-    /// Consume the `ValidArgs` extractor and returns the inner type.
+impl<E> ValidEx<E> {
+    /// Consume the `ValidEx` extractor and returns the inner type.
     pub fn into_inner(self) -> E {
         self.0
     }
@@ -375,7 +377,7 @@ where
 }
 
 #[async_trait]
-impl<'v, S, B, E> FromRequest<S, B> for ValidArgs<E>
+impl<'v, S, B, E> FromRequest<S, B> for ValidEx<E>
 where
     S: Send + Sync,
     B: Send + Sync + 'static,
@@ -402,12 +404,12 @@ where
                 error: ValidError::Valid(e),
                 response_builder: context.response_builder,
             })?;
-        Ok(ValidArgs(inner))
+        Ok(ValidEx(inner))
     }
 }
 
 #[async_trait]
-impl<'v, S, E> FromRequestParts<S> for ValidArgs<E>
+impl<'v, S, E> FromRequestParts<S> for ValidEx<E>
 where
     S: Send + Sync,
     E: HasValidateArgs<'v> + FromRequestParts<S>,
@@ -433,7 +435,7 @@ where
                 error: ValidError::Valid(e),
                 response_builder: context.response_builder,
             })?;
-        Ok(ValidArgs(inner))
+        Ok(ValidEx(inner))
     }
 }
 
