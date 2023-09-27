@@ -57,6 +57,6 @@ impl<T: TypedPath + Display> TypedPath for Valid<T> {
     const PATH: &'static str = T::PATH;
 }
 
-impl<T: TypedPath + Display> TypedPath for ValidEx<T> {
+impl<T: TypedPath + Display, A> TypedPath for ValidEx<T, A> {
     const PATH: &'static str = T::PATH;
 }
