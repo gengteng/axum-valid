@@ -61,9 +61,7 @@ pub struct ParametersExValidationArguments {
 }
 
 impl<'a> Arguments<'a, ParametersEx> for ParametersExValidationArguments {
-    type A = <ParametersEx as ValidateArgs<'a>>::Args;
-
-    fn get(&'a self) -> Self::A {
+    fn get(&'a self) -> <ParametersEx as ValidateArgs<'a>>::Args {
         (&self.v0_range, &self.v1_length_range)
     }
 }

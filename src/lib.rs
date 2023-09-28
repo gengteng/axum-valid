@@ -162,11 +162,12 @@ impl<Arguments> ValidationContext<Arguments> {
 /// `T`: data type to validate
 /// `Self::A`: dependent arguments
 ///
-pub trait Arguments<'a, T> {
-    /// Argument type
-    type A: 'a;
+pub trait Arguments<'a, T>
+where
+    T: ValidateArgs<'a>,
+{
     /// Get dependent arguments
-    fn get(&'a self) -> Self::A;
+    fn get(&'a self) -> T::Args;
 }
 
 /// `ValidRejection` is returned when the `Valid` extractor fails.
@@ -275,10 +276,7 @@ where
     Body: Send + Sync + 'static,
     Args: Send + Sync + for<'a> Arguments<'a, <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequest<State, Body>,
-    for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<
-        'v,
-        Args = <Args as Arguments<'v, <Extractor as HasValidateArgs<'v>>::ValidateArgs>>::A,
-    >,
+    for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v>,
     ValidationContext<Args>: FromRef<State>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
@@ -300,10 +298,7 @@ where
     State: Send + Sync,
     Args: Send + Sync + for<'a> Arguments<'a, <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequestParts<State>,
-    for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<
-        'v,
-        Args = <Args as Arguments<'v, <Extractor as HasValidateArgs<'v>>::ValidateArgs>>::A,
-    >,
+    for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v>,
     ValidationContext<Args>: FromRef<State>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequestParts<State>>::Rejection>;
