@@ -159,14 +159,13 @@ impl<Arguments> ValidationContext<Arguments> {
 
 /// # Arguments
 ///
-/// `T`: data type to validate
-/// `Self::A`: dependent arguments
+/// * `T`: The data type to validate using arguments
 ///
 pub trait Arguments<'a, T>
 where
     T: ValidateArgs<'a>,
 {
-    /// Get dependent arguments
+    /// Get arguments from `self`
     fn get(&'a self) -> T::Args;
 }
 
