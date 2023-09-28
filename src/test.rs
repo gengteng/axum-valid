@@ -9,8 +9,8 @@ use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
 use std::any::type_name;
 use std::net::SocketAddr;
-use std::ops::Deref;
-use validator::Validate;
+use std::ops::{Deref, RangeInclusive};
+use validator::{Validate, ValidationError};
 
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
@@ -25,6 +25,48 @@ pub struct Parameters {
     #[validate(length(min = 1, max = 10))]
     #[cfg_attr(feature = "extra_protobuf", prost(string, tag = "2"))]
     v1: String,
+}
+
+#[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
+#[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
+#[cfg_attr(
+    feature = "typed_multipart",
+    derive(axum_typed_multipart::TryFromMultipart)
+)]
+pub struct ParametersEx {
+    #[validate(custom(function = "validate_v0", arg = "&'v_a RangeInclusive<i32>"))]
+    #[cfg_attr(feature = "extra_protobuf", prost(int32, tag = "1"))]
+    v0: i32,
+    #[validate(custom(function = "validate_v1", arg = "&'v_a RangeInclusive<usize>"))]
+    #[cfg_attr(feature = "extra_protobuf", prost(string, tag = "2"))]
+    v1: String,
+}
+
+fn validate_v0(v: i32, args: &RangeInclusive<i32>) -> Result<(), ValidationError> {
+    args.contains(&v)
+        .then_some(())
+        .ok_or_else(|| ValidationError::new("v0 is out of range"))
+}
+
+fn validate_v1(v: &str, args: &RangeInclusive<usize>) -> Result<(), ValidationError> {
+    args.contains(&v.len())
+        .then_some(())
+        .ok_or_else(|| ValidationError::new("v1 is invalid"))
+}
+
+#[derive(Debug)]
+pub struct ValidationArgs {
+    v0_range: RangeInclusive<i32>,
+    v1_length_range: RangeInclusive<usize>,
+}
+
+impl Default for ValidationArgs {
+    fn default() -> Self {
+        Self {
+            v0_range: 5..=10,
+            v1_length_range: 1..=10,
+        }
+    }
 }
 
 static VALID_PARAMETERS: Lazy<Parameters> = Lazy::new(|| Parameters {
