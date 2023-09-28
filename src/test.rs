@@ -1,5 +1,5 @@
 use crate::tests::{ValidTest, ValidTestParameter};
-use crate::{HasValidate, Valid, VALIDATION_ERROR_STATUS};
+use crate::{Arguments, HasValidate, Valid, ValidEx, ValidationContext, VALIDATION_ERROR_STATUS};
 use axum::extract::{Path, Query};
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::any::type_name;
 use std::net::SocketAddr;
 use std::ops::{Deref, RangeInclusive};
-use validator::{Validate, ValidationError};
+use validator::{Validate, ValidateArgs, ValidationError};
 
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
@@ -54,13 +54,21 @@ fn validate_v1(v: &str, args: &RangeInclusive<usize>) -> Result<(), ValidationEr
         .ok_or_else(|| ValidationError::new("v1 is invalid"))
 }
 
-#[derive(Debug)]
-pub struct ValidationArgs {
+#[derive(Debug, Clone)]
+pub struct ParametersExValidationArguments {
     v0_range: RangeInclusive<i32>,
     v1_length_range: RangeInclusive<usize>,
 }
 
-impl Default for ValidationArgs {
+impl<'a> Arguments<'a, ParametersEx> for ParametersExValidationArguments {
+    type A = <ParametersEx as ValidateArgs<'a>>::Args;
+
+    fn get(&'a self) -> Self::A {
+        (&self.v0_range, &self.v1_length_range)
+    }
+}
+
+impl Default for ParametersExValidationArguments {
     fn default() -> Self {
         Self {
             v0_range: 5..=10,
@@ -108,6 +116,13 @@ async fn test_main() -> anyhow::Result<()> {
         .route(route::QUERY, get(extract_query))
         .route(route::FORM, post(extract_form))
         .route(route::JSON, post(extract_json));
+
+    let router_ex = Router::new()
+        .route(route::QUERY_EX, get(extract_query_ex))
+        .route(route::JSON_EX, post(extract_json_ex))
+        .with_state(ValidationContext::<ParametersExValidationArguments>::default());
+
+    let router = router.merge(router_ex);
 
     #[cfg(feature = "typed_header")]
     let router = router.route(
@@ -234,16 +249,28 @@ async fn test_main() -> anyhow::Result<()> {
         println!("All {} tests passed.", path_type_name);
     }
 
+    // Valid
     test_executor
         .execute::<Query<Parameters>>(Method::GET, route::QUERY)
+        .await?;
+
+    // ValidEx
+    test_executor
+        .execute::<Query<Parameters>>(Method::GET, route::QUERY_EX)
         .await?;
 
     test_executor
         .execute::<Form<Parameters>>(Method::POST, route::FORM)
         .await?;
 
+    // Valid
     test_executor
         .execute::<Json<Parameters>>(Method::POST, route::JSON)
+        .await?;
+
+    // ValidEx
+    test_executor
+        .execute::<Json<Parameters>>(Method::POST, route::JSON_EX)
         .await?;
 
     #[cfg(feature = "typed_header")]
@@ -479,8 +506,10 @@ pub async fn check_json(type_name: &'static str, response: reqwest::Response) {
 mod route {
     pub const PATH: &str = "/path/:v0/:v1";
     pub const QUERY: &str = "/query";
+    pub const QUERY_EX: &str = "/query_ex";
     pub const FORM: &str = "/form";
     pub const JSON: &str = "/json";
+    pub const JSON_EX: &str = "/json_ex";
 }
 
 async fn extract_path(Valid(Path(parameters)): Valid<Path<Parameters>>) -> StatusCode {
@@ -491,12 +520,30 @@ async fn extract_query(Valid(Query(parameters)): Valid<Query<Parameters>>) -> St
     validate_again(parameters)
 }
 
+async fn extract_query_ex(
+    ValidEx(Query(parameters), args): ValidEx<Query<ParametersEx>, ParametersExValidationArguments>,
+) -> StatusCode {
+    match parameters.validate_args(args.get()) {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
 async fn extract_form(Valid(Form(parameters)): Valid<Form<Parameters>>) -> StatusCode {
     validate_again(parameters)
 }
 
 async fn extract_json(Valid(Json(parameters)): Valid<Json<Parameters>>) -> StatusCode {
     validate_again(parameters)
+}
+
+async fn extract_json_ex(
+    ValidEx(Json(parameters), args): ValidEx<Json<ParametersEx>, ParametersExValidationArguments>,
+) -> StatusCode {
+    match parameters.validate_args(args.get()) {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
 }
 
 fn validate_again<V: Validate>(validate: V) -> StatusCode {
