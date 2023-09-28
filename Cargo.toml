@@ -28,7 +28,7 @@ axum = { version = "0.6.20", default-features = false }
 validator = "0.16.1"
 
 [dependencies.axum_typed_multipart]
-version = "0.9.0"
+version = "0.10.0"
 default-features = false
 optional = true
 
