@@ -157,12 +157,12 @@ impl<Arguments> ValidationContext<Arguments> {
     }
 }
 
-/// Arguement store
+/// # Arguments
 ///
 /// `T`: data type to validate
 /// `Self::A`: dependent arguments
 ///
-pub trait ArgumentsStore<'a, T> {
+pub trait Arguments<'a, T> {
     /// Argument type
     type A: 'a;
     /// Get dependent arguments
@@ -269,23 +269,22 @@ where
 }
 
 #[async_trait]
-impl<State, Body, Extractor, Store> FromRequest<State, Body> for ValidEx<Extractor, Store>
+impl<State, Body, Extractor, Args> FromRequest<State, Body> for ValidEx<Extractor, Args>
 where
     State: Send + Sync,
     Body: Send + Sync + 'static,
-    Store:
-        Send + Sync + for<'a> ArgumentsStore<'a, <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
+    Args: Send + Sync + for<'a> Arguments<'a, <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequest<State, Body>,
     for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<
         'v,
-        Args = <Store as ArgumentsStore<'v, <Extractor as HasValidateArgs<'v>>::ValidateArgs>>::A,
+        Args = <Args as Arguments<'v, <Extractor as HasValidateArgs<'v>>::ValidateArgs>>::A,
     >,
-    ValidationContext<Store>: FromRef<State>,
+    ValidationContext<Args>: FromRef<State>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
 
     async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
-        let ValidationContext { arguments }: ValidationContext<Store> = FromRef::from_ref(state);
+        let ValidationContext { arguments }: ValidationContext<Args> = FromRef::from_ref(state);
         let inner = Extractor::from_request(req, state)
             .await
             .map_err(ValidRejection::Inner)?;
@@ -296,22 +295,21 @@ where
 }
 
 #[async_trait]
-impl<State, Extractor, Store> FromRequestParts<State> for ValidEx<Extractor, Store>
+impl<State, Extractor, Args> FromRequestParts<State> for ValidEx<Extractor, Args>
 where
     State: Send + Sync,
-    Store:
-        Send + Sync + for<'a> ArgumentsStore<'a, <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
+    Args: Send + Sync + for<'a> Arguments<'a, <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequestParts<State>,
     for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<
         'v,
-        Args = <Store as ArgumentsStore<'v, <Extractor as HasValidateArgs<'v>>::ValidateArgs>>::A,
+        Args = <Args as Arguments<'v, <Extractor as HasValidateArgs<'v>>::ValidateArgs>>::A,
     >,
-    ValidationContext<Store>: FromRef<State>,
+    ValidationContext<Args>: FromRef<State>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequestParts<State>>::Rejection>;
 
     async fn from_request_parts(parts: &mut Parts, state: &State) -> Result<Self, Self::Rejection> {
-        let ValidationContext { arguments }: ValidationContext<Store> = FromRef::from_ref(state);
+        let ValidationContext { arguments }: ValidationContext<Args> = FromRef::from_ref(state);
         let inner = Extractor::from_request_parts(parts, state)
             .await
             .map_err(ValidRejection::Inner)?;
