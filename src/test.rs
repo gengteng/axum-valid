@@ -1,6 +1,6 @@
 use crate::tests::{ValidTest, ValidTestParameter};
 use crate::{Arguments, HasValidate, Valid, ValidEx, ValidationContext, VALIDATION_ERROR_STATUS};
-use axum::extract::{Path, Query};
+use axum::extract::{FromRef, Path, Query};
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
 use hyper::Method;
@@ -107,6 +107,11 @@ impl HasValidate for Parameters {
     }
 }
 
+#[derive(Debug, Clone, FromRef)]
+struct MyState {
+    validation_ctx: ValidationContext<ParametersExValidationArguments>,
+}
+
 #[tokio::test]
 async fn test_main() -> anyhow::Result<()> {
     let router = Router::new()
@@ -117,8 +122,11 @@ async fn test_main() -> anyhow::Result<()> {
 
     let router_ex = Router::new()
         .route(route::QUERY_EX, get(extract_query_ex))
+        .route(route::FORM_EX, post(extract_form_ex))
         .route(route::JSON_EX, post(extract_json_ex))
-        .with_state(ValidationContext::<ParametersExValidationArguments>::default());
+        .with_state(MyState {
+            validation_ctx: ValidationContext::<ParametersExValidationArguments>::default(),
+        });
 
     let router = router.merge(router_ex);
 
@@ -257,8 +265,14 @@ async fn test_main() -> anyhow::Result<()> {
         .execute::<Query<Parameters>>(Method::GET, route::QUERY_EX)
         .await?;
 
+    // Valid
     test_executor
         .execute::<Form<Parameters>>(Method::POST, route::FORM)
+        .await?;
+
+    // ValidEx
+    test_executor
+        .execute::<Form<Parameters>>(Method::POST, route::FORM_EX)
         .await?;
 
     // Valid
@@ -506,6 +520,7 @@ mod route {
     pub const QUERY: &str = "/query";
     pub const QUERY_EX: &str = "/query_ex";
     pub const FORM: &str = "/form";
+    pub const FORM_EX: &str = "/form_ex";
     pub const JSON: &str = "/json";
     pub const JSON_EX: &str = "/json_ex";
 }
@@ -526,6 +541,12 @@ async fn extract_query_ex(
 
 async fn extract_form(Valid(Form(parameters)): Valid<Form<Parameters>>) -> StatusCode {
     validate_again(parameters)
+}
+
+async fn extract_form_ex(
+    ValidEx(Form(parameters), args): ValidEx<Form<ParametersEx>, ParametersExValidationArguments>,
+) -> StatusCode {
+    validate_again_ex(parameters, args.get())
 }
 
 async fn extract_json(Valid(Json(parameters)): Valid<Json<Parameters>>) -> StatusCode {

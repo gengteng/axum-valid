@@ -213,7 +213,7 @@ impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
     }
 }
 
-/// Trait for types that can provide a reference that can be validated for correctness.
+/// Trait for types that can supply a reference that can be validated.
 ///
 /// Extractor types `T` that implement this trait can be used with `Valid`.
 ///
@@ -224,9 +224,12 @@ pub trait HasValidate {
     fn get_validate(&self) -> &Self::Validate;
 }
 
+/// Trait for types that can supply a reference that can be validated using arguments.
+///
+/// Extractor types `T` that implement this trait can be used with `ValidEx`.
 ///
 pub trait HasValidateArgs<'v> {
-    /// Inner type that can be validated for correctness
+    /// Inner type that can be validated using arguments
     type ValidateArgs: ValidateArgs<'v>;
     /// Get the inner value
     fn get_validate_args(&self) -> &Self::ValidateArgs;
