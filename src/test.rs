@@ -521,10 +521,7 @@ async fn extract_query(Valid(Query(parameters)): Valid<Query<Parameters>>) -> St
 async fn extract_query_ex(
     ValidEx(Query(parameters), args): ValidEx<Query<ParametersEx>, ParametersExValidationArguments>,
 ) -> StatusCode {
-    match parameters.validate_args(args.get()) {
-        Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-    }
+    validate_again_ex(parameters, args.get())
 }
 
 async fn extract_form(Valid(Form(parameters)): Valid<Form<Parameters>>) -> StatusCode {
@@ -538,10 +535,7 @@ async fn extract_json(Valid(Json(parameters)): Valid<Json<Parameters>>) -> Statu
 async fn extract_json_ex(
     ValidEx(Json(parameters), args): ValidEx<Json<ParametersEx>, ParametersExValidationArguments>,
 ) -> StatusCode {
-    match parameters.validate_args(args.get()) {
-        Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-    }
+    validate_again_ex(parameters, args.get())
 }
 
 fn validate_again<V: Validate>(validate: V) -> StatusCode {
@@ -550,6 +544,20 @@ fn validate_again<V: Validate>(validate: V) -> StatusCode {
     // Let's validate them again to check if the `Valid` extractor works well.
     // If it works properly, this function will never return `500 INTERNAL SERVER ERROR`
     match validate.validate() {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+fn validate_again_ex<'v, V: ValidateArgs<'v>>(
+    validate: V,
+    args: <V as ValidateArgs<'v>>::Args,
+) -> StatusCode {
+    // The `Valid` extractor has validated the `parameters` once,
+    // it should have returned `400 BAD REQUEST` if the `parameters` were invalid,
+    // Let's validate them again to check if the `Valid` extractor works well.
+    // If it works properly, this function will never return `500 INTERNAL SERVER ERROR`
+    match validate.validate_args(args) {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
