@@ -122,260 +122,86 @@ impl<E, A> ValidEx<E, A> {
     }
 }
 
-/// `ValidationContext` configures the response returned when validation fails.
+/// `ValidationArguments` configures the response returned when validation fails.
 ///
-/// By providing a ValidationContext to the Valid extractor, you can customize
+/// By providing a ValidationArguments to the Valid extractor, you can customize
 /// the HTTP status code and response body returned on validation failure.
 ///
-#[derive(Debug, Copy, Clone)]
-pub struct ValidationContext<Arguments> {
-    /// Validation error response builder
-    response_builder: fn(ValidationErrors) -> Response,
+#[derive(Debug, Copy, Clone, Default)]
+pub struct ValidationArguments<Arguments> {
     arguments: Arguments,
 }
 
-#[cfg(feature = "json")]
-fn json_response_builder(ve: ValidationErrors) -> Response {
+fn response_builder(ve: ValidationErrors) -> Response {
+    #[cfg(feature = "into_json")]
     {
         (VALIDATION_ERROR_STATUS, axum::Json(ve)).into_response()
     }
-}
-
-fn string_response_builder(ve: ValidationErrors) -> Response {
+    #[cfg(not(feature = "into_json"))]
     {
         (VALIDATION_ERROR_STATUS, ve.to_string()).into_response()
     }
 }
 
-impl<Arguments: Default> Default for ValidationContext<Arguments> {
-    fn default() -> Self {
-        fn response_builder(ve: ValidationErrors) -> Response {
-            #[cfg(feature = "into_json")]
-            {
-                json_response_builder(ve)
-            }
-            #[cfg(not(feature = "into_json"))]
-            {
-                string_response_builder(ve)
-            }
-        }
-
-        Self {
-            response_builder,
-            arguments: Arguments::default(),
-        }
+impl ValidationArguments<()> {
+    /// Creates a new `ValidationArguments`.
+    pub fn with_arguments<Arguments>(self, arguments: Arguments) -> ValidationArguments<Arguments> {
+        ValidationArguments { arguments }
     }
 }
 
-impl ValidationContext<()> {
-    /// Construct a `ValidationContext` with a custom response builder function
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use axum::{response::IntoResponse, Json};
-    /// use axum::http::StatusCode;
-    /// use axum::response::Response;
-    /// use validator::ValidationErrors;
-    /// use axum_valid::ValidationContext;
-    ///
-    ///
-    /// fn custom_response(errors: ValidationErrors) -> Response {
-    ///   // return response with custom status code and body
-    ///   (StatusCode::IM_A_TEAPOT, Json(errors)).into_response()
-    /// }
-    ///
-    /// let context = ValidationContext::custom(custom_response);
-    /// ```
-    pub fn custom(response_builder: fn(ValidationErrors) -> Response) -> Self {
-        Self {
-            response_builder,
-            arguments: (),
-        }
-    }
-
-    /// Construct a ValidationContext that returns a string response
-    ///
-    /// This will return a response with the validation errors formatted as a string
-    /// The response status code will be `400 Bad Request` by default, or `422 Unprocessable Entity` if the `422` feature is enabled.
-    pub fn string() -> Self {
-        Self {
-            response_builder: string_response_builder,
-            arguments: (),
-        }
-    }
-
-    /// Construct a ValidationContext that returns a JSON response
-    ///
-    /// This will return a response with the validation errors serialized as JSON.
-    /// The response status code will be `400 Bad Request` by default, or `422 Unprocessable Entity` if the `422` feature is enabled.
-    ///
-    /// Requires the `json` feature to be enabled.
-    #[cfg(feature = "json")]
-    pub fn json() -> Self {
-        Self {
-            response_builder: json_response_builder,
-            arguments: (),
-        }
-    }
-
-    /// Creates a new `ValidationContext` with arguments.
-    pub fn with_arguments<Arguments>(self, arguments: Arguments) -> ValidationContext<Arguments> {
-        ValidationContext {
-            response_builder: self.response_builder,
-            arguments,
-        }
+impl<Arguments> ValidationArguments<Arguments> {
+    /// Creates a `ValidationArguments` with arguments
+    pub fn new(arguments: Arguments) -> Self {
+        Self { arguments }
     }
 }
 
-impl<Arguments> ValidationContext<Arguments> {
-    /// Construct a `ValidationContext` with a custom response builder function
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use axum::{response::IntoResponse, Json};
-    /// use axum::http::StatusCode;
-    /// use axum::response::Response;
-    /// use validator::ValidationErrors;
-    /// use axum_valid::ValidationContext;
-    ///
-    /// struct MyArguments;
-    ///
-    /// fn custom_response(errors: ValidationErrors) -> Response {
-    ///   // return response with custom status code and body
-    ///   (StatusCode::NOT_FOUND, Json(errors)).into_response()
-    /// }
-    ///
-    /// let context = ValidationContext::custom_with_arguments(custom_response, MyArguments);
-    /// ```
-    pub fn custom_with_arguments(
-        response_builder: fn(ValidationErrors) -> Response,
-        arguments: Arguments,
-    ) -> Self {
-        Self {
-            response_builder,
-            arguments,
-        }
-    }
-
-    /// Construct a ValidationContext that returns a string response
-    ///
-    /// This will return a response with the validation errors formatted as a string
-    /// The response status code will be `400 Bad Request` by default, or `422 Unprocessable Entity` if the `422` feature is enabled.
-    pub fn string_with_arguments(arguments: Arguments) -> Self {
-        Self {
-            response_builder: string_response_builder,
-            arguments,
-        }
-    }
-
-    /// Construct a ValidationContext that returns a JSON response
-    ///
-    /// This will return a response with the validation errors serialized as JSON.
-    /// The response status code will be `400 Bad Request` by default, or `422 Unprocessable Entity` if the `422` feature is enabled.
-    ///
-    /// Requires the `json` feature to be enabled.
-    #[cfg(feature = "json")]
-    pub fn json_with_arguments(arguments: Arguments) -> Self {
-        Self {
-            response_builder: json_response_builder,
-            arguments,
-        }
-    }
-
-    /// Creates a new `ValidationContext` with empty arguments.
-    pub fn without_arguments(&self) -> ValidationContext<()> {
-        ValidationContext {
-            response_builder: self.response_builder,
-            arguments: (),
-        }
-    }
-}
-
-impl FromRef<()> for ValidationContext<()> {
+impl FromRef<()> for ValidationArguments<()> {
     fn from_ref(_: &()) -> Self {
-        ValidationContext::default()
+        ValidationArguments::default()
     }
 }
 
-/// `ValidError` is the error type returned when the `Valid` extractor fails.
-///
-/// It has two variants:
-///
-/// - Valid: Contains validation errors (ValidationErrors) when validation fails.
-/// - Inner: Contains the inner extractor error when the internal extractor fails.
+/// `ValidRejection` is returned when the `Valid` extractor fails.
 ///
 #[derive(Debug)]
-pub enum ValidError<E> {
+pub enum ValidRejection<E> {
     /// Validation errors
     Valid(ValidationErrors),
     /// Inner extractor error
     Inner(E),
 }
 
-impl<E: Display> Display for ValidError<E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ValidError::Valid(errors) => write!(f, "{errors}"),
-            ValidError::Inner(error) => write!(f, "{error}"),
-        }
-    }
-}
-
-impl<E: Error + 'static> Error for ValidError<E> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            ValidError::Valid(ve) => Some(ve),
-            ValidError::Inner(e) => Some(e),
-        }
-    }
-}
-
-impl<E> From<ValidationErrors> for ValidError<E> {
-    fn from(value: ValidationErrors) -> Self {
-        Self::Valid(value)
-    }
-}
-
-/// `ValidRejection` is returned when the `Valid` extractor fails.
-///
-/// It contains the underlying `ValidError` and handles converting it
-/// into a proper HTTP response.
-pub struct ValidRejection<E> {
-    error: ValidError<E>,
-    response_builder: fn(ValidationErrors) -> Response,
-}
-
 impl<E: Display> Display for ValidRejection<E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match &self.error {
-            ValidError::Valid(errors) => write!(f, "{errors}"),
-            ValidError::Inner(error) => write!(f, "{error}"),
+        match self {
+            ValidRejection::Valid(errors) => write!(f, "{errors}"),
+            ValidRejection::Inner(error) => write!(f, "{error}"),
         }
-    }
-}
-
-impl<E: Debug> Debug for ValidRejection<E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&self.error, f)
     }
 }
 
 impl<E: Error + 'static> Error for ValidRejection<E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match &self.error {
-            ValidError::Valid(ve) => Some(ve),
-            ValidError::Inner(e) => Some(e),
+        match self {
+            ValidRejection::Valid(ve) => Some(ve),
+            ValidRejection::Inner(e) => Some(e),
         }
+    }
+}
+
+impl<E> From<ValidationErrors> for ValidRejection<E> {
+    fn from(value: ValidationErrors) -> Self {
+        Self::Valid(value)
     }
 }
 
 impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
     fn into_response(self) -> Response {
-        match self.error {
-            ValidError::Valid(ve) => (self.response_builder)(ve),
-            ValidError::Inner(e) => e.into_response(),
+        match self {
+            ValidRejection::Valid(ve) => response_builder(ve),
+            ValidRejection::Inner(e) => e.into_response(),
         }
     }
 }
@@ -406,25 +232,14 @@ where
     B: Send + Sync + 'static,
     E: HasValidate + FromRequest<S, B>,
     E::Validate: Validate,
-    ValidationContext<()>: FromRef<S>,
 {
     type Rejection = ValidRejection<<E as FromRequest<S, B>>::Rejection>;
 
     async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
-        let context: ValidationContext<()> = FromRef::from_ref(state);
         let inner = E::from_request(req, state)
             .await
-            .map_err(|e| ValidRejection {
-                error: ValidError::Inner(e),
-                response_builder: context.response_builder,
-            })?;
-        inner
-            .get_validate()
-            .validate()
-            .map_err(|e| ValidRejection {
-                error: ValidError::Valid(e),
-                response_builder: context.response_builder,
-            })?;
+            .map_err(ValidRejection::Inner)?;
+        inner.get_validate().validate()?;
         Ok(Valid(inner))
     }
 }
@@ -435,25 +250,14 @@ where
     S: Send + Sync,
     E: HasValidate + FromRequestParts<S>,
     E::Validate: Validate,
-    ValidationContext<()>: FromRef<S>,
 {
     type Rejection = ValidRejection<<E as FromRequestParts<S>>::Rejection>;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let context: ValidationContext<()> = FromRef::from_ref(state);
         let inner = E::from_request_parts(parts, state)
             .await
-            .map_err(|e| ValidRejection {
-                error: ValidError::Inner(e),
-                response_builder: context.response_builder,
-            })?;
-        inner
-            .get_validate()
-            .validate()
-            .map_err(|e| ValidRejection {
-                error: ValidError::Valid(e),
-                response_builder: context.response_builder,
-            })?;
+            .map_err(ValidRejection::Inner)?;
+        inner.get_validate().validate()?;
         Ok(Valid(inner))
     }
 }
@@ -466,29 +270,17 @@ where
     Arguments: Send + Sync,
     E: for<'v> HasValidateArgs<'v> + FromRequest<S, B>,
     for<'v> <E as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v, Args = &'v Arguments>,
-    ValidationContext<Arguments>: FromRef<S>,
+    ValidationArguments<Arguments>: FromRef<S>,
 {
     type Rejection = ValidRejection<<E as FromRequest<S, B>>::Rejection>;
 
     async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
-        let ValidationContext {
-            response_builder,
-            arguments,
-        }: ValidationContext<Arguments> = FromRef::from_ref(state);
+        let ValidationArguments { arguments }: ValidationArguments<Arguments> =
+            FromRef::from_ref(state);
         let inner = E::from_request(req, state)
             .await
-            .map_err(|e| ValidRejection {
-                error: ValidError::Inner(e),
-                response_builder,
-            })?;
-
-        inner
-            .get_validate_args()
-            .validate_args(&arguments)
-            .map_err(|e| ValidRejection {
-                error: ValidError::Valid(e),
-                response_builder,
-            })?;
+            .map_err(ValidRejection::Inner)?;
+        inner.get_validate_args().validate_args(&arguments)?;
         Ok(ValidEx(inner, arguments))
     }
 }
@@ -500,36 +292,24 @@ where
     Arguments: Send + Sync,
     E: for<'v> HasValidateArgs<'v> + FromRequestParts<S>,
     for<'v> <E as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v, Args = &'v Arguments>,
-    ValidationContext<Arguments>: FromRef<S>,
+    ValidationArguments<Arguments>: FromRef<S>,
 {
     type Rejection = ValidRejection<<E as FromRequestParts<S>>::Rejection>;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let ValidationContext {
-            response_builder,
-            arguments,
-        }: ValidationContext<Arguments> = FromRef::from_ref(state);
+        let ValidationArguments { arguments }: ValidationArguments<Arguments> =
+            FromRef::from_ref(state);
         let inner = E::from_request_parts(parts, state)
             .await
-            .map_err(|e| ValidRejection {
-                error: ValidError::Inner(e),
-                response_builder,
-            })?;
-        inner
-            .get_validate_args()
-            .validate_args(&arguments)
-            .map_err(|e| ValidRejection {
-                error: ValidError::Valid(e),
-                response_builder,
-            })?;
-
+            .map_err(ValidRejection::Inner)?;
+        inner.get_validate_args().validate_args(&arguments)?;
         Ok(ValidEx(inner, arguments))
     }
 }
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{Valid, ValidError};
+    use crate::{Valid, ValidRejection};
     use reqwest::{RequestBuilder, StatusCode};
     use serde::Serialize;
     use std::error::Error;
@@ -595,24 +375,24 @@ pub mod tests {
         // ValidRejection::Valid Display
         let mut ve = ValidationErrors::new();
         ve.add(TEST, ValidationError::new(TEST));
-        let vr = ValidError::<String>::Valid(ve.clone());
+        let vr = ValidRejection::<String>::Valid(ve.clone());
         assert_eq!(vr.to_string(), ve.to_string());
 
         // ValidRejection::Inner Display
         let inner = String::from(TEST);
-        let vr = ValidError::<String>::Inner(inner.clone());
+        let vr = ValidRejection::<String>::Inner(inner.clone());
         assert_eq!(inner.to_string(), vr.to_string());
 
         // ValidRejection::Valid Error
         let mut ve = ValidationErrors::new();
         ve.add(TEST, ValidationError::new(TEST));
-        let vr = ValidError::<io::Error>::Valid(ve.clone());
+        let vr = ValidRejection::<io::Error>::Valid(ve.clone());
         assert!(
             matches!(vr.source(), Some(source) if source.downcast_ref::<ValidationErrors>().is_some())
         );
 
         // ValidRejection::Valid Error
-        let vr = ValidError::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, TEST));
+        let vr = ValidRejection::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, TEST));
         assert!(
             matches!(vr.source(), Some(source) if source.downcast_ref::<io::Error>().is_some())
         );
