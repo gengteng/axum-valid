@@ -81,17 +81,17 @@ impl<E> Valid<E> {
 
 /// # `ValidEx` data extractor
 ///
-/// `ValidEx` can be used with extractors from the various modules.
-/// Refer to the examples for `Valid` in each module - the usage of
-/// `ValidEx` is similar, except the inner data type implements
-/// `ValidateArgs` instead of `Validate`.
+/// `ValidEx` can be incorporated with extractors from various modules, similar to `Valid`.
+/// Two differences exist between `ValidEx` and `Valid`:
 ///
-/// `ValidateArgs` is usually automatically implemented by validator's
-/// derive macros. Refer to validator's documentation for details.
+/// - The inner data type in `ValidEx` implements `ValidateArgs` instead of `Validate`.
+/// - `ValidEx` includes a second field that represents arguments used during validation of the first field.
 ///
-/// Note that the documentation for each module currently only shows  
-/// examples of `Valid`, and does not demonstrate concrete usage of
-/// `ValidEx`, but the usage is analogous.
+/// The implementation of `ValidateArgs` is often automatically handled by validator's derive macros
+/// (for more details, please refer to the validator's documentation).
+///
+/// Although current module documentation predominantly showcases `Valid` examples, the usage of `ValidEx` is analogous.
+///
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ValidEx<E, A>(pub E, pub A);
 
@@ -154,6 +154,10 @@ fn response_builder(ve: ValidationErrors) -> Response {
 /// validate. `T` must implement the `ValidateArgs` trait which defines the
 /// validation logic.
 ///
+/// It's important to mention that types implementing `Arguments` should be a part of the router's state
+/// (either through implementing `FromRef<StateType>` or by directly becoming the state)
+/// to enable automatic arguments retrieval during validation.
+///
 pub trait Arguments<'a> {
     /// The data type to validate using this arguments
     type T: ValidateArgs<'a>;
@@ -163,11 +167,15 @@ pub trait Arguments<'a> {
 
 /// `ValidRejection` is returned when the `Valid` extractor fails.
 ///
+/// This enumeration captures two types of errors that can occur when using `Valid`: errors related to the validation
+/// logic itself (encapsulated in `Valid`), and errors that may arise within the inner extractor (represented by `Inner`).
+///
 #[derive(Debug)]
 pub enum ValidRejection<E> {
-    /// Validation errors
+    /// `Valid` variant captures errors related to the validation logic. It contains `ValidationErrors`
+    /// which is a collection of validation failures for each field.
     Valid(ValidationErrors),
-    /// Inner extractor error
+    /// `Inner` variant represents potential errors that might occur within the inner extractor.
     Inner(E),
 }
 

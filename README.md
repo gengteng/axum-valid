@@ -65,6 +65,86 @@ When validation errors occur, the extractor will automatically return 400 with v
 
 To see how each extractor can be used with `Valid`, please refer to the example in the [documentation](https://docs.rs/axum-valid) of the corresponding module.
 
+## Argument-Based Validation
+
+Here's a basic example of using the `ValidEx` extractor to validate data in a `Form` using arguments:
+
+```rust,no_run
+use axum::routing::post;
+use axum::{Form, Router};
+use axum_valid::{Arguments, ValidEx};
+use serde::Deserialize;
+use std::ops::{RangeFrom, RangeInclusive};
+use validator::{Validate, ValidateArgs, ValidationError};
+
+// NOTE: When some fields use custom validation functions with arguments,
+// `#[derive(Validate)]` will implement `ValidateArgs` instead of `Validate` for the type.
+// The validation arguments will be a tuple of all the field validation args.
+// In this example it is (&RangeInclusive<usize>, &RangeFrom<usize>).
+// For more detailed information and understanding of `ValidateArgs` and their argument types, 
+// please refer to the `validator` crate documentation.
+#[derive(Debug, Validate, Deserialize)]
+pub struct Pager {
+    #[validate(custom(function = "validate_page_size", arg = "&'v_a RangeInclusive<usize>"))]
+    pub page_size: usize,
+    #[validate(custom(function = "validate_page_no", arg = "&'v_a RangeFrom<usize>"))]
+    pub page_no: usize,
+}
+
+fn validate_page_size(v: usize, args: &RangeInclusive<usize>) -> Result<(), ValidationError> {
+    args.contains(&v)
+        .then_some(())
+        .ok_or_else(|| ValidationError::new("page_size is out of range"))
+}
+
+fn validate_page_no(v: usize, args: &RangeFrom<usize>) -> Result<(), ValidationError> {
+    args.contains(&v)
+        .then_some(())
+        .ok_or_else(|| ValidationError::new("page_no is out of range"))
+}
+
+// NOTE: Clone is required
+#[derive(Debug, Clone)]
+pub struct PagerValidArgs {
+    page_size_range: RangeInclusive<usize>,
+    page_no_range: RangeFrom<usize>,
+}
+
+// NOTE: This implementation allows PagerValidArgs to be the second member of ValidEx, and provides arguments for actual validation.
+// The type mapping <Pager as ValidateArgs<'a>>::Args represents the combination of validators applied on each field of Pager.
+// get() method returns the validating arguments to be used during validation.
+impl<'a> Arguments<'a> for PagerValidArgs {
+    type T = Pager;
+
+    // NOTE: <Pager as ValidateArgs<'a>>::Args == (&RangeInclusive<usize>, &RangeFrom<usize>)
+    fn get(&'a self) -> <Pager as ValidateArgs<'a>>::Args {
+        (&self.page_size_range, &self.page_no_range)
+    }
+}
+
+pub async fn pager_from_form_ex(ValidEx(Form(pager), _): ValidEx<Form<Pager>, PagerValidArgs>) {
+    assert!((1..=50).contains(&pager.page_size));
+    assert!((1..).contains(&pager.page_no));
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let router = Router::new()
+        .route("/form", post(pager_from_form_ex))
+        .with_state(PagerValidArgs {
+            page_size_range: 1..=50,
+            page_no_range: 1..,
+        });
+    // NOTE: The PagerValidArgs can also be stored in a XxxState,
+    // make sure it implements FromRef<XxxState>.
+
+    axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+        .serve(router.into_make_service())
+        .await?;
+    Ok(())
+}
+```
+
 ## Features
 
 | Feature          | Description                                                                                          | Default | Example | Tests |
@@ -90,8 +170,7 @@ To see how each extractor can be used with `Valid`, please refer to the example 
 
 ## Compatibility
 
-* axum-valid 0.7.x works with axum-extra v0.7.x
-* axum-valid 0.8.x works with axum-extra v0.8.x
+To determine the compatible versions of `axum-valid`, `axum-extra`, `axum-yaml` and other dependencies that work together, please refer to the dependencies listed in the `Cargo.toml` file. The version numbers listed there will indicate the compatible versions.
 
 ## License
 

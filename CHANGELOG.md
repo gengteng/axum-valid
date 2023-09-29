@@ -8,6 +8,19 @@
 
 ### Fixed
 
+## axum-valid 0.9.0 (2023-09-29)
+
+### Added
+
+* Introduced the `ValidEx` type to enhance data validation capabilities.
+* Added the `Arguments` and `HasValidateArgs` traits to support the use of `ValidEx`.
+
+### Changed
+
+* Upgraded `axum_typed_multipart` to version 0.10.0.
+
+### Fixed
+
 ## axum-valid 0.8.0 (2023-09-19)
 
 ### Added
