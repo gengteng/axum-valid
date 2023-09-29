@@ -116,9 +116,24 @@ impl<T: Display> Display for Valid<T> {
 }
 
 impl<E, A> ValidEx<E, A> {
-    /// Consume the `ValidEx` extractor and returns the inner type.
+    /// Consumes the `ValidEx` and returns the validated data within.
+    ///
+    /// This returns the `E` type which represents the data that has been
+    /// successfully validated.
     pub fn into_inner(self) -> E {
         self.0
+    }
+
+    /// Returns a reference to the validation arguments.
+    ///
+    /// This provides access to the `A` type which contains the arguments used
+    /// to validate the data. These arguments were passed to the validation
+    /// function.
+    pub fn arguments<'a>(&'a self) -> <<A as Arguments<'a>>::T as ValidateArgs<'a>>::Args
+    where
+        A: Arguments<'a>,
+    {
+        self.1.get()
     }
 }
 
@@ -298,13 +313,13 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{Valid, ValidRejection};
+    use crate::{Arguments, Valid, ValidEx, ValidRejection};
     use reqwest::{RequestBuilder, StatusCode};
     use serde::Serialize;
     use std::error::Error;
     use std::io;
     use std::ops::{Deref, DerefMut};
-    use validator::{ValidationError, ValidationErrors};
+    use validator::{Validate, ValidateArgs, ValidationError, ValidationErrors};
 
     /// # Valid test parameter
     pub trait ValidTestParameter: Serialize + 'static {
@@ -349,7 +364,7 @@ pub mod tests {
     const TEST: &str = "test";
 
     #[test]
-    fn deref_deref_mut_into_inner() {
+    fn valid_deref_deref_mut_into_inner() {
         let mut inner = String::from(TEST);
         let mut v = Valid(inner.clone());
         assert_eq!(&inner, v.deref());
@@ -357,6 +372,46 @@ pub mod tests {
         v.deref_mut().push_str(TEST);
         assert_eq!(&inner, v.deref());
         assert_eq!(inner, v.into_inner());
+    }
+
+    #[test]
+    fn valid_ex_deref_deref_mut_into_inner_arguments() {
+        let mut inner = String::from(TEST);
+        let mut v = ValidEx(inner.clone(), ());
+        assert_eq!(&inner, v.deref());
+        inner.push_str(TEST);
+        v.deref_mut().push_str(TEST);
+        assert_eq!(&inner, v.deref());
+        assert_eq!(inner, v.into_inner());
+
+        fn validate(_v: i32, _args: i32) -> Result<(), ValidationError> {
+            Ok(())
+        }
+
+        #[derive(Validate)]
+        struct Data {
+            #[validate(custom(function = "validate", arg = "i32"))]
+            v: i32,
+        }
+
+        struct DataVA {
+            a: i32,
+        }
+
+        impl<'a> Arguments<'a> for DataVA {
+            type T = Data;
+
+            fn get(&'a self) -> <<Self as Arguments<'a>>::T as ValidateArgs<'a>>::Args {
+                self.a
+            }
+        }
+
+        let data = Data { v: 12 };
+        let args = DataVA { a: 123 };
+        let ve = ValidEx(data, args);
+        assert_eq!(ve.v, 12);
+        let a = ve.arguments();
+        assert_eq!(a, 123);
     }
 
     #[test]

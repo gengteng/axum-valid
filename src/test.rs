@@ -1,4 +1,3 @@
-use crate::test::extra_typed_path::TypedPathParamExValidationArguments;
 use crate::tests::{ValidTest, ValidTestParameter};
 use crate::{Arguments, HasValidate, Valid, ValidEx, VALIDATION_ERROR_STATUS};
 use axum::extract::{FromRef, Path, Query};
@@ -118,14 +117,16 @@ impl HasValidate for Parameters {
 #[derive(Debug, Clone, FromRef)]
 struct MyState {
     param_validation_ctx: ParametersExValidationArguments,
-    typed_path_validation_ctx: TypedPathParamExValidationArguments,
+    #[cfg(feature = "extra_typed_path")]
+    typed_path_validation_ctx: extra_typed_path::TypedPathParamExValidationArguments,
 }
 
 #[tokio::test]
 async fn test_main() -> anyhow::Result<()> {
     let state = MyState {
         param_validation_ctx: ParametersExValidationArguments::default(),
-        typed_path_validation_ctx: TypedPathParamExValidationArguments::default(),
+        #[cfg(feature = "extra_typed_path")]
+        typed_path_validation_ctx: extra_typed_path::TypedPathParamExValidationArguments::default(),
     };
 
     let router = Router::new()
@@ -133,6 +134,7 @@ async fn test_main() -> anyhow::Result<()> {
         .route(route::QUERY, get(extract_query))
         .route(route::FORM, post(extract_form))
         .route(route::JSON, post(extract_json))
+        .route(route::PATH_EX, get(extract_path_ex))
         .route(route::QUERY_EX, get(extract_query_ex))
         .route(route::FORM_EX, post(extract_form_ex))
         .route(route::JSON_EX, post(extract_json_ex));
@@ -259,12 +261,16 @@ async fn test_main() -> anyhow::Result<()> {
     let server_url = format!("http://{}", server_addr);
     let test_executor = TestExecutor::from(Url::parse(&format!("http://{}", server_addr))?);
 
-    {
+    async fn test_extra_path(
+        test_executor: &TestExecutor,
+        route: &str,
+        server_url: &str,
+    ) -> anyhow::Result<()> {
         let path_type_name = type_name::<Path<Parameters>>();
         let valid_path_response = test_executor
             .client()
             .get(format!(
-                "{}/path/{}/{}",
+                "{}/{route}/{}/{}",
                 server_url, VALID_PARAMETERS.v0, VALID_PARAMETERS.v1
             ))
             .send()
@@ -278,7 +284,7 @@ async fn test_main() -> anyhow::Result<()> {
 
         let error_path_response = test_executor
             .client()
-            .get(format!("{}/path/not_i32/path", server_url))
+            .get(format!("{}/{route}/not_i32/path", server_url))
             .send()
             .await?;
         assert_eq!(
@@ -291,7 +297,7 @@ async fn test_main() -> anyhow::Result<()> {
         let invalid_path_response = test_executor
             .client()
             .get(format!(
-                "{}/path/{}/{}",
+                "{}/{route}/{}/{}",
                 server_url, INVALID_PARAMETERS.v0, INVALID_PARAMETERS.v1
             ))
             .send()
@@ -305,7 +311,11 @@ async fn test_main() -> anyhow::Result<()> {
         #[cfg(feature = "into_json")]
         check_json(path_type_name, invalid_path_response).await;
         println!("All {} tests passed.", path_type_name);
+        Ok(())
     }
+
+    test_extra_path(&test_executor, "path", &server_url).await?;
+    test_extra_path(&test_executor, "path_ex", &server_url).await?;
 
     // Valid
     test_executor
@@ -621,6 +631,7 @@ pub async fn check_json(type_name: &'static str, response: reqwest::Response) {
 
 mod route {
     pub const PATH: &str = "/path/:v0/:v1";
+    pub const PATH_EX: &str = "/path_ex/:v0/:v1";
     pub const QUERY: &str = "/query";
     pub const QUERY_EX: &str = "/query_ex";
     pub const FORM: &str = "/form";
@@ -631,6 +642,12 @@ mod route {
 
 async fn extract_path(Valid(Path(parameters)): Valid<Path<Parameters>>) -> StatusCode {
     validate_again(parameters)
+}
+
+async fn extract_path_ex(
+    ValidEx(Path(parameters), args): ValidEx<Path<ParametersEx>, ParametersExValidationArguments>,
+) -> StatusCode {
+    validate_again_ex(parameters, args.get())
 }
 
 async fn extract_query(Valid(Query(parameters)): Valid<Query<Parameters>>) -> StatusCode {
