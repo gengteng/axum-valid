@@ -122,16 +122,6 @@ impl<E, A> ValidEx<E, A> {
     }
 }
 
-/// `ValidationArguments` configures the response returned when validation fails.
-///
-/// By providing a ValidationArguments to the Valid extractor, you can customize
-/// the HTTP status code and response body returned on validation failure.
-///
-#[derive(Debug, Copy, Clone, Default)]
-pub struct ValidationContext<Arguments> {
-    arguments: Arguments,
-}
-
 fn response_builder(ve: ValidationErrors) -> Response {
     #[cfg(feature = "into_json")]
     {
@@ -143,30 +133,17 @@ fn response_builder(ve: ValidationErrors) -> Response {
     }
 }
 
-impl ValidationContext<()> {
-    /// Creates a new `ValidationArguments`.
-    pub fn with_arguments<Arguments>(self, arguments: Arguments) -> ValidationContext<Arguments> {
-        ValidationContext { arguments }
-    }
-}
-
-impl<Arguments> ValidationContext<Arguments> {
-    /// Creates a `ValidationArguments` with arguments
-    pub fn new(arguments: Arguments) -> Self {
-        Self { arguments }
-    }
-}
-
-/// # Arguments
+/// `Arguments` provides the validation arguments for the data type `T`.
 ///
-/// * `T`: The data type to validate using arguments
+/// This trait has an associated type `T` which represents the data type to
+/// validate. `T` must implement the `ValidateArgs` trait which defines the
+/// validation logic.
 ///
-pub trait Arguments<'a, T>
-where
-    T: ValidateArgs<'a>,
-{
-    /// Get arguments from `self`
-    fn get(&'a self) -> T::Args;
+pub trait Arguments<'a> {
+    /// The data type to validate using this arguments
+    type T: ValidateArgs<'a>;
+    /// This method gets the arguments required by `ValidateArgs::validate_args`
+    fn get(&'a self) -> <<Self as Arguments<'a>>::T as ValidateArgs<'a>>::Args;
 }
 
 /// `ValidRejection` is returned when the `Valid` extractor fails.
@@ -276,15 +253,17 @@ impl<State, Body, Extractor, Args> FromRequest<State, Body> for ValidEx<Extracto
 where
     State: Send + Sync,
     Body: Send + Sync + 'static,
-    Args: Send + Sync + for<'a> Arguments<'a, <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
+    Args: Send
+        + Sync
+        + FromRef<State>
+        + for<'a> Arguments<'a, T = <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequest<State, Body>,
     for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v>,
-    ValidationContext<Args>: FromRef<State>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
 
     async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
-        let ValidationContext { arguments }: ValidationContext<Args> = FromRef::from_ref(state);
+        let arguments: Args = FromRef::from_ref(state);
         let inner = Extractor::from_request(req, state)
             .await
             .map_err(ValidRejection::Inner)?;
@@ -298,15 +277,17 @@ where
 impl<State, Extractor, Args> FromRequestParts<State> for ValidEx<Extractor, Args>
 where
     State: Send + Sync,
-    Args: Send + Sync + for<'a> Arguments<'a, <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
+    Args: Send
+        + Sync
+        + FromRef<State>
+        + for<'a> Arguments<'a, T = <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequestParts<State>,
     for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v>,
-    ValidationContext<Args>: FromRef<State>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequestParts<State>>::Rejection>;
 
     async fn from_request_parts(parts: &mut Parts, state: &State) -> Result<Self, Self::Rejection> {
-        let ValidationContext { arguments }: ValidationContext<Args> = FromRef::from_ref(state);
+        let arguments: Args = FromRef::from_ref(state);
         let inner = Extractor::from_request_parts(parts, state)
             .await
             .map_err(ValidRejection::Inner)?;
