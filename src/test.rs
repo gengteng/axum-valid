@@ -1,6 +1,6 @@
 use crate::test::extra_typed_path::TypedPathParamExValidationArguments;
 use crate::tests::{ValidTest, ValidTestParameter};
-use crate::{Arguments, HasValidate, Valid, ValidEx, ValidationContext, VALIDATION_ERROR_STATUS};
+use crate::{Arguments, HasValidate, Valid, ValidEx, VALIDATION_ERROR_STATUS};
 use axum::extract::{FromRef, Path, Query};
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::any::type_name;
 use std::net::SocketAddr;
 use std::ops::{Deref, RangeInclusive};
+use std::sync::Arc;
 use validator::{Validate, ValidateArgs, ValidationError};
 
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
@@ -56,18 +57,24 @@ fn validate_v1(v: &str, args: &RangeInclusive<usize>) -> Result<(), ValidationEr
 }
 
 #[derive(Debug, Clone)]
-pub struct ParametersExValidationArguments {
+struct ParametersExValidationArgumentsInner {
     v0_range: RangeInclusive<i32>,
     v1_length_range: RangeInclusive<usize>,
 }
 
-impl<'a> Arguments<'a, ParametersEx> for ParametersExValidationArguments {
+#[derive(Debug, Clone, Default)]
+pub struct ParametersExValidationArguments {
+    inner: Arc<ParametersExValidationArgumentsInner>,
+}
+
+impl<'a> Arguments<'a> for ParametersExValidationArguments {
+    type T = ParametersEx;
     fn get(&'a self) -> <ParametersEx as ValidateArgs<'a>>::Args {
-        (&self.v0_range, &self.v1_length_range)
+        (&self.inner.v0_range, &self.inner.v1_length_range)
     }
 }
 
-impl Default for ParametersExValidationArguments {
+impl Default for ParametersExValidationArgumentsInner {
     fn default() -> Self {
         Self {
             v0_range: 5..=10,
@@ -110,16 +117,15 @@ impl HasValidate for Parameters {
 
 #[derive(Debug, Clone, FromRef)]
 struct MyState {
-    param_validation_ctx: ValidationContext<ParametersExValidationArguments>,
-    typed_path_validation_ctx: ValidationContext<TypedPathParamExValidationArguments>,
+    param_validation_ctx: ParametersExValidationArguments,
+    typed_path_validation_ctx: TypedPathParamExValidationArguments,
 }
 
 #[tokio::test]
 async fn test_main() -> anyhow::Result<()> {
     let state = MyState {
-        param_validation_ctx: ValidationContext::<ParametersExValidationArguments>::default(),
-        typed_path_validation_ctx:
-            ValidationContext::<TypedPathParamExValidationArguments>::default(),
+        param_validation_ctx: ParametersExValidationArguments::default(),
+        typed_path_validation_ctx: TypedPathParamExValidationArguments::default(),
     };
 
     let router = Router::new()
@@ -1068,7 +1074,8 @@ mod extra_typed_path {
         }
     }
 
-    impl<'a> Arguments<'a, TypedPathParamEx> for TypedPathParamExValidationArguments {
+    impl<'a> Arguments<'a> for TypedPathParamExValidationArguments {
+        type T = TypedPathParamEx;
         fn get(&'a self) -> <TypedPathParamEx as ValidateArgs<'a>>::Args {
             (&self.v0_range, &self.v1_length_range)
         }
