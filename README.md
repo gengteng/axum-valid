@@ -145,28 +145,30 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
+Current module documentation predominantly showcases `Valid` examples, the usage of `ValidEx` is analogous.
+
 ## Features
 
-| Feature          | Description                                                                                          | Default | Example | Tests |
-|------------------|------------------------------------------------------------------------------------------------------|---------|---------|-------|
-| default          | Enables support for `Path`, `Query`, `Json` and `Form`                                               | ✅       | ✅       | ✅     |
-| json             | Enables support for `Json`                                                                           | ✅       | ✅       | ✅     |
-| query            | Enables support for `Query`                                                                          | ✅       | ✅       | ✅     |
-| form             | Enables support for `Form`                                                                           | ✅       | ✅       | ✅     |
-| typed_header     | Enables support for `TypedHeader`                                                                    | ❌       | ✅       | ✅     |
-| typed_multipart  | Enables support for `TypedMultipart` and `BaseMultipart` from `axum_typed_multipart`                 | ❌       | ✅       | ✅     |
-| msgpack          | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                   | ❌       | ✅       | ✅     |
-| yaml             | Enables support for `Yaml` from `axum-yaml`                                                          | ❌       | ✅       | ✅     |
-| extra            | Enables support for `Cached`, `WithRejection` from `axum-extra`                                      | ❌       | ✅       | ✅     |
-| extra_typed_path | Enables support for `T: TypedPath` from `axum-extra`                                                 | ❌       | ✅       | ✅     |
-| extra_query      | Enables support for `Query` from `axum-extra`                                                        | ❌       | ✅       | ✅     |
-| extra_form       | Enables support for `Form` from `axum-extra`                                                         | ❌       | ✅       | ✅     |
-| extra_protobuf   | Enables support for `Protobuf` from `axum-extra`                                                     | ❌       | ✅       | ✅     |
-| all_extra_types  | Enables support for all extractors above from `axum-extra`                                           | ❌       | ✅       | ✅     |
-| all_types        | Enables support for all extractors above                                                             | ❌       | ✅       | ✅     |
-| 422              | Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails | ❌       | ✅       | ✅     |
-| into_json        | Validation errors will be serialized into JSON format and returned as the HTTP body                  | ❌       | ✅       | ✅     |
-| full             | Enables all features                                                                                 | ❌       | ✅       | ✅     |
+| Feature          | Description                                                                                          | Module                                  | Default | Example | Tests |
+|------------------|------------------------------------------------------------------------------------------------------|-----------------------------------------|---------|---------|-------|
+| default          | Enables support for `Path`, `Query`, `Json` and `Form`                                               | [`path`], [`query`], [`json`], [`form`] | ✅       | ✅       | ✅     |
+| json             | Enables support for `Json`                                                                           | [`json`]                                | ✅       | ✅       | ✅     |
+| query            | Enables support for `Query`                                                                          | [`query`]                               | ✅       | ✅       | ✅     |
+| form             | Enables support for `Form`                                                                           | [`form`]                                | ✅       | ✅       | ✅     |
+| typed_header     | Enables support for `TypedHeader`                                                                    | [`typed_header`]                        | ❌       | ✅       | ✅     |
+| typed_multipart  | Enables support for `TypedMultipart` and `BaseMultipart` from `axum_typed_multipart`                 | [`typed_multipart`]                     | ❌       | ✅       | ✅     |
+| msgpack          | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                   | [`msgpack`]                             | ❌       | ✅       | ✅     |
+| yaml             | Enables support for `Yaml` from `axum-yaml`                                                          | [`yaml`]                                | ❌       | ✅       | ✅     |
+| extra            | Enables support for `Cached`, `WithRejection` from `axum-extra`                                      | [`extra`]                               | ❌       | ✅       | ✅     |
+| extra_typed_path | Enables support for `T: TypedPath` from `axum-extra`                                                 | [`extra::typed_path`]                   | ❌       | ✅       | ✅     |
+| extra_query      | Enables support for `Query` from `axum-extra`                                                        | [`extra::query`]                        | ❌       | ✅       | ✅     |
+| extra_form       | Enables support for `Form` from `axum-extra`                                                         | [`extra::form`]                         | ❌       | ✅       | ✅     |
+| extra_protobuf   | Enables support for `Protobuf` from `axum-extra`                                                     | [`extra::protobuf`]                     | ❌       | ✅       | ✅     |
+| all_extra_types  | Enables support for all extractors above from `axum-extra`                                           | N/A                                     | ❌       | ✅       | ✅     |
+| all_types        | Enables support for all extractors above                                                             | N/A                                     | ❌       | ✅       | ✅     |
+| 422              | Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails | [`VALIDATION_ERROR_STATUS`]             | ❌       | ✅       | ✅     |
+| into_json        | Validation errors will be serialized into JSON format and returned as the HTTP body                  | N/A                                     | ❌       | ✅       | ✅     |
+| full             | Enables all features                                                                                 | N/A                                     | ❌       | ✅       | ✅     |
 
 ## Compatibility
 
