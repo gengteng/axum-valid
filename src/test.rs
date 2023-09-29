@@ -1,5 +1,5 @@
 use crate::tests::{ValidTest, ValidTestParameter};
-use crate::{Arguments, HasValidate, Valid, ValidEx, VALIDATION_ERROR_STATUS};
+use crate::{Arguments, HasValidate, HasValidateArgs, Valid, ValidEx, VALIDATION_ERROR_STATUS};
 use axum::extract::{FromRef, Path, Query};
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
@@ -114,6 +114,14 @@ impl HasValidate for Parameters {
     }
 }
 
+impl<'v> HasValidateArgs<'v> for ParametersEx {
+    type ValidateArgs = ParametersEx;
+
+    fn get_validate_args(&self) -> &Self::ValidateArgs {
+        self
+    }
+}
+
 #[derive(Debug, Clone, FromRef)]
 struct MyState {
     param_validation_ctx: ParametersExValidationArguments,
@@ -172,13 +180,22 @@ async fn test_main() -> anyhow::Result<()> {
     #[cfg(feature = "extra")]
     let router = router
         .route(extra::route::CACHED, post(extra::extract_cached))
+        .route(extra::route::CACHED_EX, post(extra::extract_cached_ex))
         .route(
             extra::route::WITH_REJECTION,
             post(extra::extract_with_rejection),
         )
         .route(
+            extra::route::WITH_REJECTION_EX,
+            post(extra::extract_with_rejection_ex),
+        )
+        .route(
             extra::route::WITH_REJECTION_VALID,
             post(extra::extract_with_rejection_valid),
+        )
+        .route(
+            extra::route::WITH_REJECTION_VALID_EX,
+            post(extra::extract_with_rejection_valid_ex),
         );
 
     #[cfg(feature = "extra_typed_path")]
@@ -875,9 +892,12 @@ mod typed_multipart {
 
 #[cfg(feature = "extra")]
 mod extra {
-    use crate::test::{validate_again, Parameters};
+    use crate::test::{
+        validate_again, validate_again_ex, Parameters, ParametersEx,
+        ParametersExValidationArguments,
+    };
     use crate::tests::{Rejection, ValidTest, ValidTestParameter};
-    use crate::{Valid, ValidRejection};
+    use crate::{Arguments, Valid, ValidEx, ValidRejection};
     use axum::extract::FromRequestParts;
     use axum::http::request::Parts;
     use axum::http::StatusCode;
@@ -887,8 +907,11 @@ mod extra {
 
     pub mod route {
         pub const CACHED: &str = "/cached";
+        pub const CACHED_EX: &str = "/cached_ex";
         pub const WITH_REJECTION: &str = "/with_rejection";
+        pub const WITH_REJECTION_EX: &str = "/with_rejection_ex";
         pub const WITH_REJECTION_VALID: &str = "/with_rejection_valid";
+        pub const WITH_REJECTION_VALID_EX: &str = "/with_rejection_valid_ex";
     }
     pub const PARAMETERS_HEADER: &str = "parameters-header";
     pub const CACHED_REJECTION_STATUS: StatusCode = StatusCode::FORBIDDEN;
@@ -917,6 +940,22 @@ mod extra {
     //  1.3. Implement your extractor (`FromRequestParts` or `FromRequest`)
     #[axum::async_trait]
     impl<S> FromRequestParts<S> for Parameters
+    where
+        S: Send + Sync,
+    {
+        type Rejection = ParametersRejection;
+
+        async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+            let Some(value) = parts.headers.get(PARAMETERS_HEADER) else {
+                return Err(ParametersRejection::Null);
+            };
+
+            serde_json::from_slice(value.as_bytes()).map_err(ParametersRejection::InvalidJson)
+        }
+    }
+
+    #[axum::async_trait]
+    impl<S> FromRequestParts<S> for ParametersEx
     where
         S: Send + Sync,
     {
@@ -987,12 +1026,30 @@ mod extra {
         validate_again(parameters)
     }
 
+    pub async fn extract_cached_ex(
+        ValidEx(Cached(parameters), args): ValidEx<
+            Cached<ParametersEx>,
+            ParametersExValidationArguments,
+        >,
+    ) -> StatusCode {
+        validate_again_ex(parameters, args.get())
+    }
+
     pub async fn extract_with_rejection(
         Valid(WithRejection(parameters, _)): Valid<
             WithRejection<Parameters, ValidWithRejectionRejection>,
         >,
     ) -> StatusCode {
         validate_again(parameters)
+    }
+
+    pub async fn extract_with_rejection_ex(
+        ValidEx(WithRejection(parameters, _), args): ValidEx<
+            WithRejection<ParametersEx, ValidWithRejectionRejection>,
+            ParametersExValidationArguments,
+        >,
+    ) -> StatusCode {
+        validate_again_ex(parameters, args.get())
     }
 
     pub struct WithRejectionValidRejection<E> {
@@ -1020,6 +1077,15 @@ mod extra {
         >,
     ) -> StatusCode {
         validate_again(parameters)
+    }
+
+    pub async fn extract_with_rejection_valid_ex(
+        WithRejection(ValidEx(parameters, args), _): WithRejection<
+            ValidEx<ParametersEx, ParametersExValidationArguments>,
+            WithRejectionValidRejection<ParametersRejection>,
+        >,
+    ) -> StatusCode {
+        validate_again_ex(parameters, args.get())
     }
 }
 

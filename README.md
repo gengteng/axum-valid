@@ -7,11 +7,11 @@
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/gengteng/axum-valid/.github/workflows/main.yml?branch=main)](https://github.com/gengteng/axum-valid/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gengteng/axum-valid/badge.svg?branch=main)](https://coveralls.io/github/gengteng/axum-valid?branch=main)
 
-This crate provides a `Valid` type that can be used in combination with `Json`, `Path`, `Query`, and `Form` extractors to validate the entities that implement the `Validate` trait from the `validator` crate.
+This crate provides a `Valid` type for use with `Json`, `Path`, `Query`, and `Form` extractors to validate entities implementing the `Validate` trait from the `validator` crate.
 
-It also provides a `ValidEx` type that works similarly to `Valid`, but can perform validation requiring additional arguments by using types that implement the `ValidateArgs` trait.
+A `ValidEx` type is also available. Similar to `Valid`, `ValidEx` can execute validations requiring extra arguments with types that implement the `ValidateArgs` trait from the `validator` crate.
 
-Additional extractors like `TypedHeader`, `MsgPack`, `Yaml` etc. are supported through optional features. The full list of supported extractors is in the Features section below.
+Additional extractors such as `TypedHeader`, `MsgPack`, `Yaml`, and others are supported through optional features. The complete list of supported extractors can be found in the Features section below.
 
 ## Basic usage
 
