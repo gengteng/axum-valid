@@ -80,7 +80,7 @@ jobs:
           RUST_TEST_THREADS: 4
         with:
           version: '0.22.0'
-          args: --implicit-test-threads --ignore-tests --out Lcov
+          args: --implicit-test-threads --ignore-tests --out Lcov Xml
 
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
