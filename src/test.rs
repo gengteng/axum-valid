@@ -425,15 +425,30 @@ async fn test_main() -> anyhow::Result<()> {
             .execute::<Cached<Parameters>>(Method::POST, extra::route::CACHED)
             .await?;
         test_executor
+            .execute::<Cached<Parameters>>(Method::POST, extra::route::CACHED_EX)
+            .await?;
+        test_executor
             .execute::<WithRejection<Parameters, ValidWithRejectionRejection>>(
                 Method::POST,
                 extra::route::WITH_REJECTION,
             )
             .await?;
         test_executor
+            .execute::<WithRejection<Parameters, ValidWithRejectionRejection>>(
+                Method::POST,
+                extra::route::WITH_REJECTION_EX,
+            )
+            .await?;
+        test_executor
             .execute::<WithRejection<Valid<Parameters>, WithRejectionValidRejection<ParametersRejection>>>(
                 Method::POST,
                 extra::route::WITH_REJECTION_VALID,
+            )
+            .await?;
+        test_executor
+            .execute::<WithRejection<Valid<Parameters>, WithRejectionValidRejection<ParametersRejection>>>(
+                Method::POST,
+                extra::route::WITH_REJECTION_VALID_EX,
             )
             .await?;
     }
