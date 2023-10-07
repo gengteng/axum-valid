@@ -25,6 +25,7 @@ features = ["all_types"]
 
 [dependencies]
 axum = { version = "0.6.20", default-features = false }
+garde = "0.15.0"
 validator = "0.16.1"
 
 [dependencies.axum_typed_multipart]

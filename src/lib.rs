@@ -5,6 +5,7 @@
 pub mod extra;
 #[cfg(feature = "form")]
 pub mod form;
+pub mod garde;
 #[cfg(feature = "json")]
 pub mod json;
 #[cfg(feature = "msgpack")]
@@ -218,7 +219,7 @@ impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
 ///
 pub trait HasValidate {
     /// Inner type that can be validated for correctness
-    type Validate: Validate;
+    type Validate;
     /// Get the inner value
     fn get_validate(&self) -> &Self::Validate;
 }
