@@ -39,9 +39,9 @@
 
 use crate::{HasValidate, HasValidateArgs};
 use axum::extract::Path;
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate> HasValidate for Path<T> {
+impl<T> HasValidate for Path<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

@@ -42,9 +42,9 @@
 
 use crate::{HasValidate, HasValidateArgs};
 use axum_extra::protobuf::Protobuf;
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate> HasValidate for Protobuf<T> {
+impl<T> HasValidate for Protobuf<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

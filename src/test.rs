@@ -1,3 +1,4 @@
+use crate::garde::Garde;
 use crate::tests::{ValidTest, ValidTestParameter};
 use crate::{Arguments, HasValidate, HasValidateArgs, Valid, ValidEx, VALIDATION_ERROR_STATUS};
 use axum::extract::{FromRef, Path, Query};
@@ -82,6 +83,21 @@ impl Default for ParametersExValidationArgumentsInner {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize, garde::Validate, Eq, PartialEq)]
+#[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
+#[cfg_attr(
+    feature = "typed_multipart",
+    derive(axum_typed_multipart::TryFromMultipart)
+)]
+pub struct ParametersGarde {
+    #[garde(range(min = 5, max = 10))]
+    #[cfg_attr(feature = "extra_protobuf", prost(int32, tag = "1"))]
+    v0: i32,
+    #[garde(length(min = 1, max = 10))]
+    #[cfg_attr(feature = "extra_protobuf", prost(string, tag = "2"))]
+    v1: String,
+}
+
 static VALID_PARAMETERS: Lazy<Parameters> = Lazy::new(|| Parameters {
     v0: 5,
     v1: String::from("0123456789"),
@@ -129,6 +145,10 @@ struct MyState {
     typed_path_validation_ctx: extra_typed_path::TypedPathParamExValidationArguments,
 }
 
+impl FromRef<MyState> for () {
+    fn from_ref(_: &MyState) -> Self {}
+}
+
 #[tokio::test]
 async fn test_main() -> anyhow::Result<()> {
     let state = MyState {
@@ -144,8 +164,10 @@ async fn test_main() -> anyhow::Result<()> {
         .route(route::JSON, post(extract_json))
         .route(route::PATH_EX, get(extract_path_ex))
         .route(route::QUERY_EX, get(extract_query_ex))
+        .route(route::QUERY_GARDE, get(extract_query_garde))
         .route(route::FORM_EX, post(extract_form_ex))
-        .route(route::JSON_EX, post(extract_json_ex));
+        .route(route::JSON_EX, post(extract_json_ex))
+        .route(route::JSON_GARDE, post(extract_json_garde));
 
     #[cfg(feature = "typed_header")]
     let router = router
@@ -344,6 +366,11 @@ async fn test_main() -> anyhow::Result<()> {
         .execute::<Query<Parameters>>(Method::GET, route::QUERY_EX)
         .await?;
 
+    // Garde
+    test_executor
+        .execute::<Query<Parameters>>(Method::GET, route::QUERY_GARDE)
+        .await?;
+
     // Valid
     test_executor
         .execute::<Form<Parameters>>(Method::POST, route::FORM)
@@ -362,6 +389,11 @@ async fn test_main() -> anyhow::Result<()> {
     // ValidEx
     test_executor
         .execute::<Json<Parameters>>(Method::POST, route::JSON_EX)
+        .await?;
+
+    // Garde
+    test_executor
+        .execute::<Json<Parameters>>(Method::POST, route::JSON_GARDE)
         .await?;
 
     #[cfg(feature = "typed_header")]
@@ -666,10 +698,12 @@ mod route {
     pub const PATH_EX: &str = "/path_ex/:v0/:v1";
     pub const QUERY: &str = "/query";
     pub const QUERY_EX: &str = "/query_ex";
+    pub const QUERY_GARDE: &str = "/query_garde";
     pub const FORM: &str = "/form";
     pub const FORM_EX: &str = "/form_ex";
     pub const JSON: &str = "/json";
     pub const JSON_EX: &str = "/json_ex";
+    pub const JSON_GARDE: &str = "/json_garde";
 }
 
 async fn extract_path(Valid(Path(parameters)): Valid<Path<Parameters>>) -> StatusCode {
@@ -692,6 +726,12 @@ async fn extract_query_ex(
     validate_again_ex(parameters, args.get())
 }
 
+async fn extract_query_garde(
+    Garde(Query(parameters)): Garde<Query<ParametersGarde>>,
+) -> StatusCode {
+    validate_again_garde(parameters, ())
+}
+
 async fn extract_form(Valid(Form(parameters)): Valid<Form<Parameters>>) -> StatusCode {
     validate_again(parameters)
 }
@@ -712,6 +752,10 @@ async fn extract_json_ex(
     validate_again_ex(parameters, args.get())
 }
 
+async fn extract_json_garde(Garde(Json(parameters)): Garde<Json<ParametersGarde>>) -> StatusCode {
+    validate_again_garde(parameters, ())
+}
+
 fn validate_again<V: Validate>(validate: V) -> StatusCode {
     // The `Valid` extractor has validated the `parameters` once,
     // it should have returned `400 BAD REQUEST` if the `parameters` were invalid,
@@ -727,11 +771,25 @@ fn validate_again_ex<'v, V: ValidateArgs<'v>>(
     validate: V,
     args: <V as ValidateArgs<'v>>::Args,
 ) -> StatusCode {
-    // The `Valid` extractor has validated the `parameters` once,
+    // The `ValidEx` extractor has validated the `parameters` once,
     // it should have returned `400 BAD REQUEST` if the `parameters` were invalid,
-    // Let's validate them again to check if the `Valid` extractor works well.
+    // Let's validate them again to check if the `ValidEx` extractor works well.
     // If it works properly, this function will never return `500 INTERNAL SERVER ERROR`
     match validate.validate_args(args) {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+fn validate_again_garde<V>(validate: V, context: V::Context) -> StatusCode
+where
+    V: garde::Validate,
+{
+    // The `Garde` extractor has validated the `parameters` once,
+    // it should have returned `400 BAD REQUEST` if the `parameters` were invalid,
+    // Let's validate them again to check if the `Garde` extractor works well.
+    // If it works properly, this function will never return `500 INTERNAL SERVER ERROR`
+    match validate.validate(&context) {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }

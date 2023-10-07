@@ -238,9 +238,9 @@ pub mod typed_path;
 
 use crate::{HasValidate, HasValidateArgs};
 use axum_extra::extract::{Cached, WithRejection};
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate> HasValidate for Cached<T> {
+impl<T> HasValidate for Cached<T> {
     type Validate = T;
 
     fn get_validate(&self) -> &Self::Validate {
@@ -255,7 +255,7 @@ impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Cached<T> {
     }
 }
 
-impl<T: Validate, R> HasValidate for WithRejection<T, R> {
+impl<T, R> HasValidate for WithRejection<T, R> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

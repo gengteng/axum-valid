@@ -44,9 +44,9 @@
 
 use crate::{HasValidate, HasValidateArgs};
 use axum_yaml::Yaml;
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate> HasValidate for Yaml<T> {
+impl<T> HasValidate for Yaml<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

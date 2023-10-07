@@ -40,9 +40,9 @@
 
 use crate::{HasValidate, HasValidateArgs};
 use axum_extra::extract::Form;
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate> HasValidate for Form<T> {
+impl<T> HasValidate for Form<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

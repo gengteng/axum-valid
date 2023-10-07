@@ -63,9 +63,9 @@
 
 use crate::{HasValidate, HasValidateArgs};
 use axum::TypedHeader;
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate> HasValidate for TypedHeader<T> {
+impl<T> HasValidate for TypedHeader<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

@@ -14,9 +14,9 @@ use std::ops::{Deref, DerefMut};
 /// # `Garde` data extractor
 ///
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Garde<E, A>(pub E, pub A);
+pub struct Garde<E>(pub E);
 
-impl<E, A> Deref for Garde<E, A> {
+impl<E> Deref for Garde<E> {
     type Target = E;
 
     fn deref(&self) -> &Self::Target {
@@ -24,37 +24,25 @@ impl<E, A> Deref for Garde<E, A> {
     }
 }
 
-impl<E, A> DerefMut for Garde<E, A> {
+impl<E> DerefMut for Garde<E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<T: Display, A> Display for Garde<T, A> {
+impl<T: Display> Display for Garde<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl<E, A> Garde<E, A> {
+impl<E> Garde<E> {
     /// Consumes the `ValidEx` and returns the validated data within.
     ///
     /// This returns the `E` type which represents the data that has been
     /// successfully validated.
     pub fn into_inner(self) -> E {
         self.0
-    }
-
-    /// Returns a reference to the validation arguments.
-    ///
-    /// This provides access to the `A` type which contains the arguments used
-    /// to validate the data. These arguments were passed to the validation
-    /// function.
-    pub fn arguments<'a>(&'a self) -> <<A as GardeArgument>::T as Validate>::Context
-    where
-        A: GardeArgument,
-    {
-        self.1.get()
     }
 }
 
@@ -69,23 +57,6 @@ fn response_builder(ve: garde::Report) -> Response {
     }
 }
 
-/// `Arguments` provides the validation arguments for the data type `T`.
-///
-/// This trait has an associated type `T` which represents the data type to
-/// validate. `T` must implement the `ValidateArgs` trait which defines the
-/// validation logic.
-///
-/// It's important to mention that types implementing `Arguments` should be a part of the router's state
-/// (either through implementing `FromRef<StateType>` or by directly becoming the state)
-/// to enable automatic arguments retrieval during validation.
-///
-pub trait GardeArgument {
-    /// The data type to validate using this arguments
-    type T: Validate;
-    /// This method gets the arguments required by `ValidateArgs::validate_args`
-    fn get(&self) -> <<Self as GardeArgument>::T as Validate>::Context;
-}
-
 /// `ValidRejection` is returned when the `Valid` extractor fails.
 ///
 /// This enumeration captures two types of errors that can occur when using `Valid`: errors related to the validation
@@ -93,7 +64,7 @@ pub trait GardeArgument {
 ///
 #[derive(Debug)]
 pub enum GardeRejection<E> {
-    /// `Valid` variant captures errors related to the validation logic. It contains `ValidationErrors`
+    /// `Valid` variant captures errors related to the validation logic. It contains `garde::Report`
     /// which is a collection of validation failures for each field.
     Report(garde::Report),
     /// `Inner` variant represents potential errors that might occur within the inner extractor.
@@ -134,43 +105,43 @@ impl<E: IntoResponse> IntoResponse for GardeRejection<E> {
 }
 
 #[async_trait]
-impl<State, Body, Extractor, Args> FromRequest<State, Body> for Garde<Extractor, Args>
+impl<State, Body, Extractor, Context> FromRequest<State, Body> for Garde<Extractor>
 where
     State: Send + Sync,
     Body: Send + Sync + 'static,
-    Args: Send + Sync + FromRef<State> + GardeArgument<T = <Extractor as HasValidate>::Validate>,
+    Context: Send + Sync + FromRef<State>,
     Extractor: HasValidate + FromRequest<State, Body>,
-    <Extractor as HasValidate>::Validate: garde::Validate,
+    <Extractor as HasValidate>::Validate: garde::Validate<Context = Context>,
 {
     type Rejection = GardeRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
 
     async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
-        let arguments: Args = FromRef::from_ref(state);
+        let context: Context = FromRef::from_ref(state);
         let inner = Extractor::from_request(req, state)
             .await
             .map_err(GardeRejection::Inner)?;
 
-        inner.get_validate().validate(&arguments.get())?;
-        Ok(Garde(inner, arguments))
+        inner.get_validate().validate(&context)?;
+        Ok(Garde(inner))
     }
 }
 
 #[async_trait]
-impl<State, Extractor, Args> FromRequestParts<State> for Garde<Extractor, Args>
+impl<State, Extractor, Context> FromRequestParts<State> for Garde<Extractor>
 where
     State: Send + Sync,
-    Args: Send + Sync + FromRef<State> + GardeArgument<T = <Extractor as HasValidate>::Validate>,
+    Context: Send + Sync + FromRef<State>,
     Extractor: HasValidate + FromRequestParts<State>,
-    <Extractor as HasValidate>::Validate: garde::Validate,
+    <Extractor as HasValidate>::Validate: garde::Validate<Context = Context>,
 {
     type Rejection = GardeRejection<<Extractor as FromRequestParts<State>>::Rejection>;
 
     async fn from_request_parts(parts: &mut Parts, state: &State) -> Result<Self, Self::Rejection> {
-        let arguments: Args = FromRef::from_ref(state);
+        let context: Context = FromRef::from_ref(state);
         let inner = Extractor::from_request_parts(parts, state)
             .await
             .map_err(GardeRejection::Inner)?;
-        inner.get_validate().validate(&arguments.get())?;
-        Ok(Garde(inner, arguments))
+        inner.get_validate().validate(&context)?;
+        Ok(Garde(inner))
     }
 }

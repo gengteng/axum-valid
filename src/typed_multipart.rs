@@ -52,9 +52,9 @@
 
 use crate::{HasValidate, HasValidateArgs};
 use axum_typed_multipart::{BaseMultipart, TypedMultipart};
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate, R> HasValidate for BaseMultipart<T, R> {
+impl<T, R> HasValidate for BaseMultipart<T, R> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.data
@@ -68,7 +68,7 @@ impl<'v, T: ValidateArgs<'v>, R> HasValidateArgs<'v> for BaseMultipart<T, R> {
     }
 }
 
-impl<T: Validate> HasValidate for TypedMultipart<T> {
+impl<T> HasValidate for TypedMultipart<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

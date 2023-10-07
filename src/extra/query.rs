@@ -43,9 +43,9 @@
 
 use crate::{HasValidate, HasValidateArgs};
 use axum_extra::extract::Query;
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate> HasValidate for Query<T> {
+impl<T> HasValidate for Query<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

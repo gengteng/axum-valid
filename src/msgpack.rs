@@ -49,9 +49,9 @@
 
 use crate::{HasValidate, HasValidateArgs};
 use axum_msgpack::{MsgPack, MsgPackRaw};
-use validator::{Validate, ValidateArgs};
+use validator::ValidateArgs;
 
-impl<T: Validate> HasValidate for MsgPack<T> {
+impl<T> HasValidate for MsgPack<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0
@@ -65,7 +65,7 @@ impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for MsgPack<T> {
     }
 }
 
-impl<T: Validate> HasValidate for MsgPackRaw<T> {
+impl<T> HasValidate for MsgPackRaw<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
         &self.0

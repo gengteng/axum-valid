@@ -49,6 +49,7 @@
 //! }
 //! ```
 
+use crate::garde::Garde;
 use crate::{Valid, ValidEx};
 use axum_extra::routing::TypedPath;
 use std::fmt::Display;
@@ -58,5 +59,9 @@ impl<T: TypedPath + Display> TypedPath for Valid<T> {
 }
 
 impl<T: TypedPath + Display, A> TypedPath for ValidEx<T, A> {
+    const PATH: &'static str = T::PATH;
+}
+
+impl<T: TypedPath + Display> TypedPath for Garde<T> {
     const PATH: &'static str = T::PATH;
 }
