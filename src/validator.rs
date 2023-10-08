@@ -1,3 +1,5 @@
+//! # Validator support
+
 use crate::{HasValidate, VALIDATION_ERROR_STATUS};
 use axum::async_trait;
 use axum::extract::{FromRef, FromRequest, FromRequestParts};
