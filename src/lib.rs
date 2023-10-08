@@ -22,7 +22,7 @@ pub mod typed_header;
 #[cfg(feature = "typed_multipart")]
 pub mod typed_multipart;
 #[cfg(feature = "validator")]
-mod validator;
+pub mod validator;
 #[cfg(feature = "yaml")]
 pub mod yaml;
 
