@@ -12,6 +12,7 @@
 //! ## Example
 //!
 //! ```no_run
+//!
 //! use axum::routing::post;
 //! use axum::Json;
 //! use axum::Router;
@@ -38,8 +39,11 @@
 //! }
 //! ```
 
-use crate::{HasValidate, HasValidateArgs};
+use crate::HasValidate;
+#[cfg(feature = "validator")]
+use crate::HasValidateArgs;
 use axum::Json;
+#[cfg(feature = "validator")]
 use validator::ValidateArgs;
 
 impl<T> HasValidate for Json<T> {
@@ -49,6 +53,7 @@ impl<T> HasValidate for Json<T> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Json<T> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {

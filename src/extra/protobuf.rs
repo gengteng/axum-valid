@@ -40,8 +40,11 @@
 //! }
 //! ```
 
-use crate::{HasValidate, HasValidateArgs};
+use crate::HasValidate;
+#[cfg(feature = "validator")]
+use crate::HasValidateArgs;
 use axum_extra::protobuf::Protobuf;
+#[cfg(feature = "validator")]
 use validator::ValidateArgs;
 
 impl<T> HasValidate for Protobuf<T> {
@@ -51,6 +54,7 @@ impl<T> HasValidate for Protobuf<T> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Protobuf<T> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {

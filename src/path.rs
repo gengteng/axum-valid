@@ -8,6 +8,7 @@
 //! ## Example
 //!
 //! ```no_run
+//!
 //! use axum::extract::Path;
 //! use axum::routing::post;
 //! use axum::Router;
@@ -37,8 +38,11 @@
 //! }
 //! ```
 
-use crate::{HasValidate, HasValidateArgs};
+use crate::HasValidate;
+#[cfg(feature = "validator")]
+use crate::HasValidateArgs;
 use axum::extract::Path;
+#[cfg(feature = "validator")]
 use validator::ValidateArgs;
 
 impl<T> HasValidate for Path<T> {
@@ -48,6 +52,7 @@ impl<T> HasValidate for Path<T> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Path<T> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {

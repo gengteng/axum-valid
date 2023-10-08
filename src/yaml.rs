@@ -42,8 +42,11 @@
 //! }
 //! ```
 
-use crate::{HasValidate, HasValidateArgs};
+use crate::HasValidate;
+#[cfg(feature = "validator")]
+use crate::HasValidateArgs;
 use axum_yaml::Yaml;
+#[cfg(feature = "validator")]
 use validator::ValidateArgs;
 
 impl<T> HasValidate for Yaml<T> {
@@ -53,6 +56,7 @@ impl<T> HasValidate for Yaml<T> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Yaml<T> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {

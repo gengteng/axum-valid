@@ -1,5 +1,5 @@
-use crate::garde::Garde;
 use crate::tests::{ValidTest, ValidTestParameter};
+use crate::Garde;
 use crate::{Arguments, HasValidate, HasValidateArgs, Valid, ValidEx, VALIDATION_ERROR_STATUS};
 use axum::extract::{FromRef, Path, Query};
 use axum::routing::{get, post};
@@ -164,9 +164,12 @@ async fn test_main() -> anyhow::Result<()> {
         .route(route::JSON, post(extract_json))
         .route(route::PATH_EX, get(extract_path_ex))
         .route(route::QUERY_EX, get(extract_query_ex))
-        .route(route::QUERY_GARDE, get(extract_query_garde))
         .route(route::FORM_EX, post(extract_form_ex))
-        .route(route::JSON_EX, post(extract_json_ex))
+        .route(route::JSON_EX, post(extract_json_ex));
+
+    #[cfg(feature = "garde")]
+    let router = router
+        .route(route::QUERY_GARDE, get(extract_query_garde))
         .route(route::JSON_GARDE, post(extract_json_garde));
 
     #[cfg(feature = "typed_header")]
@@ -367,6 +370,7 @@ async fn test_main() -> anyhow::Result<()> {
         .await?;
 
     // Garde
+    #[cfg(feature = "garde")]
     test_executor
         .execute::<Query<Parameters>>(Method::GET, route::QUERY_GARDE)
         .await?;
@@ -392,6 +396,7 @@ async fn test_main() -> anyhow::Result<()> {
         .await?;
 
     // Garde
+    #[cfg(feature = "garde")]
     test_executor
         .execute::<Json<Parameters>>(Method::POST, route::JSON_GARDE)
         .await?;
@@ -698,11 +703,13 @@ mod route {
     pub const PATH_EX: &str = "/path_ex/:v0/:v1";
     pub const QUERY: &str = "/query";
     pub const QUERY_EX: &str = "/query_ex";
+    #[cfg(feature = "garde")]
     pub const QUERY_GARDE: &str = "/query_garde";
     pub const FORM: &str = "/form";
     pub const FORM_EX: &str = "/form_ex";
     pub const JSON: &str = "/json";
     pub const JSON_EX: &str = "/json_ex";
+    #[cfg(feature = "garde")]
     pub const JSON_GARDE: &str = "/json_garde";
 }
 
@@ -726,6 +733,7 @@ async fn extract_query_ex(
     validate_again_ex(parameters, args.get())
 }
 
+#[cfg(feature = "garde")]
 async fn extract_query_garde(
     Garde(Query(parameters)): Garde<Query<ParametersGarde>>,
 ) -> StatusCode {
@@ -752,6 +760,7 @@ async fn extract_json_ex(
     validate_again_ex(parameters, args.get())
 }
 
+#[cfg(feature = "garde")]
 async fn extract_json_garde(Garde(Json(parameters)): Garde<Json<ParametersGarde>>) -> StatusCode {
     validate_again_garde(parameters, ())
 }
@@ -781,6 +790,7 @@ fn validate_again_ex<'v, V: ValidateArgs<'v>>(
     }
 }
 
+#[cfg(feature = "garde")]
 fn validate_again_garde<V>(validate: V, context: V::Context) -> StatusCode
 where
     V: garde::Validate,

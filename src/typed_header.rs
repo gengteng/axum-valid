@@ -61,8 +61,11 @@
 //! }
 //! ```
 
-use crate::{HasValidate, HasValidateArgs};
+use crate::HasValidate;
+#[cfg(feature = "validator")]
+use crate::HasValidateArgs;
 use axum::TypedHeader;
+#[cfg(feature = "validator")]
 use validator::ValidateArgs;
 
 impl<T> HasValidate for TypedHeader<T> {
@@ -72,6 +75,7 @@ impl<T> HasValidate for TypedHeader<T> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for TypedHeader<T> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {

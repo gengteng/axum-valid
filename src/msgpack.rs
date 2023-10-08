@@ -12,6 +12,7 @@
 //! ## Example
 //!
 //! ```no_run
+//!
 //! use axum::routing::post;
 //! use axum::Router;
 //! use axum_msgpack::{MsgPack, MsgPackRaw};
@@ -47,8 +48,11 @@
 //! }
 //! ```
 
-use crate::{HasValidate, HasValidateArgs};
+use crate::HasValidate;
+#[cfg(feature = "validator")]
+use crate::HasValidateArgs;
 use axum_msgpack::{MsgPack, MsgPackRaw};
+#[cfg(feature = "validator")]
 use validator::ValidateArgs;
 
 impl<T> HasValidate for MsgPack<T> {
@@ -58,6 +62,7 @@ impl<T> HasValidate for MsgPack<T> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for MsgPack<T> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {
@@ -72,6 +77,7 @@ impl<T> HasValidate for MsgPackRaw<T> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for MsgPackRaw<T> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {

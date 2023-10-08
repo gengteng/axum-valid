@@ -145,3 +145,21 @@ where
         Ok(Garde(inner))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const GARDE: &str = "garde";
+
+    #[test]
+    fn garde_deref_deref_mut_into_inner() {
+        let mut inner = String::from(GARDE);
+        let mut v = Garde(inner.clone());
+        assert_eq!(&inner, v.deref());
+        inner.push_str(GARDE);
+        v.deref_mut().push_str(GARDE);
+        assert_eq!(&inner, v.deref());
+        assert_eq!(inner, v.into_inner());
+    }
+}

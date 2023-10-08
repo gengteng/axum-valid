@@ -49,19 +49,26 @@
 //! }
 //! ```
 
-use crate::garde::Garde;
+#[cfg(feature = "garde")]
+use crate::Garde;
+#[cfg(feature = "validator")]
 use crate::{Valid, ValidEx};
+#[cfg(any(feature = "validator", feature = "garde"))]
 use axum_extra::routing::TypedPath;
+#[cfg(any(feature = "validator", feature = "garde"))]
 use std::fmt::Display;
 
+#[cfg(feature = "validator")]
 impl<T: TypedPath + Display> TypedPath for Valid<T> {
     const PATH: &'static str = T::PATH;
 }
 
+#[cfg(feature = "validator")]
 impl<T: TypedPath + Display, A> TypedPath for ValidEx<T, A> {
     const PATH: &'static str = T::PATH;
 }
 
+#[cfg(feature = "garde")]
 impl<T: TypedPath + Display> TypedPath for Garde<T> {
     const PATH: &'static str = T::PATH;
 }

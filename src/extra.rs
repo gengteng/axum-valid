@@ -236,8 +236,11 @@ pub mod query;
 #[cfg(feature = "extra_typed_path")]
 pub mod typed_path;
 
-use crate::{HasValidate, HasValidateArgs};
+use crate::HasValidate;
+#[cfg(feature = "validator")]
+use crate::HasValidateArgs;
 use axum_extra::extract::{Cached, WithRejection};
+#[cfg(feature = "validator")]
 use validator::ValidateArgs;
 
 impl<T> HasValidate for Cached<T> {
@@ -248,6 +251,7 @@ impl<T> HasValidate for Cached<T> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Cached<T> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {
@@ -262,6 +266,7 @@ impl<T, R> HasValidate for WithRejection<T, R> {
     }
 }
 
+#[cfg(feature = "validator")]
 impl<'v, T: ValidateArgs<'v>, R> HasValidateArgs<'v> for WithRejection<T, R> {
     type ValidateArgs = T;
     fn get_validate_args(&self) -> &Self::ValidateArgs {
@@ -272,6 +277,7 @@ impl<'v, T: ValidateArgs<'v>, R> HasValidateArgs<'v> for WithRejection<T, R> {
 #[cfg(test)]
 mod tests {
     use crate::tests::{Rejection, ValidTest};
+    #[cfg(feature = "validator")]
     use crate::Valid;
     use axum::http::StatusCode;
     use axum_extra::extract::{Cached, WithRejection};
@@ -311,6 +317,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "validator")]
     impl<T: ValidTest, R> ValidTest for WithRejection<Valid<T>, R> {
         // just use `418 I'm a teapot` to test
         const ERROR_STATUS_CODE: StatusCode = StatusCode::IM_A_TEAPOT;
