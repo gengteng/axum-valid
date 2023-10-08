@@ -64,7 +64,10 @@ once_cell = "1.18.0"
 rmp-serde = "1.1.2"
 
 [features]
-default = ["json", "form", "query"]
+default = ["basic", "validator"]
+basic = ["json", "form", "query"]
+garde = ["dep:garde"]
+validator = ["dep:validator"]
 json = ["axum/json"]
 form = ["axum/form"]
 query = ["axum/query"]
@@ -81,4 +84,5 @@ extra_form = ["axum-extra/form"]
 extra_protobuf = ["axum-extra/protobuf"]
 all_extra_types = ["extra", "extra_typed_path", "extra_query", "extra_form", "extra_protobuf"]
 all_types = ["json", "form", "query", "typed_header", "typed_multipart", "msgpack", "yaml", "all_extra_types"]
-full = ["all_types", "422", "into_json"]
+full = ["validator", "all_types", "422", "into_json"]
+full_garde = ["garde", "all_types", "422", "into_json"]
