@@ -65,8 +65,9 @@ mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};
     use axum_extra::extract::Form;
     use reqwest::{RequestBuilder, StatusCode};
+    use serde::Serialize;
 
-    impl<T: ValidTestParameter> ValidTest for Form<T> {
+    impl<T: ValidTestParameter + Serialize> ValidTest for Form<T> {
         const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {

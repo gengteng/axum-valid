@@ -12,6 +12,8 @@
 //! ## Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
+//!
 //! use axum::routing::post;
 //! use axum::Form;
 //! use axum::Router;
@@ -66,8 +68,9 @@ mod tests {
     use axum::http::StatusCode;
     use axum::Form;
     use reqwest::RequestBuilder;
+    use serde::Serialize;
 
-    impl<T: ValidTestParameter> ValidTest for Form<T> {
+    impl<T: ValidTestParameter + Serialize> ValidTest for Form<T> {
         const ERROR_STATUS_CODE: StatusCode = StatusCode::UNPROCESSABLE_ENTITY;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {

@@ -12,6 +12,7 @@
 //! ## Example
 //!
 //! ```no_run
+//!#![cfg(feature = "validator")]
 //!
 //! use axum::routing::post;
 //! use axum::Router;
@@ -91,8 +92,9 @@ mod tests {
     use axum::http::StatusCode;
     use axum_msgpack::{MsgPack, MsgPackRaw};
     use reqwest::RequestBuilder;
+    use serde::Serialize;
 
-    impl<T: ValidTestParameter> ValidTest for MsgPack<T> {
+    impl<T: ValidTestParameter + Serialize> ValidTest for MsgPack<T> {
         const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
@@ -119,7 +121,7 @@ mod tests {
         }
     }
 
-    impl<T: ValidTestParameter> ValidTest for MsgPackRaw<T> {
+    impl<T: ValidTestParameter + Serialize> ValidTest for MsgPackRaw<T> {
         const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {

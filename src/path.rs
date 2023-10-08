@@ -8,6 +8,7 @@
 //! ## Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
 //!
 //! use axum::extract::Path;
 //! use axum::routing::post;

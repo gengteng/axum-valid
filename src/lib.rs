@@ -55,10 +55,9 @@ pub use crate::garde::{Garde, GardeRejection};
 #[cfg(test)]
 mod tests {
     use reqwest::{RequestBuilder, StatusCode};
-    use serde::Serialize;
 
     /// # Valid test parameter
-    pub trait ValidTestParameter: Serialize + 'static {
+    pub trait ValidTestParameter: 'static {
         /// Create a valid parameter
         fn valid() -> &'static Self;
         /// Create an error serializable array

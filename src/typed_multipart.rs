@@ -12,6 +12,8 @@
 //! ## Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
+//!
 //! use axum::routing::post;
 //! use axum::Router;
 //! use axum_typed_multipart::{BaseMultipart, TryFromMultipart, TypedMultipart, TypedMultipartError};

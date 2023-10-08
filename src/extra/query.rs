@@ -69,8 +69,9 @@ mod tests {
     use axum::http::StatusCode;
     use axum_extra::extract::Query;
     use reqwest::RequestBuilder;
+    use serde::Serialize;
 
-    impl<T: ValidTestParameter> ValidTest for Query<T> {
+    impl<T: ValidTestParameter + Serialize> ValidTest for Query<T> {
         const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {

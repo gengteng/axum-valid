@@ -12,6 +12,8 @@
 //! ## Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
+//!
 //! use axum::headers::{Error, Header, HeaderValue};
 //! use axum::http::HeaderName;
 //! use axum::routing::post;

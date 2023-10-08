@@ -12,6 +12,7 @@
 //! ## Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
 //!
 //! use axum::extract::Query;
 //! use axum::routing::post;
@@ -70,8 +71,9 @@ mod tests {
     use axum::extract::Query;
     use axum::http::StatusCode;
     use reqwest::RequestBuilder;
+    use serde::Serialize;
 
-    impl<T: ValidTestParameter> ValidTest for Query<T> {
+    impl<T: ValidTestParameter + Serialize> ValidTest for Query<T> {
         const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {

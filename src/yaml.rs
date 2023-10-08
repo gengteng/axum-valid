@@ -8,11 +8,12 @@
 //!
 //! 1. Implement `Deserialize` and `Validate` for your data type `T`.
 //! 2. In your handler function, use `Valid<Yaml<T>>` as some parameter's type.
-
 //!
 //! ## Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
+//!
 //! use axum::routing::post;
 //! use axum::Router;
 //! use axum_valid::Valid;
@@ -70,8 +71,9 @@ mod tests {
     use axum::http::StatusCode;
     use axum_yaml::Yaml;
     use reqwest::RequestBuilder;
+    use serde::Serialize;
 
-    impl<T: ValidTestParameter> ValidTest for Yaml<T> {
+    impl<T: ValidTestParameter + Serialize> ValidTest for Yaml<T> {
         const ERROR_STATUS_CODE: StatusCode = StatusCode::UNSUPPORTED_MEDIA_TYPE;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {

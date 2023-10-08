@@ -26,6 +26,8 @@
 //! #### Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
+//!
 //! use axum::extract::FromRequestParts;
 //! use axum::http::request::Parts;
 //! use axum::response::{IntoResponse, Response};
@@ -85,6 +87,8 @@
 //! #### Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
+//!
 //! use axum::extract::FromRequestParts;
 //! use axum::http::request::Parts;
 //! use axum::http::StatusCode;
@@ -151,6 +155,8 @@
 //! #### Example
 //!
 //! ```no_run
+//! #![cfg(feature = "validator")]
+//!
 //! use axum::extract::FromRequestParts;
 //! use axum::http::request::Parts;
 //! use axum::response::{IntoResponse, Response};
