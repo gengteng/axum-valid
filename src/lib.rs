@@ -14,9 +14,6 @@ pub mod msgpack;
 pub mod path;
 #[cfg(feature = "query")]
 pub mod query;
-#[cfg(test)]
-#[cfg(all(feature = "garde", feature = "validator"))]
-pub mod test;
 #[cfg(feature = "typed_header")]
 pub mod typed_header;
 #[cfg(feature = "typed_multipart")]

@@ -12,32 +12,73 @@
 //! ## Example
 //!
 //! ```no_run
-//! #![cfg(feature = "validator")]
+//! #[cfg(feature = "validator")]
+//! mod validator_example {
+//!     use axum::routing::post;
+//!     use axum::Json;
+//!     use axum::Router;
+//!     use axum_valid::Valid;
+//!     use serde::Deserialize;
+//!     use validator::Validate;
+//!     #[tokio::main]
+//!     pub async fn launch() -> anyhow::Result<()> {
+//!         let router = Router::new().route("/json", post(handler));
+//!         axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//!             .serve(router.into_make_service())
+//!             .await?;
+//!         Ok(())
+//!     }
+//!     async fn handler(Valid(Json(parameter)): Valid<Json<Parameter>>) {
+//!         assert!(parameter.validate().is_ok());
+//!         // Support automatic dereferencing
+//!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
+//!     }
+//!     #[derive(Validate, Deserialize)]
+//!     pub struct Parameter {
+//!         #[validate(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[validate(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
+//! }
 //!
-//! use axum::routing::post;
-//! use axum::Json;
-//! use axum::Router;
-//! use axum_valid::Valid;
-//! use serde::Deserialize;
-//! use validator::Validate;
-//! #[tokio::main]
-//! async fn main() -> anyhow::Result<()> {
-//!     let router = Router::new().route("/json", post(handler));
-//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!         .serve(router.into_make_service())
-//!         .await?;
-//!     Ok(())
+//! #[cfg(feature = "garde")]
+//! mod garde_example {
+//!     use axum::routing::post;
+//!     use axum::Json;
+//!     use axum::Router;
+//!     use axum_valid::Garde;
+//!     use serde::Deserialize;
+//!     use garde::Validate;
+//!     #[tokio::main]
+//!     pub async fn launch() -> anyhow::Result<()> {
+//!         let router = Router::new().route("/json", post(handler));
+//!         axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//!             .serve(router.into_make_service())
+//!             .await?;
+//!         Ok(())
+//!     }
+//!     async fn handler(Garde(Json(parameter)): Garde<Json<Parameter>>) {
+//!         assert!(parameter.validate(&()).is_ok());
+//!         // Support automatic dereferencing
+//!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
+//!     }
+//!     #[derive(Validate, Deserialize)]
+//!     pub struct Parameter {
+//!         #[garde(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[garde(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
 //! }
-//! async fn handler(Valid(Json(parameter)): Valid<Json<Parameter>>) {
-//!     assert!(parameter.validate().is_ok());
-//! }
-//! #[derive(Validate, Deserialize)]
-//! pub struct Parameter {
-//!     #[validate(range(min = 5, max = 10))]
-//!     pub v0: i32,
-//!     #[validate(length(min = 1, max = 10))]
-//!     pub v1: String,
-//! }
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! #     #[cfg(feature = "validator")]
+//! #     validator_example::launch()?;
+//! #     #[cfg(feature = "garde")]
+//! #     garde_example::launch()?;
+//! #     Ok(())
+//! # }
 //! ```
 
 use crate::HasValidate;

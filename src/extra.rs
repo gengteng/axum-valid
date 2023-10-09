@@ -283,6 +283,8 @@ impl<'v, T: ValidateArgs<'v>, R> HasValidateArgs<'v> for WithRejection<T, R> {
 #[cfg(test)]
 mod tests {
     use crate::tests::{Rejection, ValidTest};
+    #[cfg(feature = "garde")]
+    use crate::Garde;
     #[cfg(feature = "validator")]
     use crate::Valid;
     use axum::http::StatusCode;
@@ -325,6 +327,31 @@ mod tests {
 
     #[cfg(feature = "validator")]
     impl<T: ValidTest, R> ValidTest for WithRejection<Valid<T>, R> {
+        // just use `418 I'm a teapot` to test
+        const ERROR_STATUS_CODE: StatusCode = StatusCode::IM_A_TEAPOT;
+        // If `WithRejection` is the outermost extractor,
+        // the error code returned will always be the one provided by WithRejection.
+        const INVALID_STATUS_CODE: StatusCode = StatusCode::IM_A_TEAPOT;
+        // If `WithRejection` is the outermost extractor,
+        // the returned body may not be in JSON format.
+        const JSON_SERIALIZABLE: bool = false;
+
+        fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
+            T::set_valid_request(builder)
+        }
+
+        fn set_error_request(builder: RequestBuilder) -> RequestBuilder {
+            // invalid requests will cause the Valid extractor to fail.
+            T::set_invalid_request(builder)
+        }
+
+        fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {
+            T::set_invalid_request(builder)
+        }
+    }
+
+    #[cfg(feature = "garde")]
+    impl<T: ValidTest, R> ValidTest for WithRejection<Garde<T>, R> {
         // just use `418 I'm a teapot` to test
         const ERROR_STATUS_CODE: StatusCode = StatusCode::IM_A_TEAPOT;
         // If `WithRejection` is the outermost extractor,
