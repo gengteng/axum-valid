@@ -8,14 +8,12 @@
 #[cfg(test)]
 pub mod test;
 
-use crate::{HasValidate, VALIDATION_ERROR_STATUS};
+use crate::{HasValidate, ValidationRejection};
 use axum::async_trait;
 use axum::extract::{FromRef, FromRequest, FromRequestParts};
 use axum::http::request::Parts;
 use axum::http::Request;
-use axum::response::{IntoResponse, Response};
-use garde::Validate;
-use std::error::Error;
+use garde::{Report, Validate};
 use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut};
 
@@ -54,61 +52,13 @@ impl<E> Garde<E> {
     }
 }
 
-fn response_builder(ve: garde::Report) -> Response {
-    #[cfg(feature = "into_json")]
-    {
-        (VALIDATION_ERROR_STATUS, axum::Json(ve)).into_response()
-    }
-    #[cfg(not(feature = "into_json"))]
-    {
-        (VALIDATION_ERROR_STATUS, ve.to_string()).into_response()
-    }
-}
-
 /// `GardeRejection` is returned when the `Garde` extractor fails.
 ///
-/// This enumeration captures two types of errors that can occur when using `Garde`: errors related to the validation
-/// logic itself (encapsulated in `Garde`), and errors that may arise within the inner extractor (represented by `Inner`).
-///
-#[derive(Debug)]
-pub enum GardeRejection<E> {
-    /// `Report` variant captures errors related to the validation logic. It contains `garde::Report`
-    /// which is a collection of validation failures for each field.
-    Report(garde::Report),
-    /// `Inner` variant represents potential errors that might occur within the inner extractor.
-    Inner(E),
-}
+pub type GardeRejection<E> = ValidationRejection<Report, E>;
 
-impl<E: Display> Display for GardeRejection<E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            GardeRejection::Report(errors) => write!(f, "{errors}"),
-            GardeRejection::Inner(error) => write!(f, "{error}"),
-        }
-    }
-}
-
-impl<E: Error + 'static> Error for GardeRejection<E> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            GardeRejection::Report(ve) => Some(ve),
-            GardeRejection::Inner(e) => Some(e),
-        }
-    }
-}
-
-impl<E> From<garde::Report> for GardeRejection<E> {
-    fn from(value: garde::Report) -> Self {
-        Self::Report(value)
-    }
-}
-
-impl<E: IntoResponse> IntoResponse for GardeRejection<E> {
-    fn into_response(self) -> Response {
-        match self {
-            GardeRejection::Report(ve) => response_builder(ve),
-            GardeRejection::Inner(e) => e.into_response(),
-        }
+impl<E> From<Report> for GardeRejection<E> {
+    fn from(value: Report) -> Self {
+        Self::Valid(value)
     }
 }
 
@@ -158,6 +108,7 @@ where
 mod tests {
     use super::*;
     use garde::{Path, Report};
+    use std::error::Error;
     use std::io;
 
     const GARDE: &str = "garde";
@@ -176,25 +127,25 @@ mod tests {
 
     #[test]
     fn display_error() {
-        // ValidRejection::Valid Display
+        // GardeRejection::Valid Display
         let mut report = Report::new();
         report.append(Path::empty(), garde::Error::new(GARDE));
         let s = report.to_string();
-        let vr = GardeRejection::<String>::Report(report);
+        let vr = GardeRejection::<String>::Valid(report);
         assert_eq!(vr.to_string(), s);
 
-        // ValidRejection::Inner Display
+        // GardeRejection::Inner Display
         let inner = String::from(GARDE);
         let vr = GardeRejection::<String>::Inner(inner.clone());
         assert_eq!(inner.to_string(), vr.to_string());
 
-        // ValidRejection::Valid Error
+        // GardeRejection::Valid Error
         let mut report = Report::new();
         report.append(Path::empty(), garde::Error::new(GARDE));
-        let vr = GardeRejection::<io::Error>::Report(report);
+        let vr = GardeRejection::<io::Error>::Valid(report);
         assert!(matches!(vr.source(), Some(source) if source.downcast_ref::<Report>().is_some()));
 
-        // ValidRejection::Valid Error
+        // GardeRejection::Valid Error
         let vr = GardeRejection::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, GARDE));
         assert!(
             matches!(vr.source(), Some(source) if source.downcast_ref::<io::Error>().is_some())

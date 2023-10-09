@@ -24,6 +24,9 @@ pub mod validator;
 pub mod yaml;
 
 use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use std::error::Error;
+use std::fmt::Display;
 
 /// Http status code returned when there are validation errors.
 #[cfg(feature = "422")]
@@ -48,6 +51,61 @@ pub use crate::validator::{Arguments, HasValidateArgs, Valid, ValidEx, ValidReje
 
 #[cfg(feature = "garde")]
 pub use crate::garde::{Garde, GardeRejection};
+
+/// `ValidationRejection` is returned when the validation extractor fails.
+///
+/// This enumeration captures two types of errors that can occur when using `Valid`: errors related to the validation
+/// extractor itself , and errors that may arise within the inner extractor (represented by `Inner`).
+///
+#[derive(Debug)]
+pub enum ValidationRejection<V, E> {
+    /// `Valid` variant captures errors related to the validation logic.
+    Valid(V),
+    /// `Inner` variant represents potential errors that might occur within the inner extractor.
+    Inner(E),
+}
+
+impl<V: Display, E: Display> Display for ValidationRejection<V, E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ValidationRejection::Valid(errors) => write!(f, "{errors}"),
+            ValidationRejection::Inner(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl<V: Error + 'static, E: Error + 'static> Error for ValidationRejection<V, E> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ValidationRejection::Valid(ve) => Some(ve),
+            ValidationRejection::Inner(e) => Some(e),
+        }
+    }
+}
+
+#[cfg(feature = "into_json")]
+impl<V: serde::Serialize, E: IntoResponse> IntoResponse for ValidationRejection<V, E> {
+    fn into_response(self) -> Response {
+        match self {
+            ValidationRejection::Valid(v) => {
+                (VALIDATION_ERROR_STATUS, axum::Json(v)).into_response()
+            }
+            ValidationRejection::Inner(e) => e.into_response(),
+        }
+    }
+}
+
+#[cfg(not(feature = "into_json"))]
+impl<V: Display, E: IntoResponse> IntoResponse for ValidationRejection<V, E> {
+    fn into_response(self) -> Response {
+        match self {
+            ValidationRejection::Valid(v) => {
+                (VALIDATION_ERROR_STATUS, v.to_string()).into_response()
+            }
+            ValidationRejection::Inner(e) => e.into_response(),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

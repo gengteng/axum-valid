@@ -8,13 +8,11 @@
 #[cfg(test)]
 pub mod test;
 
-use crate::{HasValidate, VALIDATION_ERROR_STATUS};
+use crate::{HasValidate, ValidationRejection};
 use axum::async_trait;
 use axum::extract::{FromRef, FromRequest, FromRequestParts};
 use axum::http::request::Parts;
 use axum::http::Request;
-use axum::response::{IntoResponse, Response};
-use std::error::Error;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use validator::{Validate, ValidateArgs, ValidationErrors};
@@ -118,17 +116,6 @@ impl<E, A> ValidEx<E, A> {
     }
 }
 
-fn response_builder(ve: ValidationErrors) -> Response {
-    #[cfg(feature = "into_json")]
-    {
-        (VALIDATION_ERROR_STATUS, axum::Json(ve)).into_response()
-    }
-    #[cfg(not(feature = "into_json"))]
-    {
-        (VALIDATION_ERROR_STATUS, ve.to_string()).into_response()
-    }
-}
-
 /// `Arguments` provides the validation arguments for the data type `T`.
 ///
 /// This trait has an associated type `T` which represents the data type to
@@ -146,50 +133,13 @@ pub trait Arguments<'a> {
     fn get(&'a self) -> <<Self as Arguments<'a>>::T as ValidateArgs<'a>>::Args;
 }
 
-/// `ValidRejection` is returned when the `Valid` extractor fails.
+/// `ValidRejection` is returned when the `Valid` or `ValidEx` extractor fails.
 ///
-/// This enumeration captures two types of errors that can occur when using `Valid`: errors related to the validation
-/// logic itself (encapsulated in `Valid`), and errors that may arise within the inner extractor (represented by `Inner`).
-///
-#[derive(Debug)]
-pub enum ValidRejection<E> {
-    /// `Valid` variant captures errors related to the validation logic. It contains `ValidationErrors`
-    /// which is a collection of validation failures for each field.
-    Valid(ValidationErrors),
-    /// `Inner` variant represents potential errors that might occur within the inner extractor.
-    Inner(E),
-}
-
-impl<E: Display> Display for ValidRejection<E> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ValidRejection::Valid(errors) => write!(f, "{errors}"),
-            ValidRejection::Inner(error) => write!(f, "{error}"),
-        }
-    }
-}
-
-impl<E: Error + 'static> Error for ValidRejection<E> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            ValidRejection::Valid(ve) => Some(ve),
-            ValidRejection::Inner(e) => Some(e),
-        }
-    }
-}
+pub type ValidRejection<E> = ValidationRejection<ValidationErrors, E>;
 
 impl<E> From<ValidationErrors> for ValidRejection<E> {
     fn from(value: ValidationErrors) -> Self {
         Self::Valid(value)
-    }
-}
-
-impl<E: IntoResponse> IntoResponse for ValidRejection<E> {
-    fn into_response(self) -> Response {
-        match self {
-            ValidRejection::Valid(ve) => response_builder(ve),
-            ValidRejection::Inner(e) => e.into_response(),
-        }
     }
 }
 
@@ -292,6 +242,7 @@ where
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use std::error::Error;
     use std::fmt::Formatter;
     use std::io;
     use validator::ValidationError;
