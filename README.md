@@ -57,15 +57,10 @@ mod validator_example {
         println!("page_no: {}, page_size: {}", pager.page_no, pager.page_size);
     }
     
-    #[tokio::main]
-    pub async fn launch() -> anyhow::Result<()> {
-        let router = Router::new()
+    pub fn router() -> Router {
+        Router::new()
             .route("/query", get(pager_from_query))
-            .route("/json", post(pager_from_json));
-        axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-            .serve(router.into_make_service())
-            .await?;
-        Ok(())
+            .route("/json", post(pager_from_json))
     }
 }
 
@@ -102,23 +97,25 @@ mod garde_example {
         println!("page_no: {}, page_size: {}", pager.page_no, pager.page_size);
     }
     
-    #[tokio::main]
-    pub async fn launch() -> anyhow::Result<()> {
-        let router = Router::new()
+    pub fn router() -> Router {
+        Router::new()
             .route("/query", get(pager_from_query))
-            .route("/json", post(pager_from_json));
-        axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-            .serve(router.into_make_service())
-            .await?;
-        Ok(())
+            .route("/json", post(pager_from_json))
     }
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    use axum::Router;
+    
+    let router = Router::new();
     #[cfg(feature = "validator")]
-    validator_example::launch()?;
+    let router = router.nest("/validator", validator_example::router());
     #[cfg(feature = "garde")]
-    garde_example::launch()?;
+    let router = router.nest("/garde", garde_example::router());
+    axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+        .serve(router.into_make_service())
+        .await?;
     Ok(())
 }
 ```
@@ -191,37 +188,38 @@ mod validator_example {
         assert!((1..).contains(&pager.page_no));
     }
     
-    #[tokio::main]
-    pub async fn launch() -> anyhow::Result<()> {
-        let router = Router::new()
+    pub fn router() -> Router {
+        Router::new()
             .route("/form", post(pager_from_form_ex))
             .with_state(PagerValidArgs {
                 page_size_range: 1..=50,
                 page_no_range: 1..,
-            });
+            })
         // NOTE: The PagerValidArgs can also be stored in a XxxState,
         // make sure it implements FromRef<XxxState>.
-    
-        axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-            .serve(router.into_make_service())
-            .await?;
-        Ok(())
     }
 }
 
 #[cfg(feature = "garde")]
 mod garde_example {
-    #[tokio::main]
-    pub async fn launch() -> anyhow::Result<()> {
-        Ok(())
+    use axum::Router;
+
+    pub fn router() -> Router {
+        Router::new()
     }
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    use axum::Router;
+    let router = Router::new();
     #[cfg(feature = "validator")]
-    validator_example::launch()?;
+    let router = router.nest("/validator", validator_example::router());
     #[cfg(feature = "garde")]
-    garde_example::launch()?;
+    let router = router.nest("/garde", garde_example::router());
+    axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+        .serve(router.into_make_service())
+        .await?;
     Ok(())
 }
 ```

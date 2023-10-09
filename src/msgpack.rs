@@ -21,15 +21,11 @@
 //!     use axum_valid::Valid;
 //!     use serde::Deserialize;
 //!     use validator::Validate;
-//!     #[tokio::main]
-//!     pub async fn launch() -> anyhow::Result<()> {
-//!         let router = Router::new()
+//!
+//!     pub fn router() -> Router {
+//!         Router::new()
 //!             .route("/msgpack", post(handler))
-//!             .route("/msgpackraw", post(raw_handler));
-//!         axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!             .serve(router.into_make_service())
-//!             .await?;
-//!         Ok(())
+//!             .route("/msgpackraw", post(raw_handler))
 //!     }
 //!     async fn handler(Valid(MsgPack(parameter)): Valid<MsgPack<Parameter>>) {
 //!         assert!(parameter.validate().is_ok());
@@ -55,15 +51,11 @@
 //!     use axum_valid::Garde;
 //!     use serde::Deserialize;
 //!     use garde::Validate;
-//!     #[tokio::main]
-//!     pub async fn launch() -> anyhow::Result<()> {
-//!         let router = Router::new()
+//!     
+//!     pub fn router() -> Router {
+//!         Router::new()
 //!             .route("/msgpack", post(handler))
-//!             .route("/msgpackraw", post(raw_handler));
-//!         axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!             .serve(router.into_make_service())
-//!             .await?;
-//!         Ok(())
+//!             .route("/msgpackraw", post(raw_handler))
 //!     }
 //!
 //!     async fn handler(Garde(MsgPack(parameter)): Garde<MsgPack<Parameter>>) {
@@ -82,11 +74,17 @@
 //!     }
 //! }
 //!
-//! # fn main() -> anyhow::Result<()> {
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! #     use axum::Router;
+//! #     let router = Router::new();
 //! #     #[cfg(feature = "validator")]
-//! #     validator_example::launch()?;
+//! #     let router = router.nest("/validator", validator_example::router());
 //! #     #[cfg(feature = "garde")]
-//! #     garde_example::launch()?;
+//! #     let router = router.nest("/garde", garde_example::router());
+//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//! #         .serve(router.into_make_service())
+//! #         .await?;
 //! #     Ok(())
 //! # }
 //! ```

@@ -16,19 +16,17 @@
 //!     use axum_valid::Valid;
 //!     use serde::Deserialize;
 //!     use validator::Validate;
-//!     #[tokio::main]
-//!     pub async fn launch() -> anyhow::Result<()> {
-//!         let router = Router::new().route("/json", post(handler));
-//!         axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!             .serve(router.into_make_service())
-//!             .await?;
-//!         Ok(())
+//!
+//!     pub fn router() -> Router {
+//!         Router::new().route("/path", post(handler))
 //!     }
+//!
 //!     async fn handler(Valid(Path(parameter)): Valid<Path<Parameter>>) {
 //!         assert!(parameter.validate().is_ok());
 //!         // Support automatic dereferencing
 //!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
 //!     }
+//!
 //!     #[derive(Validate, Deserialize)]
 //!     pub struct Parameter {
 //!         #[validate(range(min = 5, max = 10))]
@@ -46,19 +44,17 @@
 //!     use axum_valid::Garde;
 //!     use serde::Deserialize;
 //!     use garde::Validate;
-//!     #[tokio::main]
-//!     pub async fn launch() -> anyhow::Result<()> {
-//!         let router = Router::new().route("/json", post(handler));
-//!         axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!             .serve(router.into_make_service())
-//!             .await?;
-//!         Ok(())
+//!
+//!     pub fn router() -> Router {
+//!         Router::new().route("/path", post(handler))
 //!     }
+//!
 //!     async fn handler(Garde(Path(parameter)): Garde<Path<Parameter>>) {
 //!         assert!(parameter.validate(&()).is_ok());
 //!         // Support automatic dereferencing
 //!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
 //!     }
+//!
 //!     #[derive(Validate, Deserialize)]
 //!     pub struct Parameter {
 //!         #[garde(range(min = 5, max = 10))]
@@ -68,11 +64,17 @@
 //!     }
 //! }
 //!
-//! # fn main() -> anyhow::Result<()> {
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! #     use axum::Router;
+//! #     let router = Router::new();
 //! #     #[cfg(feature = "validator")]
-//! #     validator_example::launch()?;
+//! #     let router = router.nest("/validator", validator_example::router());
 //! #     #[cfg(feature = "garde")]
-//! #     garde_example::launch()?;
+//! #     let router = router.nest("/garde", garde_example::router());
+//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//! #         .serve(router.into_make_service())
+//! #         .await?;
 //! #     Ok(())
 //! # }
 //! ```

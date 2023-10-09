@@ -12,44 +12,94 @@
 //! ## Example
 //!
 //! ```no_run
-//! #![cfg(feature = "validator")]
+//! #[cfg(feature = "validator")]
+//! mod validator_example {
+//!     use axum::routing::post;
+//!     use axum::Router;
+//!     use axum_typed_multipart::{BaseMultipart, TryFromMultipart, TypedMultipart, TypedMultipartError};
+//!     use axum_valid::Valid;
+//!     use validator::Validate;
 //!
-//! use axum::routing::post;
-//! use axum::Router;
-//! use axum_typed_multipart::{BaseMultipart, TryFromMultipart, TypedMultipart, TypedMultipartError};
-//! use axum_valid::Valid;
-//! use validator::Validate;
+//!     pub fn router() -> Router {
+//!        Router::new()
+//!             .route("/typed_multipart", post(handler))
+//!             .route("/base_multipart", post(base_handler))
+//!     }
 //!
-//! #[tokio::main]
-//! async fn main() -> anyhow::Result<()> {
-//!     let router = Router::new()
-//!         .route("/typed_multipart", post(handler))
-//!         .route("/base_multipart", post(base_handler));
-//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!         .serve(router.into_make_service())
-//!         .await?;
-//!     Ok(())
+//!     async fn handler(Valid(TypedMultipart(parameter)): Valid<TypedMultipart<Parameter>>) {
+//!         assert!(parameter.validate().is_ok());
+//!         // Support automatic dereferencing
+//!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
+//!     }
+//!
+//!     async fn base_handler(
+//!         Valid(BaseMultipart {
+//!             data: parameter, ..
+//!         }): Valid<BaseMultipart<Parameter, TypedMultipartError>>,
+//!     ) {
+//!         assert!(parameter.validate().is_ok());
+//!     }
+//!
+//!     #[derive(TryFromMultipart, Validate)]
+//!     struct Parameter {
+//!         #[validate(range(min = 5, max = 10))]
+//!         v0: i32,
+//!         #[validate(length(min = 1, max = 10))]
+//!         v1: String,
+//!     }
 //! }
 //!
-//! async fn handler(Valid(TypedMultipart(parameter)): Valid<TypedMultipart<Parameter>>) {
-//!     assert!(parameter.validate().is_ok());
+//! #[cfg(feature = "garde")]
+//! mod garde_example {
+//!     use axum::routing::post;
+//!     use axum::Router;
+//!     use axum_typed_multipart::{BaseMultipart, TryFromMultipart, TypedMultipart, TypedMultipartError};
+//!     use axum_valid::Garde;
+//!     use serde::Deserialize;
+//!     use garde::Validate;
+//!
+//!     pub fn router() -> Router {
+//!        Router::new()
+//!             .route("/typed_multipart", post(handler))
+//!             .route("/base_multipart", post(base_handler))
+//!     }
+//!
+//!     async fn handler(Garde(TypedMultipart(parameter)): Garde<TypedMultipart<Parameter>>) {
+//!         assert!(parameter.validate(&()).is_ok());
+//!         // Support automatic dereferencing
+//!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
+//!     }
+//!
+//!     async fn base_handler(
+//!         Garde(BaseMultipart {
+//!             data: parameter, ..
+//!         }): Garde<BaseMultipart<Parameter, TypedMultipartError>>,
+//!     ) {
+//!         assert!(parameter.validate(&()).is_ok());
+//!     }
+//!
+//!     #[derive(TryFromMultipart, Validate)]
+//!     pub struct Parameter {
+//!         #[garde(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[garde(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
 //! }
 //!
-//! async fn base_handler(
-//!     Valid(BaseMultipart {
-//!         data: parameter, ..
-//!     }): Valid<BaseMultipart<Parameter, TypedMultipartError>>,
-//! ) {
-//!     assert!(parameter.validate().is_ok());
-//! }
-//!
-//! #[derive(TryFromMultipart, Validate)]
-//! struct Parameter {
-//!     #[validate(range(min = 5, max = 10))]
-//!     v0: i32,
-//!     #[validate(length(min = 1, max = 10))]
-//!     v1: String,
-//! }
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! #     use axum::Router;
+//! #     let router = Router::new();
+//! #     #[cfg(feature = "validator")]
+//! #     let router = router.nest("/validator", validator_example::router());
+//! #     #[cfg(feature = "garde")]
+//! #     let router = router.nest("/garde", garde_example::router());
+//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//! #         .serve(router.into_make_service())
+//! #         .await?;
+//! #     Ok(())
+//! # }
 //! ```
 
 use crate::HasValidate;
