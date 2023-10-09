@@ -7,13 +7,11 @@
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/gengteng/axum-valid/.github/workflows/main.yml?branch=main)](https://github.com/gengteng/axum-valid/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gengteng/axum-valid/badge.svg?branch=main)](https://coveralls.io/github/gengteng/axum-valid?branch=main)
 
-This crate provides data validation capabilities for Axum based on the `validator` and `garde` crates.
+This crate provides data validation capabilities for Axum based on the `validator` and `garde` crates. It offers the `Valid`, `ValidEx` and `Garde` types to enable validation for extractors like `Json`, `Path`, `Query` and `Form`.
 
-`validator` support is included by default. To use `garde`, enable it via the `garde` feature. `garde` alone can also be enabled by using `default-features = false`.
+`validator` support is included by default. To use `garde`, enable it via the `garde` feature. `garde` alone can be enabled with `default-features = false`.
 
-The `Valid` type enables validation using `validator` for extractors like `Json`, `Path`, `Query` and `Form`. For validations requiring extra arguments, the `ValidEx` type is offered.
-
-The `Garde` type supports both argument and non-argument validations using `garde` in a unified way.
+The `Valid` type performs validation using `validator`. The `ValidEx` type supports validations requiring extra arguments. The `Garde` type unifies both argument and non-argument validations using `garde`.
 
 Additional extractors like `TypedHeader`, `MsgPack` and `Yaml` are also supported through optional features. Refer to `Features` for details.
 
