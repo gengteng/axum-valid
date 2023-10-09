@@ -12,41 +12,87 @@
 //! ## Example
 //!
 //! ```no_run
-//! use axum::Router;
-//! use axum_extra::routing::{RouterExt, TypedPath};
-//! use axum_valid::{HasValidate, Valid};
-//! use serde::Deserialize;
-//! use validator::Validate;
+//! #[cfg(feature = "validator")]
+//! mod validator_example {
+//!     use axum::Router;
+//!     use axum_extra::routing::{RouterExt, TypedPath};
+//!     use axum_valid::{HasValidate, Valid};
+//!     use serde::Deserialize;
+//!     use validator::Validate;
 //!
-//! #[tokio::main]
-//! async fn main() -> anyhow::Result<()> {
-//!     let router = Router::new().typed_get(handler);
-//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!         .serve(router.into_make_service())
-//!         .await?;
-//!     Ok(())
-//! }
+//!     pub fn router() -> Router {
+//!         Router::new().typed_get(handler)
+//!     }
 //!
-//! async fn handler(parameter: Valid<Parameter>) {
-//!     assert!(parameter.validate().is_ok());
-//! }
+//!     async fn handler(parameter: Valid<Parameter>) {
+//!         assert!(parameter.validate().is_ok());
+//!     }
 //!
-//! #[derive(TypedPath, Deserialize, Validate)]
-//! #[typed_path("/extra_typed_path/:v0/:v1")]
-//! struct Parameter {
-//!     #[validate(range(min = 5, max = 10))]
-//!     v0: i32,
-//!     #[validate(length(min = 1, max = 10))]
-//!     v1: String,
-//! }
+//!     #[derive(TypedPath, Deserialize, Validate)]
+//!     #[typed_path("/extra_typed_path/:v0/:v1")]
+//!     struct Parameter {
+//!         #[validate(range(min = 5, max = 10))]
+//!         v0: i32,
+//!         #[validate(length(min = 1, max = 10))]
+//!         v1: String,
+//!     }
 //!
-//! impl HasValidate for Parameter {
-//!     type Validate = Self;
+//!     impl HasValidate for Parameter {
+//!         type Validate = Self;
 //!
-//!     fn get_validate(&self) -> &Self::Validate {
-//!         self
+//!         fn get_validate(&self) -> &Self::Validate {
+//!             self
+//!         }
 //!     }
 //! }
+//!
+//! #[cfg(feature = "garde")]
+//! mod garde_example {
+//!     use axum::Router;
+//!     use axum_extra::routing::{RouterExt, TypedPath};
+//!     use axum_valid::{HasValidate, Garde};
+//!     use serde::Deserialize;
+//!     use garde::Validate;
+//!
+//!     pub fn router() -> Router {
+//!         Router::new().typed_get(handler)
+//!     }
+//!
+//!     async fn handler(parameter: Garde<Parameter>) {
+//!         assert!(parameter.validate(&()).is_ok());
+//!     }
+//!
+//!     #[derive(TypedPath, Deserialize, Validate)]
+//!     #[typed_path("/extra_typed_path/:v0/:v1")]
+//!     struct Parameter {
+//!         #[garde(range(min = 5, max = 10))]
+//!         v0: i32,
+//!         #[garde(length(min = 1, max = 10))]
+//!         v1: String,
+//!     }
+//!
+//!     impl HasValidate for Parameter {
+//!         type Validate = Self;
+//!
+//!         fn get_validate(&self) -> &Self::Validate {
+//!             self
+//!         }
+//!     }
+//! }
+//!
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! #     use axum::Router;
+//! #     let router = Router::new();
+//! #     #[cfg(feature = "validator")]
+//! #     let router = router.nest("/validator", validator_example::router());
+//! #     #[cfg(feature = "garde")]
+//! #     let router = router.nest("/garde", garde_example::router());
+//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//! #         .serve(router.into_make_service())
+//! #         .await?;
+//! #     Ok(())
+//! # }
 //! ```
 
 #[cfg(feature = "garde")]

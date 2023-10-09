@@ -63,10 +63,10 @@
 //!
 //!     #[derive(Validate, prost::Message)]
 //!     pub struct Parameter {
-//!         #[validate(range(min = 5, max = 10))]
+//!         #[garde(range(min = 5, max = 10))]
 //!         #[prost(int32, tag = "1")]
 //!         pub v0: i32,
-//!         #[validate(length(min = 1, max = 10))]
+//!         #[garde(length(min = 1, max = 10))]
 //!         #[prost(string, tag = "2")]
 //!         pub v1: String,
 //!     }

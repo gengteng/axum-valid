@@ -1,6 +1,6 @@
 [package]
 name = "axum-valid"
-version = "0.9.0"
+version = "0.10.0"
 description = "Provides validation extractors for your Axum application to validate data using validator, garde, or both."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
@@ -21,7 +21,7 @@ categories = [
 edition = "2021"
 
 [package.metadata.docs.rs]
-features = ["all_types"]
+features = ["all_types", "garde"]
 
 [dependencies]
 axum = { version = "0.6.20", default-features = false }

@@ -8,6 +8,18 @@
 
 ### Fixed
 
+## axum-valid 0.10.0 (2023-10-09)
+
+### Added
+
+* Added support for `garde`.
+
+### Changed
+
+* Refactored the module structure.
+
+### Fixed
+
 ## axum-valid 0.9.0 (2023-09-29)
 
 ### Added

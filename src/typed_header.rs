@@ -12,55 +12,111 @@
 //! ## Example
 //!
 //! ```no_run
-//! #![cfg(feature = "validator")]
+//! #[cfg(feature = "validator")]
+//! mod validator_example {
+//!     use axum::headers::{Error, Header, HeaderValue};
+//!     use axum::http::HeaderName;
+//!     use axum::routing::post;
+//!     use axum::{Router, TypedHeader};
+//!     use axum_valid::Valid;
+//!     use validator::Validate;
 //!
-//! use axum::headers::{Error, Header, HeaderValue};
-//! use axum::http::HeaderName;
-//! use axum::routing::post;
-//! use axum::{Router, TypedHeader};
-//! use axum_valid::Valid;
-//! use validator::Validate;
-//!
-//! #[tokio::main]
-//! async fn main() -> anyhow::Result<()> {
-//!     let router = Router::new().route("/typed_header", post(handler));
-//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!         .serve(router.into_make_service())
-//!         .await?;
-//!     Ok(())
-//! }
-//!
-//! async fn handler(Valid(TypedHeader(parameter)): Valid<TypedHeader<Parameter>>) {
-//!     assert!(parameter.validate().is_ok());
-//! }
-//!
-//! #[derive(Validate)]
-//! pub struct Parameter {
-//!     #[validate(range(min = 5, max = 10))]
-//!     pub v0: i32,
-//!     #[validate(length(min = 1, max = 10))]
-//!     pub v1: String,
-//! }
-//!
-//! static HEADER_NAME: HeaderName = HeaderName::from_static("my-header");
-//!
-//! impl Header for Parameter {
-//!     fn name() -> &'static HeaderName {
-//!         &HEADER_NAME
+//!     pub fn router() -> Router {
+//!         Router::new().route("/typed_header", post(handler))
 //!     }
 //!
-//!     fn decode<'i, I>(_values: &mut I) -> Result<Self, Error>
-//!     where
-//!         Self: Sized,
-//!         I: Iterator<Item = &'i HeaderValue>,
-//!     {
-//!         todo!()
+//!     async fn handler(Valid(TypedHeader(parameter)): Valid<TypedHeader<Parameter>>) {
+//!         assert!(parameter.validate().is_ok());
 //!     }
 //!
-//!     fn encode<E: Extend<HeaderValue>>(&self, _values: &mut E) {
-//!         todo!()
+//!     #[derive(Validate)]
+//!     pub struct Parameter {
+//!         #[validate(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[validate(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
+//!
+//!     static HEADER_NAME: HeaderName = HeaderName::from_static("my-header");
+//!
+//!     impl Header for Parameter {
+//!         fn name() -> &'static HeaderName {
+//!             &HEADER_NAME
+//!         }
+//!
+//!         fn decode<'i, I>(_values: &mut I) -> Result<Self, Error>
+//!         where
+//!             Self: Sized,
+//!             I: Iterator<Item = &'i HeaderValue>,
+//!         {
+//!             todo!()
+//!         }
+//!
+//!         fn encode<E: Extend<HeaderValue>>(&self, _values: &mut E) {
+//!             todo!()
+//!         }
 //!     }
 //! }
+//!
+//! #[cfg(feature = "garde")]
+//! mod garde_example {
+//!     use axum::headers::{Error, Header, HeaderValue};
+//!     use axum::http::HeaderName;
+//!     use axum::routing::post;
+//!     use axum::{Router, TypedHeader};
+//!     use axum_valid::Garde;
+//!     use garde::Validate;
+//!
+//!     pub fn router() -> Router {
+//!         Router::new().route("/typed_header", post(handler))
+//!     }
+//!
+//!     async fn handler(Garde(TypedHeader(parameter)): Garde<TypedHeader<Parameter>>) {
+//!         assert!(parameter.validate(&()).is_ok());
+//!     }
+//!
+//!     #[derive(Validate)]
+//!     pub struct Parameter {
+//!         #[garde(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[garde(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
+//!
+//!     static HEADER_NAME: HeaderName = HeaderName::from_static("my-header");
+//!
+//!     impl Header for Parameter {
+//!         fn name() -> &'static HeaderName {
+//!             &HEADER_NAME
+//!         }
+//!
+//!         fn decode<'i, I>(_values: &mut I) -> Result<Self, Error>
+//!         where
+//!             Self: Sized,
+//!             I: Iterator<Item = &'i HeaderValue>,
+//!         {
+//!             todo!()
+//!         }
+//!
+//!         fn encode<E: Extend<HeaderValue>>(&self, _values: &mut E) {
+//!             todo!()
+//!         }
+//!     }
+//! }
+//!
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! #     use axum::Router;
+//! #     let router = Router::new();
+//! #     #[cfg(feature = "validator")]
+//! #     let router = router.nest("/validator", validator_example::router());
+//! #     #[cfg(feature = "garde")]
+//! #     let router = router.nest("/garde", garde_example::router());
+//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//! #         .serve(router.into_make_service())
+//! #         .await?;
+//! #     Ok(())
+//! # }
 //! ```
 
 use crate::HasValidate;

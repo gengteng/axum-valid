@@ -1,4 +1,9 @@
 //! # Garde support
+//!
+//! ## Feature
+//!
+//! Enable the `garde` feature to use `Garde<E>`.
+//!
 
 #[cfg(test)]
 pub mod test;
@@ -40,7 +45,7 @@ impl<T: Display> Display for Garde<T> {
 }
 
 impl<E> Garde<E> {
-    /// Consumes the `ValidEx` and returns the validated data within.
+    /// Consumes the `Garde` and returns the validated data within.
     ///
     /// This returns the `E` type which represents the data that has been
     /// successfully validated.
@@ -60,14 +65,14 @@ fn response_builder(ve: garde::Report) -> Response {
     }
 }
 
-/// `ValidRejection` is returned when the `Valid` extractor fails.
+/// `GardeRejection` is returned when the `Garde` extractor fails.
 ///
-/// This enumeration captures two types of errors that can occur when using `Valid`: errors related to the validation
-/// logic itself (encapsulated in `Valid`), and errors that may arise within the inner extractor (represented by `Inner`).
+/// This enumeration captures two types of errors that can occur when using `Garde`: errors related to the validation
+/// logic itself (encapsulated in `Garde`), and errors that may arise within the inner extractor (represented by `Inner`).
 ///
 #[derive(Debug)]
 pub enum GardeRejection<E> {
-    /// `Valid` variant captures errors related to the validation logic. It contains `garde::Report`
+    /// `Report` variant captures errors related to the validation logic. It contains `garde::Report`
     /// which is a collection of validation failures for each field.
     Report(garde::Report),
     /// `Inner` variant represents potential errors that might occur within the inner extractor.
@@ -152,6 +157,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use garde::{Path, Report};
+    use std::io;
 
     const GARDE: &str = "garde";
 
@@ -163,6 +170,34 @@ mod tests {
         inner.push_str(GARDE);
         v.deref_mut().push_str(GARDE);
         assert_eq!(&inner, v.deref());
+        println!("{}", v);
         assert_eq!(inner, v.into_inner());
+    }
+
+    #[test]
+    fn display_error() {
+        // ValidRejection::Valid Display
+        let mut report = Report::new();
+        report.append(Path::empty(), garde::Error::new(GARDE));
+        let s = report.to_string();
+        let vr = GardeRejection::<String>::Report(report);
+        assert_eq!(vr.to_string(), s);
+
+        // ValidRejection::Inner Display
+        let inner = String::from(GARDE);
+        let vr = GardeRejection::<String>::Inner(inner.clone());
+        assert_eq!(inner.to_string(), vr.to_string());
+
+        // ValidRejection::Valid Error
+        let mut report = Report::new();
+        report.append(Path::empty(), garde::Error::new(GARDE));
+        let vr = GardeRejection::<io::Error>::Report(report);
+        assert!(matches!(vr.source(), Some(source) if source.downcast_ref::<Report>().is_some()));
+
+        // ValidRejection::Valid Error
+        let vr = GardeRejection::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, GARDE));
+        assert!(
+            matches!(vr.source(), Some(source) if source.downcast_ref::<io::Error>().is_some())
+        );
     }
 }

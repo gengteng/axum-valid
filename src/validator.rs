@@ -1,4 +1,9 @@
 //! # Validator support
+//!
+//! ## Feature
+//!
+//! Enable the `validator` feature (enabled by default) to use `Valid<E>` and `ValidEx<E, A>`.
+//!
 
 #[cfg(test)]
 pub mod test;
@@ -287,6 +292,7 @@ where
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use std::fmt::Formatter;
     use std::io;
     use validator::ValidationError;
     const TEST: &str = "test";
@@ -299,6 +305,7 @@ pub mod tests {
         inner.push_str(TEST);
         v.deref_mut().push_str(TEST);
         assert_eq!(&inner, v.deref());
+        println!("{}", v);
         assert_eq!(inner, v.into_inner());
     }
 
@@ -316,10 +323,16 @@ pub mod tests {
             Ok(())
         }
 
-        #[derive(Validate)]
+        #[derive(Debug, Validate)]
         struct Data {
             #[validate(custom(function = "validate", arg = "i32"))]
             v: i32,
+        }
+
+        impl Display for Data {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{:?}", self)
+            }
         }
 
         struct DataVA {
@@ -337,6 +350,7 @@ pub mod tests {
         let data = Data { v: 12 };
         let args = DataVA { a: 123 };
         let ve = ValidEx(data, args);
+        println!("{}", ve);
         assert_eq!(ve.v, 12);
         let a = ve.arguments();
         assert_eq!(a, 123);

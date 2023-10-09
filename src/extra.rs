@@ -26,54 +26,114 @@
 //! #### Example
 //!
 //! ```no_run
-//! #![cfg(feature = "validator")]
+//! #[cfg(feature = "validator")]
+//! mod validator_example {
+//!     use axum::extract::FromRequestParts;
+//!     use axum::http::request::Parts;
+//!     use axum::response::{IntoResponse, Response};
+//!     use axum::routing::post;
+//!     use axum::Router;
+//!     use axum_extra::extract::Cached;
+//!     use axum_valid::Valid;
+//!     use validator::Validate;
 //!
-//! use axum::extract::FromRequestParts;
-//! use axum::http::request::Parts;
-//! use axum::response::{IntoResponse, Response};
-//! use axum::routing::post;
-//! use axum::Router;
-//! use axum_extra::extract::Cached;
-//! use axum_valid::Valid;
-//! use validator::Validate;
-//! #[tokio::main]
-//! async fn main() -> anyhow::Result<()> {
-//!     let router = Router::new().route("/cached", post(handler));
-//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!         .serve(router.into_make_service())
-//!         .await?;
-//!     Ok(())
-//! }
-//! async fn handler(Valid(Cached(parameter)): Valid<Cached<Parameter>>) {
-//!     assert!(parameter.validate().is_ok());
-//! }
-//! #[derive(Validate, Clone)]
-//! pub struct Parameter {
-//!     #[validate(range(min = 5, max = 10))]
-//!     pub v0: i32,
-//!     #[validate(length(min = 1, max = 10))]
-//!     pub v1: String,
-//! }
+//!     pub fn router() -> Router {
+//!         Router::new().route("/cached", post(handler))
+//!     }
 //!
-//! pub struct ParameterRejection;
+//!     async fn handler(Valid(Cached(parameter)): Valid<Cached<Parameter>>) {
+//!         assert!(parameter.validate().is_ok());
+//!     }
 //!
-//! impl IntoResponse for ParameterRejection {
-//!     fn into_response(self) -> Response {
-//!         todo!()
+//!     #[derive(Validate, Clone)]
+//!     pub struct Parameter {
+//!         #[validate(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[validate(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
+//!
+//!     pub struct ParameterRejection;
+//!
+//!     impl IntoResponse for ParameterRejection {
+//!         fn into_response(self) -> Response {
+//!             todo!()
+//!         }
+//!     }
+//!
+//!     #[axum::async_trait]
+//!     impl<S> FromRequestParts<S> for Parameter
+//!     where
+//!         S: Send + Sync,
+//!     {
+//!         type Rejection = ParameterRejection;
+//!
+//!         async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!             todo!()
+//!         }
+//!     }
+//! }
+//! #[cfg(feature = "garde")]
+//! mod garde_example {
+//!     use axum::extract::FromRequestParts;
+//!     use axum::http::request::Parts;
+//!     use axum::response::{IntoResponse, Response};
+//!     use axum::routing::post;
+//!     use axum::Router;
+//!     use axum_extra::extract::Cached;
+//!     use axum_valid::Garde;
+//!     use garde::Validate;
+//!
+//!     pub fn router() -> Router {
+//!         Router::new().route("/cached", post(handler))
+//!     }
+//!
+//!     async fn handler(Garde(Cached(parameter)): Garde<Cached<Parameter>>) {
+//!         assert!(parameter.validate(&()).is_ok());
+//!     }
+//!
+//!     #[derive(Validate, Clone)]
+//!     pub struct Parameter {
+//!         #[garde(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[garde(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
+//!
+//!     pub struct ParameterRejection;
+//!
+//!     impl IntoResponse for ParameterRejection {
+//!         fn into_response(self) -> Response {
+//!             todo!()
+//!         }
+//!     }
+//!
+//!     #[axum::async_trait]
+//!     impl<S> FromRequestParts<S> for Parameter
+//!     where
+//!         S: Send + Sync,
+//!     {
+//!         type Rejection = ParameterRejection;
+//!
+//!         async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!             todo!()
+//!         }
 //!     }
 //! }
 //!
-//! #[axum::async_trait]
-//! impl<S> FromRequestParts<S> for Parameter
-//! where
-//!     S: Send + Sync,
-//! {
-//!     type Rejection = ParameterRejection;
-//!
-//!     async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
-//!         todo!()
-//!     }
-//! }
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! #     use axum::Router;
+//! #     let router = Router::new();
+//! #     #[cfg(feature = "validator")]
+//! #     let router = router.nest("/validator", validator_example::router());
+//! #     #[cfg(feature = "garde")]
+//! #     let router = router.nest("/garde", garde_example::router());
+//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//! #         .serve(router.into_make_service())
+//! #         .await?;
+//! #     Ok(())
+//! # }
 //! ```
 //!
 //! ### `Valid<WithRejection<T, R>>`
@@ -87,60 +147,125 @@
 //! #### Example
 //!
 //! ```no_run
-//! #![cfg(feature = "validator")]
+//! #[cfg(feature = "validator")]
+//! mod validator_example {
+//!     use axum::extract::FromRequestParts;
+//!     use axum::http::request::Parts;
+//!     use axum::http::StatusCode;
+//!     use axum::response::{IntoResponse, Response};
+//!     use axum::routing::post;
+//!     use axum::Router;
+//!     use axum_extra::extract::WithRejection;
+//!     use axum_valid::Valid;
+//!     use validator::Validate;
 //!
-//! use axum::extract::FromRequestParts;
-//! use axum::http::request::Parts;
-//! use axum::http::StatusCode;
-//! use axum::response::{IntoResponse, Response};
-//! use axum::routing::post;
-//! use axum::Router;
-//! use axum_extra::extract::WithRejection;
-//! use axum_valid::Valid;
-//! use validator::Validate;
-//! #[tokio::main]
-//! async fn main() -> anyhow::Result<()> {
-//!     let router = Router::new().route("/valid_with_rejection", post(handler));
-//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!         .serve(router.into_make_service())
-//!         .await?;
-//!     Ok(())
-//! }
-//! async fn handler(
-//!     Valid(WithRejection(parameter, _)): Valid<
-//!         WithRejection<Parameter, ValidWithRejectionRejection>,
-//!     >,
-//! ) {
-//!     assert!(parameter.validate().is_ok());
-//! }
+//!     pub fn router() -> Router {
+//!         Router::new().route("/valid_with_rejection", post(handler))
+//!     }
 //!
-//! #[derive(Validate)]
-//! pub struct Parameter {
-//!     #[validate(range(min = 5, max = 10))]
-//!     pub v0: i32,
-//!     #[validate(length(min = 1, max = 10))]
-//!     pub v1: String,
-//! }
+//!     async fn handler(
+//!         Valid(WithRejection(parameter, _)): Valid<
+//!             WithRejection<Parameter, ValidWithRejectionRejection>,
+//!         >,
+//!     ) {
+//!         assert!(parameter.validate().is_ok());
+//!     }
 //!
-//! pub struct ValidWithRejectionRejection;
+//!     #[derive(Validate)]
+//!     pub struct Parameter {
+//!         #[validate(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[validate(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
 //!
-//! impl IntoResponse for ValidWithRejectionRejection {
-//!     fn into_response(self) -> Response {
-//!         StatusCode::BAD_REQUEST.into_response()
+//!     pub struct ValidWithRejectionRejection;
+//!
+//!     impl IntoResponse for ValidWithRejectionRejection {
+//!         fn into_response(self) -> Response {
+//!             StatusCode::BAD_REQUEST.into_response()
+//!         }
+//!     }
+//!
+//!     #[axum::async_trait]
+//!     impl<S> FromRequestParts<S> for Parameter
+//!     where
+//!         S: Send + Sync,
+//!     {
+//!         type Rejection = ValidWithRejectionRejection;
+//!
+//!         async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!             todo!()
+//!         }
 //!     }
 //! }
 //!
-//! #[axum::async_trait]
-//! impl<S> FromRequestParts<S> for Parameter
-//! where
-//!     S: Send + Sync,
-//! {
-//!     type Rejection = ValidWithRejectionRejection;
+//! #[cfg(feature = "garde")]
+//! mod garde_example {
+//!     use axum::extract::FromRequestParts;
+//!     use axum::http::request::Parts;
+//!     use axum::http::StatusCode;
+//!     use axum::response::{IntoResponse, Response};
+//!     use axum::routing::post;
+//!     use axum::Router;
+//!     use axum_extra::extract::WithRejection;
+//!     use axum_valid::Garde;
+//!     use garde::Validate;
 //!
-//!     async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
-//!         todo!()
+//!     pub fn router() -> Router {
+//!         Router::new().route("/valid_with_rejection", post(handler))
+//!     }
+//!
+//!     async fn handler(
+//!         Garde(WithRejection(parameter, _)): Garde<
+//!             WithRejection<Parameter, ValidWithRejectionRejection>,
+//!         >,
+//!     ) {
+//!         assert!(parameter.validate(&()).is_ok());
+//!     }
+//!
+//!     #[derive(Validate)]
+//!     pub struct Parameter {
+//!         #[garde(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[garde(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
+//!
+//!     pub struct ValidWithRejectionRejection;
+//!
+//!     impl IntoResponse for ValidWithRejectionRejection {
+//!         fn into_response(self) -> Response {
+//!             StatusCode::BAD_REQUEST.into_response()
+//!         }
+//!     }
+//!
+//!     #[axum::async_trait]
+//!     impl<S> FromRequestParts<S> for Parameter
+//!     where
+//!         S: Send + Sync,
+//!     {
+//!         type Rejection = ValidWithRejectionRejection;
+//!
+//!         async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!             todo!()
+//!         }
 //!     }
 //! }
+//!
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! #     use axum::Router;
+//! #     let router = Router::new();
+//! #     #[cfg(feature = "validator")]
+//! #     let router = router.nest("/validator", validator_example::router());
+//! #     #[cfg(feature = "garde")]
+//! #     let router = router.nest("/garde", garde_example::router());
+//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
+//! #         .serve(router.into_make_service())
+//! #         .await?;
+//! #     Ok(())
+//! # }
 //! ```
 //!
 //! ### `WithRejection<Valid<T>, R>`
@@ -155,80 +280,153 @@
 //! #### Example
 //!
 //! ```no_run
-//! #![cfg(feature = "validator")]
+//! #[cfg(feature = "validator")]
+//! mod validator_example {
+//!     use axum::extract::FromRequestParts;
+//!     use axum::http::request::Parts;
+//!     use axum::response::{IntoResponse, Response};
+//!     use axum::routing::post;
+//!     use axum::Router;
+//!     use axum_extra::extract::WithRejection;
+//!     use axum_valid::{HasValidate, Valid, ValidRejection};
+//!     use validator::Validate;
 //!
-//! use axum::extract::FromRequestParts;
-//! use axum::http::request::Parts;
-//! use axum::response::{IntoResponse, Response};
-//! use axum::routing::post;
-//! use axum::Router;
-//! use axum_extra::extract::WithRejection;
-//! use axum_valid::{HasValidate, Valid, ValidRejection};
-//! use validator::Validate;
-//! #[tokio::main]
-//! async fn main() -> anyhow::Result<()> {
-//!     let router = Router::new().route("/with_rejection_valid", post(handler));
-//!     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//!         .serve(router.into_make_service())
-//!         .await?;
-//!     Ok(())
-//! }
-//! async fn handler(
-//!     WithRejection(Valid(parameter), _): WithRejection<
-//!         Valid<Parameter>,
-//!         WithRejectionValidRejection,
-//!     >,
-//! ) {
-//!     assert!(parameter.validate().is_ok());
-//! }
+//!     pub fn router() -> Router {
+//!         Router::new().route("/with_rejection_valid", post(handler))
+//!     }
 //!
-//! #[derive(Validate)]
-//! pub struct Parameter {
-//!     #[validate(range(min = 5, max = 10))]
-//!     pub v0: i32,
-//!     #[validate(length(min = 1, max = 10))]
-//!     pub v1: String,
-//! }
+//!     async fn handler(
+//!         WithRejection(Valid(parameter), _): WithRejection<
+//!             Valid<Parameter>,
+//!             WithRejectionValidRejection,
+//!         >,
+//!     ) {
+//!         assert!(parameter.validate().is_ok());
+//!     }
 //!
-//! impl HasValidate for Parameter {
-//!     type Validate = Self;
+//!     #[derive(Validate)]
+//!     pub struct Parameter {
+//!         #[validate(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[validate(length(min = 1, max = 10))]
+//!         pub v1: String,
+//!     }
 //!
-//!     fn get_validate(&self) -> &Self::Validate {
-//!         self
+//!     impl HasValidate for Parameter {
+//!         type Validate = Self;
+//!
+//!         fn get_validate(&self) -> &Self::Validate {
+//!             self
+//!         }
+//!     }
+//!
+//!     pub struct ParameterRejection;
+//!
+//!     impl IntoResponse for ParameterRejection {
+//!         fn into_response(self) -> Response {
+//!             todo!()
+//!         }
+//!     }
+//!
+//!     #[axum::async_trait]
+//!     impl<S> FromRequestParts<S> for Parameter
+//!     where
+//!         S: Send + Sync,
+//!     {
+//!         type Rejection = ParameterRejection;
+//!
+//!         async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!             todo!()
+//!         }
+//!     }
+//!
+//!     pub struct WithRejectionValidRejection;
+//!
+//!     impl From<ValidRejection<ParameterRejection>> for WithRejectionValidRejection {
+//!         fn from(_inner: ValidRejection<ParameterRejection>) -> Self {
+//!             todo!()
+//!         }
+//!     }
+//!
+//!     impl IntoResponse for WithRejectionValidRejection {
+//!         fn into_response(self) -> Response {
+//!             todo!()
+//!         }
 //!     }
 //! }
 //!
-//! pub struct ParameterRejection;
+//! #[cfg(feature = "garde")]
+//! mod garde_example {
+//!     use axum::extract::FromRequestParts;
+//!     use axum::http::request::Parts;
+//!     use axum::response::{IntoResponse, Response};
+//!     use axum::routing::post;
+//!     use axum::Router;
+//!     use axum_extra::extract::WithRejection;
+//!     use axum_valid::{HasValidate, Garde, GardeRejection};
+//!     use garde::Validate;
 //!
-//! impl IntoResponse for ParameterRejection {
-//!     fn into_response(self) -> Response {
-//!         todo!()
+//!     pub fn router() -> Router {
+//!         Router::new().route("/with_rejection_valid", post(handler))
 //!     }
-//! }
 //!
-//! #[axum::async_trait]
-//! impl<S> FromRequestParts<S> for Parameter
-//! where
-//!     S: Send + Sync,
-//! {
-//!     type Rejection = ParameterRejection;
-//!
-//!     async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
-//!         todo!()
+//!     async fn handler(
+//!         WithRejection(Garde(parameter), _): WithRejection<
+//!             Garde<Parameter>,
+//!             WithRejectionGardeRejection,
+//!         >,
+//!     ) {
+//!         assert!(parameter.validate(&()).is_ok());
 //!     }
-//! }
 //!
-//! pub struct WithRejectionValidRejection;
-//!
-//! impl From<ValidRejection<ParameterRejection>> for WithRejectionValidRejection {
-//!     fn from(_inner: ValidRejection<ParameterRejection>) -> Self {
-//!         todo!()
+//!     #[derive(Validate)]
+//!     pub struct Parameter {
+//!         #[garde(range(min = 5, max = 10))]
+//!         pub v0: i32,
+//!         #[garde(length(min = 1, max = 10))]
+//!         pub v1: String,
 //!     }
-//! }
 //!
-//! impl IntoResponse for WithRejectionValidRejection {
-//!     fn into_response(self) -> Response {
-//!         todo!()
+//!     impl HasValidate for Parameter {
+//!         type Validate = Self;
+//!
+//!         fn get_validate(&self) -> &Self::Validate {
+//!             self
+//!         }
+//!     }
+//!
+//!     pub struct ParameterRejection;
+//!
+//!     impl IntoResponse for ParameterRejection {
+//!         fn into_response(self) -> Response {
+//!             todo!()
+//!         }
+//!     }
+//!
+//!     #[axum::async_trait]
+//!     impl<S> FromRequestParts<S> for Parameter
+//!     where
+//!         S: Send + Sync,
+//!     {
+//!         type Rejection = ParameterRejection;
+//!
+//!         async fn from_request_parts(_parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+//!             todo!()
+//!         }
+//!     }
+//!
+//!     pub struct WithRejectionGardeRejection;
+//!
+//!     impl From<GardeRejection<ParameterRejection>> for WithRejectionGardeRejection {
+//!         fn from(_inner: GardeRejection<ParameterRejection>) -> Self {
+//!             todo!()
+//!         }
+//!     }
+//!
+//!     impl IntoResponse for WithRejectionGardeRejection {
+//!         fn into_response(self) -> Response {
+//!             todo!()
+//!         }
 //!     }
 //! }
 //! ```

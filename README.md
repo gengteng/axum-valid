@@ -126,7 +126,7 @@ To see how each extractor can be used with `Valid`, please refer to the example 
 
 ## Argument-Based Validation
 
-Here's a basic example of using the `ValidEx` extractor to validate data in a `Form` using arguments:
+Here are the examples of using the `ValidEx` / `Garde` extractor to validate data in a `Form` using arguments:
 
 ```rust,no_run
 #[cfg(feature = "validator")]
@@ -197,15 +197,63 @@ mod validator_example {
             })
         // NOTE: The PagerValidArgs can also be stored in a XxxState,
         // make sure it implements FromRef<XxxState>.
+        // Consider using Arc to reduce deep copying costs.
     }
 }
 
 #[cfg(feature = "garde")]
 mod garde_example {
-    use axum::Router;
+    use axum::routing::post;
+    use axum::{Form, Router};
+    use axum_valid::Garde;
+    use garde::Validate;
+    use serde::Deserialize;
+    use std::ops::{RangeFrom, RangeInclusive};
+
+    #[derive(Debug, Validate, Deserialize)]
+    #[garde(context(PagerValidContext))]
+    pub struct Pager {
+        #[garde(custom(validate_page_size))]
+        pub page_size: usize,
+        #[garde(custom(validate_page_no))]
+        pub page_no: usize,
+    }
+
+    fn validate_page_size(v: &usize, args: &PagerValidContext) -> garde::Result {
+        args.page_size_range
+            .contains(&v)
+            .then_some(())
+            .ok_or_else(|| garde::Error::new("page_size is out of range"))
+    }
+
+    fn validate_page_no(v: &usize, args: &PagerValidContext) -> garde::Result {
+        args.page_no_range
+            .contains(&v)
+            .then_some(())
+            .ok_or_else(|| garde::Error::new("page_no is out of range"))
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct PagerValidContext {
+        page_size_range: RangeInclusive<usize>,
+        page_no_range: RangeFrom<usize>,
+    }
+
+    pub async fn pager_from_form_garde(Garde(Form(pager)): Garde<Form<Pager>>) {
+        assert!((1..=50).contains(&pager.page_size));
+        assert!((1..).contains(&pager.page_no));
+    }
 
     pub fn router() -> Router {
         Router::new()
+            .route("/form", post(pager_from_form_garde))
+            .with_state(PagerValidContext {
+                page_size_range: 1..=50,
+                page_no_range: 1..,
+            })
+        // NOTE: The PagerValidContext can also be stored in a XxxState,
+        // make sure it implements FromRef<XxxState>.
+        // Consider using Arc to reduce deep copying costs.
     }
 }
 
@@ -228,26 +276,30 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 
 ## Features
 
-| Feature          | Description                                                                                          | Module                                  | Default | Example | Tests |
-|------------------|------------------------------------------------------------------------------------------------------|-----------------------------------------|---------|---------|-------|
-| default          | Enables support for `Path`, `Query`, `Json` and `Form`                                               | [`path`], [`query`], [`json`], [`form`] | ✅       | ✅       | ✅     |
-| json             | Enables support for `Json`                                                                           | [`json`]                                | ✅       | ✅       | ✅     |
-| query            | Enables support for `Query`                                                                          | [`query`]                               | ✅       | ✅       | ✅     |
-| form             | Enables support for `Form`                                                                           | [`form`]                                | ✅       | ✅       | ✅     |
-| typed_header     | Enables support for `TypedHeader`                                                                    | [`typed_header`]                        | ❌       | ✅       | ✅     |
-| typed_multipart  | Enables support for `TypedMultipart` and `BaseMultipart` from `axum_typed_multipart`                 | [`typed_multipart`]                     | ❌       | ✅       | ✅     |
-| msgpack          | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                   | [`msgpack`]                             | ❌       | ✅       | ✅     |
-| yaml             | Enables support for `Yaml` from `axum-yaml`                                                          | [`yaml`]                                | ❌       | ✅       | ✅     |
-| extra            | Enables support for `Cached`, `WithRejection` from `axum-extra`                                      | [`extra`]                               | ❌       | ✅       | ✅     |
-| extra_typed_path | Enables support for `T: TypedPath` from `axum-extra`                                                 | [`extra::typed_path`]                   | ❌       | ✅       | ✅     |
-| extra_query      | Enables support for `Query` from `axum-extra`                                                        | [`extra::query`]                        | ❌       | ✅       | ✅     |
-| extra_form       | Enables support for `Form` from `axum-extra`                                                         | [`extra::form`]                         | ❌       | ✅       | ✅     |
-| extra_protobuf   | Enables support for `Protobuf` from `axum-extra`                                                     | [`extra::protobuf`]                     | ❌       | ✅       | ✅     |
-| all_extra_types  | Enables support for all extractors above from `axum-extra`                                           | N/A                                     | ❌       | ✅       | ✅     |
-| all_types        | Enables support for all extractors above                                                             | N/A                                     | ❌       | ✅       | ✅     |
-| 422              | Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails | [`VALIDATION_ERROR_STATUS`]             | ❌       | ✅       | ✅     |
-| into_json        | Validation errors will be serialized into JSON format and returned as the HTTP body                  | N/A                                     | ❌       | ✅       | ✅     |
-| full             | Enables all features                                                                                 | N/A                                     | ❌       | ✅       | ✅     |
+| Feature          | Description                                                                                                                           | Module                                       | Default | Example | Tests |
+|------------------|---------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------|---------|---------|-------|
+| default          | Enables `validator` and support for `Query`, `Json` and `Form`                                                                        | [`validator`], [`query`], [`json`], [`form`] | ✅       | ✅       | ✅     |
+| validator        | Enables `validator`                                                                                                                   | [`validator`]                                | ✅       | ✅       | ✅     |
+| garde            | Enables `garde`                                                                                                                       | [`garde`]                                    | ❌       | ✅       | ✅     |
+| basic            | Enables support for `Query`, `Json` and `Form`                                                                                        | [`query`], [`json`], [`form`]                | ✅       | ✅       | ✅     |
+| json             | Enables support for `Json`                                                                                                            | [`json`]                                     | ✅       | ✅       | ✅     |
+| query            | Enables support for `Query`                                                                                                           | [`query`]                                    | ✅       | ✅       | ✅     |
+| form             | Enables support for `Form`                                                                                                            | [`form`]                                     | ✅       | ✅       | ✅     |
+| typed_header     | Enables support for `TypedHeader`                                                                                                     | [`typed_header`]                             | ❌       | ✅       | ✅     |
+| typed_multipart  | Enables support for `TypedMultipart` and `BaseMultipart` from `axum_typed_multipart`                                                  | [`typed_multipart`]                          | ❌       | ✅       | ✅     |
+| msgpack          | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                                                    | [`msgpack`]                                  | ❌       | ✅       | ✅     |
+| yaml             | Enables support for `Yaml` from `axum-yaml`                                                                                           | [`yaml`]                                     | ❌       | ✅       | ✅     |
+| extra            | Enables support for `Cached`, `WithRejection` from `axum-extra`                                                                       | [`extra`]                                    | ❌       | ✅       | ✅     |
+| extra_typed_path | Enables support for `T: TypedPath` from `axum-extra`                                                                                  | [`extra::typed_path`]                        | ❌       | ✅       | ✅     |
+| extra_query      | Enables support for `Query` from `axum-extra`                                                                                         | [`extra::query`]                             | ❌       | ✅       | ✅     |
+| extra_form       | Enables support for `Form` from `axum-extra`                                                                                          | [`extra::form`]                              | ❌       | ✅       | ✅     |
+| extra_protobuf   | Enables support for `Protobuf` from `axum-extra`                                                                                      | [`extra::protobuf`]                          | ❌       | ✅       | ✅     |
+| all_extra_types  | Enables support for all extractors above from `axum-extra`                                                                            | N/A                                          | ❌       | ✅       | ✅     |
+| all_types        | Enables support for all extractors above                                                                                              | N/A                                          | ❌       | ✅       | ✅     |
+| 422              | Use `422 Unprocessable Entity` instead of `400 Bad Request` as the status code when validation fails                                  | [`VALIDATION_ERROR_STATUS`]                  | ❌       | ✅       | ✅     |
+| into_json        | Validation errors will be serialized into JSON format and returned as the HTTP body                                                   | N/A                                          | ❌       | ✅       | ✅     |
+| full             | Enables `all_types`, `422` and `into_json`                                                                                            | N/A                                          | ❌       | ✅       | ✅     |
+| full_garde       | Enables `garde`, `all_types`, `422` and `into_json`. Consider using `default-features = false` to exclude default `validator` support | N/A                                          | ❌       | ✅       | ✅     |
 
 ## Compatibility
 
@@ -261,6 +313,7 @@ This project is licensed under the MIT License.
 
 * [axum](https://crates.io/crates/axum)
 * [validator](https://crates.io/crates/validator)
+* [garde](https://crates.io/crates/garde)
 * [serde](https://crates.io/crates/serde)
 * [axum-extra](https://crates.io/crates/axum-extra)
 * [axum-yaml](https://crates.io/crates/axum-yaml)
