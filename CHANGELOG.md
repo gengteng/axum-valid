@@ -8,6 +8,16 @@
 
 ### Fixed
 
+## axum-valid 0.10.1 (2023-10-10)
+
+### Added
+
+### Changed
+
+* When enabling features starting with `extra_` like `extra_query`, the `extra` feature will now be automatically enabled. Previously, users had to manually enable both `extra` and `extra_*`.
+
+### Fixed
+
 ## axum-valid 0.10.0 (2023-10-09)
 
 ### Added
