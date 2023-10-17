@@ -1,10 +1,10 @@
 [feature_default]
 
 [feature_all_types_into_json]
-features = "validator garde all_types into_json"
+features = "validator garde validify all_types into_json"
 
 [feature_all_types_422]
-features = "validator garde all_types 422"
+features = "validator garde validify all_types 422"
 
 [feature_all_types_422_into_json]
-features = "validator garde all_types 422 into_json"
+features = "validator garde validify all_types 422 into_json"

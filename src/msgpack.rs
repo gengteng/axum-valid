@@ -112,6 +112,15 @@ impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for MsgPack<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T: validify::Modify> crate::HasModify for MsgPack<T> {
+    type Modify = T;
+
+    fn get_modify(&mut self) -> &mut Self::Modify {
+        &mut self.0
+    }
+}
+
 impl<T> HasValidate for MsgPackRaw<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
@@ -127,6 +136,14 @@ impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for MsgPackRaw<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T: validify::Modify> crate::HasModify for MsgPackRaw<T> {
+    type Modify = T;
+
+    fn get_modify(&mut self) -> &mut Self::Modify {
+        &mut self.0
+    }
+}
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};

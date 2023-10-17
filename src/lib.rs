@@ -20,6 +20,8 @@ pub mod typed_header;
 pub mod typed_multipart;
 #[cfg(feature = "validator")]
 pub mod validator;
+#[cfg(feature = "validify")]
+pub mod validify;
 #[cfg(feature = "yaml")]
 pub mod yaml;
 
@@ -37,7 +39,7 @@ pub const VALIDATION_ERROR_STATUS: StatusCode = StatusCode::BAD_REQUEST;
 
 /// Trait for types that can supply a reference that can be validated.
 ///
-/// Extractor types `T` that implement this trait can be used with `Valid` or `Garde`.
+/// Extractor types `T` that implement this trait can be used with `Valid`, `Garde` or `Validated`.
 ///
 pub trait HasValidate {
     /// Inner type that can be validated for correctness
@@ -51,6 +53,11 @@ pub use crate::validator::{Arguments, HasValidateArgs, Valid, ValidEx, ValidReje
 
 #[cfg(feature = "garde")]
 pub use crate::garde::{Garde, GardeRejection};
+
+#[cfg(feature = "validify")]
+pub use crate::validify::{
+    HasModify, HasValidify, Modified, PayloadExtractor, Validated, Validified, ValidifyRejection,
+};
 
 /// `ValidationRejection` is returned when the validation extractor fails.
 ///

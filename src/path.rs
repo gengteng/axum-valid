@@ -100,3 +100,31 @@ impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Path<T> {
         &self.0
     }
 }
+
+#[cfg(feature = "validify")]
+impl<T: validify::Modify> crate::HasModify for Path<T> {
+    type Modify = T;
+
+    fn get_modify(&mut self) -> &mut Self::Modify {
+        &mut self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T> crate::PayloadExtractor for Path<T> {
+    type Payload = T;
+
+    fn get_payload(self) -> Self::Payload {
+        self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T: validify::Validify> crate::HasValidify for Path<T> {
+    type Validify = T;
+    type PayloadExtractor = Path<T::Payload>;
+
+    fn from_validified(v: Self::Validify) -> Self {
+        Path(v)
+    }
+}

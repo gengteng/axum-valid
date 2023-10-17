@@ -105,6 +105,15 @@ impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Query<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T: validify::Modify> crate::HasModify for Query<T> {
+    type Modify = T;
+
+    fn get_modify(&mut self) -> &mut Self::Modify {
+        &mut self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};

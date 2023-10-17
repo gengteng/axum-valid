@@ -105,6 +105,33 @@ impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Json<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T: validify::Modify> crate::HasModify for Json<T> {
+    type Modify = T;
+
+    fn get_modify(&mut self) -> &mut Self::Modify {
+        &mut self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T> crate::PayloadExtractor for Json<T> {
+    type Payload = T;
+
+    fn get_payload(self) -> Self::Payload {
+        self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T: validify::Validify> crate::HasValidify for Json<T> {
+    type Validify = T;
+    type PayloadExtractor = Json<T::Payload>;
+    fn from_validified(v: Self::Validify) -> Self {
+        Json(v)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};

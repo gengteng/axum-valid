@@ -463,6 +463,15 @@ impl<'v, T: ValidateArgs<'v>> HasValidateArgs<'v> for Cached<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T: validify::Modify> crate::HasModify for Cached<T> {
+    type Modify = T;
+
+    fn get_modify(&mut self) -> &mut Self::Modify {
+        &mut self.0
+    }
+}
+
 impl<T, R> HasValidate for WithRejection<T, R> {
     type Validate = T;
     fn get_validate(&self) -> &T {
@@ -478,6 +487,15 @@ impl<'v, T: ValidateArgs<'v>, R> HasValidateArgs<'v> for WithRejection<T, R> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T: validify::Modify, R> crate::HasModify for WithRejection<T, R> {
+    type Modify = T;
+
+    fn get_modify(&mut self) -> &mut Self::Modify {
+        &mut self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::tests::{Rejection, ValidTest};
@@ -485,6 +503,8 @@ mod tests {
     use crate::Garde;
     #[cfg(feature = "validator")]
     use crate::Valid;
+    #[cfg(feature = "validify")]
+    use crate::Validated;
     use axum::http::StatusCode;
     use axum_extra::extract::{Cached, WithRejection};
     use reqwest::RequestBuilder;
@@ -550,6 +570,31 @@ mod tests {
 
     #[cfg(feature = "garde")]
     impl<T: ValidTest, R> ValidTest for WithRejection<Garde<T>, R> {
+        // just use `418 I'm a teapot` to test
+        const ERROR_STATUS_CODE: StatusCode = StatusCode::IM_A_TEAPOT;
+        // If `WithRejection` is the outermost extractor,
+        // the error code returned will always be the one provided by WithRejection.
+        const INVALID_STATUS_CODE: StatusCode = StatusCode::IM_A_TEAPOT;
+        // If `WithRejection` is the outermost extractor,
+        // the returned body may not be in JSON format.
+        const JSON_SERIALIZABLE: bool = false;
+
+        fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
+            T::set_valid_request(builder)
+        }
+
+        fn set_error_request(builder: RequestBuilder) -> RequestBuilder {
+            // invalid requests will cause the Valid extractor to fail.
+            T::set_invalid_request(builder)
+        }
+
+        fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {
+            T::set_invalid_request(builder)
+        }
+    }
+
+    #[cfg(feature = "validify")]
+    impl<T: ValidTest, R> ValidTest for WithRejection<Validated<T>, R> {
         // just use `418 I'm a teapot` to test
         const ERROR_STATUS_CODE: StatusCode = StatusCode::IM_A_TEAPOT;
         // If `WithRejection` is the outermost extractor,

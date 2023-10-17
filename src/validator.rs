@@ -201,7 +201,6 @@ where
         + FromRef<State>
         + for<'a> Arguments<'a, T = <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequest<State, Body>,
-    for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
 
@@ -225,7 +224,6 @@ where
         + FromRef<State>
         + for<'a> Arguments<'a, T = <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequestParts<State>,
-    for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequestParts<State>>::Rejection>;
 
