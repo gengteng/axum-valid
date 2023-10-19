@@ -121,6 +121,24 @@ impl<T: validify::Modify> crate::HasModify for MsgPack<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T> crate::PayloadExtractor for MsgPack<T> {
+    type Payload = T;
+
+    fn get_payload(self) -> Self::Payload {
+        self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T: validify::Validify> crate::HasValidify for MsgPack<T> {
+    type Validify = T;
+    type PayloadExtractor = MsgPack<T::Payload>;
+    fn from_validified(v: Self::Validify) -> Self {
+        MsgPack(v)
+    }
+}
+
 impl<T> HasValidate for MsgPackRaw<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {
@@ -144,6 +162,25 @@ impl<T: validify::Modify> crate::HasModify for MsgPackRaw<T> {
         &mut self.0
     }
 }
+
+#[cfg(feature = "validify")]
+impl<T> crate::PayloadExtractor for MsgPackRaw<T> {
+    type Payload = T;
+
+    fn get_payload(self) -> Self::Payload {
+        self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T: validify::Validify> crate::HasValidify for MsgPackRaw<T> {
+    type Validify = T;
+    type PayloadExtractor = MsgPackRaw<T::Payload>;
+    fn from_validified(v: Self::Validify) -> Self {
+        MsgPackRaw(v)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};

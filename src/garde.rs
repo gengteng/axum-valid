@@ -19,6 +19,12 @@ use std::ops::{Deref, DerefMut};
 
 /// # `Garde` data extractor
 ///
+/// Garde uses garde to validate data, supporting validation with or without arguments.
+///
+/// If not using arguments, its usage is similar to `Valid`. However, if your axum router uses a state, you need to implement `FromRef<StateType>` for `()`.
+///
+/// If using arguments, you must pass the arguments to Garde extractor via state, meaning implementing `FromRef<StateType>` for your validation arguments type.
+///
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Garde<E>(pub E);
 

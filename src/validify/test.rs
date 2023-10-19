@@ -1,8 +1,10 @@
 #![cfg(feature = "validify")]
 
 use crate::tests::{ValidTest, ValidTestParameter};
-use crate::{HasValidate, Validated, VALIDATION_ERROR_STATUS};
-use axum::extract::{FromRef, Path, Query};
+use crate::{
+    HasValidate, Modified, Validated, Validified, ValidifiedByRef, VALIDATION_ERROR_STATUS,
+};
+use axum::extract::{Path, Query};
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
 use hyper::Method;
@@ -12,9 +14,9 @@ use serde::{Deserialize, Serialize};
 use std::any::type_name;
 use std::net::SocketAddr;
 use std::ops::Deref;
-use validify::Validate;
+use validify::{Modify, Validate, Validify};
 
-#[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, Validify, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
 #[cfg_attr(
     feature = "typed_multipart",
@@ -24,25 +26,31 @@ pub struct ParametersValidify {
     #[validate(range(min = 5.0, max = 10.0))]
     #[cfg_attr(feature = "extra_protobuf", prost(int32, tag = "1"))]
     v0: i32,
+    #[modify(lowercase)]
     #[validate(length(min = 1, max = 10))]
     #[cfg_attr(feature = "extra_protobuf", prost(string, tag = "2"))]
     v1: String,
 }
 
+trait IsModified: Modify + Clone + PartialEq + Eq {
+    fn modified(&self) -> bool {
+        let mut cloned = self.clone();
+        cloned.modify();
+        cloned == *self
+    }
+}
+
+impl<T> IsModified for T where T: Modify + Clone + PartialEq + Eq {}
+
 static VALID_PARAMETERS: Lazy<ParametersValidify> = Lazy::new(|| ParametersValidify {
     v0: 5,
-    v1: String::from("0123456789"),
+    v1: String::from("ABCDEFG"),
 });
 
 static INVALID_PARAMETERS: Lazy<ParametersValidify> = Lazy::new(|| ParametersValidify {
     v0: 6,
-    v1: String::from("01234567890"),
+    v1: String::from("ABCDEFGHIJKLMN"),
 });
-
-#[derive(Debug, Clone, FromRef, Default)]
-struct MyState {
-    no_argument_context: (),
-}
 
 impl ValidTestParameter for ParametersValidify {
     fn valid() -> &'static Self {
@@ -70,9 +78,33 @@ impl HasValidate for ParametersValidify {
 async fn test_main() -> anyhow::Result<()> {
     let router = Router::new()
         .route(route::PATH, get(extract_path))
+        .route(route::PATH_MODIFIED, get(extract_path_modified))
+        .route(route::PATH_VALIDIFIED, get(extract_path_validified))
+        .route(
+            route::PATH_VALIDIFIED_BY_REF,
+            get(extract_path_validified_by_ref),
+        )
         .route(route::QUERY, get(extract_query))
+        .route(route::QUERY_MODIFIED, get(extract_query_modified))
+        .route(route::QUERY_VALIDIFIED, get(extract_query_validified))
+        .route(
+            route::QUERY_VALIDIFIED_BY_REF,
+            get(extract_query_validified_by_ref),
+        )
         .route(route::FORM, post(extract_form))
-        .route(route::JSON, post(extract_json));
+        .route(route::FORM_MODIFIED, post(extract_form_modified))
+        .route(route::FORM_VALIDIFIED, post(extract_form_validified))
+        .route(
+            route::FORM_VALIDIFIED_BY_REF,
+            post(extract_form_validified_by_ref),
+        )
+        .route(route::JSON, post(extract_json))
+        .route(route::JSON_MODIFIED, post(extract_json_modified))
+        .route(route::JSON_VALIDIFIED, post(extract_json_validified))
+        .route(
+            route::JSON_VALIDIFIED_BY_REF,
+            post(extract_json_validified_by_ref),
+        );
 
     #[cfg(feature = "typed_header")]
     let router = router.route(
@@ -104,10 +136,19 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_typed_path")]
-    let router = router.route(
-        extra_typed_path::route::EXTRA_TYPED_PATH,
-        get(extra_typed_path::extract_extra_typed_path),
-    );
+    let router = router
+        .route(
+            extra_typed_path::route::EXTRA_TYPED_PATH,
+            get(extra_typed_path::extract_extra_typed_path),
+        )
+        .route(
+            extra_typed_path::route::EXTRA_TYPED_PATH_MODIFIED,
+            get(extra_typed_path::extract_extra_typed_path_modified),
+        )
+        .route(
+            extra_typed_path::route::EXTRA_TYPED_PATH_VALIDIFIED_BY_REF,
+            get(extra_typed_path::extract_extra_typed_path_validified_by_ref),
+        );
 
     #[cfg(feature = "extra_query")]
     let router = router.route(
@@ -122,10 +163,19 @@ async fn test_main() -> anyhow::Result<()> {
     );
 
     #[cfg(feature = "extra_protobuf")]
-    let router = router.route(
-        extra_protobuf::route::EXTRA_PROTOBUF,
-        post(extra_protobuf::extract_extra_protobuf),
-    );
+    let router = router
+        .route(
+            extra_protobuf::route::EXTRA_PROTOBUF,
+            post(extra_protobuf::extract_extra_protobuf),
+        )
+        .route(
+            extra_protobuf::route::EXTRA_PROTOBUF_MODIFIED,
+            post(extra_protobuf::extract_extra_protobuf_modified),
+        )
+        .route(
+            extra_protobuf::route::EXTRA_PROTOBUF_VALIDIFIED_BY_REF,
+            post(extra_protobuf::extract_extra_protobuf_validified_by_ref),
+        );
 
     #[cfg(feature = "yaml")]
     let router = router.route(yaml::route::YAML, post(yaml::extract_yaml));
@@ -137,8 +187,6 @@ async fn test_main() -> anyhow::Result<()> {
             msgpack::route::MSGPACK_RAW,
             post(msgpack::extract_msgpack_raw),
         );
-
-    let router = router.with_state(MyState::default());
 
     let server = axum::Server::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16)))
         .serve(router.into_make_service());
@@ -158,6 +206,61 @@ async fn test_main() -> anyhow::Result<()> {
         route: &str,
         server_url: &str,
     ) -> anyhow::Result<()> {
+        do_test_extra_path(
+            test_executor,
+            route,
+            server_url,
+            StatusCode::OK,
+            StatusCode::BAD_REQUEST,
+            VALIDATION_ERROR_STATUS,
+            true,
+        )
+        .await
+    }
+
+    async fn test_extra_path_modified(
+        test_executor: &TestExecutor,
+        route: &str,
+        server_url: &str,
+    ) -> anyhow::Result<()> {
+        do_test_extra_path(
+            test_executor,
+            route,
+            server_url,
+            StatusCode::OK,
+            StatusCode::BAD_REQUEST,
+            StatusCode::OK,
+            false,
+        )
+        .await
+    }
+
+    async fn test_extra_path_validified(
+        test_executor: &TestExecutor,
+        route: &str,
+        server_url: &str,
+    ) -> anyhow::Result<()> {
+        do_test_extra_path(
+            test_executor,
+            route,
+            server_url,
+            StatusCode::OK,
+            StatusCode::BAD_REQUEST,
+            VALIDATION_ERROR_STATUS,
+            true,
+        )
+        .await
+    }
+
+    async fn do_test_extra_path(
+        test_executor: &TestExecutor,
+        route: &str,
+        server_url: &str,
+        expected_valid_status: StatusCode,
+        expected_error_status: StatusCode,
+        expected_invalid_status: StatusCode,
+        should_check_json: bool,
+    ) -> anyhow::Result<()> {
         let path_type_name = type_name::<Path<ParametersValidify>>();
         let valid_path_response = test_executor
             .client()
@@ -169,7 +272,7 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         assert_eq!(
             valid_path_response.status(),
-            StatusCode::OK,
+            expected_valid_status,
             "Valid '{}' test failed.",
             path_type_name
         );
@@ -181,9 +284,10 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         assert_eq!(
             error_path_response.status(),
-            StatusCode::BAD_REQUEST,
-            "Error '{}' test failed.",
-            path_type_name
+            expected_error_status,
+            "Error '{}' test failed: {}",
+            path_type_name,
+            error_path_response.text().await?
         );
 
         let invalid_path_response = test_executor
@@ -196,21 +300,38 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         assert_eq!(
             invalid_path_response.status(),
-            VALIDATION_ERROR_STATUS,
+            expected_invalid_status,
             "Invalid '{}' test failed.",
             path_type_name
         );
         #[cfg(feature = "into_json")]
-        check_json(path_type_name, invalid_path_response).await;
+        if should_check_json {
+            check_json(path_type_name, invalid_path_response).await;
+        }
         println!("All {} tests passed.", path_type_name);
         Ok(())
     }
 
     test_extra_path(&test_executor, "path", &server_url).await?;
+    test_extra_path_modified(&test_executor, "path_modified", &server_url).await?;
+    test_extra_path_validified(&test_executor, "path_validified", &server_url).await?;
+    test_extra_path(&test_executor, "path_validified_by_ref", &server_url).await?;
 
-    // Validified
+    // Validated
     test_executor
         .execute::<Query<ParametersValidify>>(Method::GET, route::QUERY)
+        .await?;
+    // Modified
+    test_executor
+        .execute_modified::<Query<ParametersValidify>>(Method::GET, route::QUERY_MODIFIED)
+        .await?;
+    // ValidifiedByRef
+    test_executor
+        .execute::<Query<ParametersValidify>>(Method::GET, route::QUERY_VALIDIFIED_BY_REF)
+        .await?;
+    // Validified
+    test_executor
+        .execute_validified::<Query<ParametersValidify>>(Method::GET, route::QUERY_VALIDIFIED)
         .await?;
 
     // Validified
@@ -286,6 +407,44 @@ async fn test_main() -> anyhow::Result<()> {
             route: &str,
             server_url: &str,
         ) -> anyhow::Result<()> {
+            do_test_extra_typed_path(
+                test_executor,
+                route,
+                server_url,
+                StatusCode::OK,
+                StatusCode::BAD_REQUEST,
+                VALIDATION_ERROR_STATUS,
+                true,
+            )
+            .await
+        }
+
+        async fn test_extra_typed_path_modified(
+            test_executor: &TestExecutor,
+            route: &str,
+            server_url: &str,
+        ) -> anyhow::Result<()> {
+            do_test_extra_typed_path(
+                test_executor,
+                route,
+                server_url,
+                StatusCode::OK,
+                StatusCode::BAD_REQUEST,
+                StatusCode::OK,
+                false,
+            )
+            .await
+        }
+
+        async fn do_test_extra_typed_path(
+            test_executor: &TestExecutor,
+            route: &str,
+            server_url: &str,
+            expected_valid_status: StatusCode,
+            expected_error_status: StatusCode,
+            expected_invalid_status: StatusCode,
+            should_check_json: bool,
+        ) -> anyhow::Result<()> {
             let extra_typed_path_type_name = "T: TypedPath";
             let valid_extra_typed_path_response = test_executor
                 .client()
@@ -297,7 +456,7 @@ async fn test_main() -> anyhow::Result<()> {
                 .await?;
             assert_eq!(
                 valid_extra_typed_path_response.status(),
-                StatusCode::OK,
+                expected_valid_status,
                 "Validified '{}' test failed.",
                 extra_typed_path_type_name
             );
@@ -309,7 +468,7 @@ async fn test_main() -> anyhow::Result<()> {
                 .await?;
             assert_eq!(
                 error_extra_typed_path_response.status(),
-                StatusCode::BAD_REQUEST,
+                expected_error_status,
                 "Error '{}' test failed.",
                 extra_typed_path_type_name
             );
@@ -324,21 +483,31 @@ async fn test_main() -> anyhow::Result<()> {
                 .await?;
             assert_eq!(
                 invalid_extra_typed_path_response.status(),
-                VALIDATION_ERROR_STATUS,
+                expected_invalid_status,
                 "Invalid '{}' test failed.",
                 extra_typed_path_type_name
             );
             #[cfg(feature = "into_json")]
-            check_json(
-                extra_typed_path_type_name,
-                invalid_extra_typed_path_response,
-            )
-            .await;
+            if should_check_json {
+                check_json(
+                    extra_typed_path_type_name,
+                    invalid_extra_typed_path_response,
+                )
+                .await;
+            }
             println!("All {} tests passed.", extra_typed_path_type_name);
             Ok(())
         }
 
         test_extra_typed_path(&test_executor, "extra_typed_path", &server_url).await?;
+        test_extra_typed_path_modified(&test_executor, "extra_typed_path_modified", &server_url)
+            .await?;
+        test_extra_typed_path(
+            &test_executor,
+            "extra_typed_path_validified_by_ref",
+            &server_url,
+        )
+        .await?;
     }
 
     #[cfg(feature = "extra_query")]
@@ -360,10 +529,25 @@ async fn test_main() -> anyhow::Result<()> {
     #[cfg(feature = "extra_protobuf")]
     {
         use axum_extra::protobuf::Protobuf;
+        // Validated
         test_executor
             .execute::<Protobuf<ParametersValidify>>(
                 Method::POST,
                 extra_protobuf::route::EXTRA_PROTOBUF,
+            )
+            .await?;
+        // Modified
+        test_executor
+            .execute_modified::<Protobuf<ParametersValidify>>(
+                Method::POST,
+                extra_protobuf::route::EXTRA_PROTOBUF_MODIFIED,
+            )
+            .await?;
+        // ValidifiedByRef
+        test_executor
+            .execute::<Protobuf<ParametersValidify>>(
+                Method::POST,
+                extra_protobuf::route::EXTRA_PROTOBUF_VALIDIFIED_BY_REF,
             )
             .await?;
     }
@@ -410,6 +594,60 @@ impl From<Url> for TestExecutor {
 impl TestExecutor {
     /// Execute all tests
     pub async fn execute<T: ValidTest>(&self, method: Method, route: &str) -> anyhow::Result<()> {
+        self.do_execute::<T>(
+            method,
+            route,
+            StatusCode::OK,
+            T::ERROR_STATUS_CODE,
+            T::INVALID_STATUS_CODE,
+            true,
+        )
+        .await
+    }
+
+    /// Execute all tests for `Modified` without validation
+    pub async fn execute_modified<T: ValidTest>(
+        &self,
+        method: Method,
+        route: &str,
+    ) -> anyhow::Result<()> {
+        self.do_execute::<T>(
+            method,
+            route,
+            StatusCode::OK,
+            T::ERROR_STATUS_CODE,
+            StatusCode::OK,
+            false,
+        )
+        .await
+    }
+
+    /// Execute all tests for `Modified` without validation
+    pub async fn execute_validified<T: ValidTest>(
+        &self,
+        method: Method,
+        route: &str,
+    ) -> anyhow::Result<()> {
+        self.do_execute::<T>(
+            method,
+            route,
+            StatusCode::OK,
+            T::INVALID_STATUS_CODE,
+            T::INVALID_STATUS_CODE,
+            false,
+        )
+        .await
+    }
+
+    async fn do_execute<T: ValidTest>(
+        &self,
+        method: Method,
+        route: &str,
+        expected_valid_status: StatusCode,
+        expected_error_status: StatusCode,
+        expected_invalid_status: StatusCode,
+        should_check_json: bool,
+    ) -> anyhow::Result<()> {
         let url = {
             let mut url_builder = self.server_url.clone();
             url_builder.set_path(route);
@@ -422,35 +660,37 @@ impl TestExecutor {
         let valid_response = T::set_valid_request(valid_builder).send().await?;
         assert_eq!(
             valid_response.status(),
-            StatusCode::OK,
-            "Validified '{}' test failed.",
-            type_name
+            expected_valid_status,
+            "Validified '{}' test failed: {}.",
+            type_name,
+            valid_response.text().await?
         );
 
         let error_builder = self.client.request(method.clone(), url.clone());
         let error_response = T::set_error_request(error_builder).send().await?;
         assert_eq!(
             error_response.status(),
-            T::ERROR_STATUS_CODE,
-            "Error '{}' test failed.",
-            type_name
+            expected_error_status,
+            "Error '{}' test failed: {}.",
+            type_name,
+            error_response.text().await?
         );
 
         let invalid_builder = self.client.request(method, url);
         let invalid_response = T::set_invalid_request(invalid_builder).send().await?;
         assert_eq!(
             invalid_response.status(),
-            T::INVALID_STATUS_CODE,
-            "Invalid '{}' test failed.",
-            type_name
+            expected_invalid_status,
+            "Invalid '{}' test failed: {}.",
+            type_name,
+            invalid_response.text().await?
         );
         #[cfg(feature = "into_json")]
-        if T::JSON_SERIALIZABLE {
+        if should_check_json && T::JSON_SERIALIZABLE {
             check_json(type_name, invalid_response).await;
         }
 
         println!("All '{}' tests passed.", type_name);
-
         Ok(())
     }
 
@@ -473,36 +713,121 @@ pub async fn check_json(type_name: &'static str, response: reqwest::Response) {
 
 mod route {
     pub const PATH: &str = "/path/:v0/:v1";
+    pub const PATH_MODIFIED: &str = "/path_modified/:v0/:v1";
+    pub const PATH_VALIDIFIED: &str = "/path_validified/:v0/:v1";
+    pub const PATH_VALIDIFIED_BY_REF: &str = "/path_validified_by_ref/:v0/:v1";
     pub const QUERY: &str = "/query";
+    pub const QUERY_MODIFIED: &str = "/query_modified/:v0/:v1";
+
+    pub const QUERY_VALIDIFIED: &str = "/query_validified/:v0/:v1";
+    pub const QUERY_VALIDIFIED_BY_REF: &str = "/query_validified_by_ref/:v0/:v1";
     pub const FORM: &str = "/form";
+    pub const FORM_MODIFIED: &str = "/form_modified/:v0/:v1";
+    pub const FORM_VALIDIFIED: &str = "/form_validified/:v0/:v1";
+    pub const FORM_VALIDIFIED_BY_REF: &str = "/form_validified_by_ref/:v0/:v1";
     pub const JSON: &str = "/json";
+    pub const JSON_MODIFIED: &str = "/json_modified/:v0/:v1";
+    pub const JSON_VALIDIFIED: &str = "/json_validified/:v0/:v1";
+    pub const JSON_VALIDIFIED_BY_REF: &str = "/json_validified_by_ref/:v0/:v1";
 }
 
 async fn extract_path(
     Validated(Path(parameters)): Validated<Path<ParametersValidify>>,
 ) -> StatusCode {
-    validate_again(parameters)
+    check_validated(&parameters)
+}
+
+async fn extract_path_modified(
+    Modified(Path(parameters)): Modified<Path<ParametersValidify>>,
+) -> StatusCode {
+    check_modified(&parameters)
+}
+
+async fn extract_path_validified(
+    Validified(Path(parameters)): Validified<Path<ParametersValidify>>,
+) -> StatusCode {
+    check_validified(&parameters)
+}
+
+async fn extract_path_validified_by_ref(
+    ValidifiedByRef(Path(parameters)): ValidifiedByRef<Path<ParametersValidify>>,
+) -> StatusCode {
+    check_validified(&parameters)
 }
 
 async fn extract_query(
     Validated(Query(parameters)): Validated<Query<ParametersValidify>>,
 ) -> StatusCode {
-    validate_again(parameters)
+    check_validated(&parameters)
+}
+
+async fn extract_query_modified(
+    Modified(Query(parameters)): Modified<Query<ParametersValidify>>,
+) -> StatusCode {
+    check_modified(&parameters)
+}
+
+async fn extract_query_validified(
+    Validified(Query(parameters)): Validified<Query<ParametersValidify>>,
+) -> StatusCode {
+    check_validified(&parameters)
+}
+
+async fn extract_query_validified_by_ref(
+    ValidifiedByRef(Query(parameters)): ValidifiedByRef<Query<ParametersValidify>>,
+) -> StatusCode {
+    check_validified(&parameters)
 }
 
 async fn extract_form(
     Validated(Form(parameters)): Validated<Form<ParametersValidify>>,
 ) -> StatusCode {
-    validate_again(parameters)
+    check_validated(&parameters)
+}
+
+async fn extract_form_modified(
+    Modified(Form(parameters)): Modified<Form<ParametersValidify>>,
+) -> StatusCode {
+    check_modified(&parameters)
+}
+
+async fn extract_form_validified(
+    Validified(Form(parameters)): Validified<Form<ParametersValidify>>,
+) -> StatusCode {
+    check_validified(&parameters)
+}
+
+async fn extract_form_validified_by_ref(
+    ValidifiedByRef(Form(parameters)): ValidifiedByRef<Form<ParametersValidify>>,
+) -> StatusCode {
+    check_validified(&parameters)
 }
 
 async fn extract_json(
     Validated(Json(parameters)): Validated<Json<ParametersValidify>>,
 ) -> StatusCode {
-    validate_again(parameters)
+    check_validated(&parameters)
 }
 
-fn validate_again<V: Validate>(validate: V) -> StatusCode {
+async fn extract_json_modified(
+    Modified(Json(parameters)): Modified<Json<ParametersValidify>>,
+) -> StatusCode {
+    check_modified(&parameters)
+}
+
+async fn extract_json_validified(
+    Validified(Json(parameters)): Validified<Json<ParametersValidify>>,
+) -> StatusCode {
+    check_validified(&parameters)
+}
+
+async fn extract_json_validified_by_ref(
+    ValidifiedByRef(Json(parameters)): ValidifiedByRef<Json<ParametersValidify>>,
+) -> StatusCode {
+    check_validified(&parameters)
+}
+
+fn check_validated<V: Validate>(validate: &V) -> StatusCode {
     // The `Validified` extractor has validated the `parameters` once,
     // it should have returned `400 BAD REQUEST` if the `parameters` were invalid,
     // Let's validate them again to check if the `Validified` extractor works well.
@@ -513,6 +838,23 @@ fn validate_again<V: Validate>(validate: V) -> StatusCode {
     }
 }
 
+fn check_modified<M: IsModified>(modify: &M) -> StatusCode {
+    if modify.modified() {
+        StatusCode::OK
+    } else {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
+fn check_validified<D: IsModified + Validate>(data: &D) -> StatusCode {
+    let status = check_modified(data);
+    if status != StatusCode::OK {
+        return status;
+    }
+
+    check_validated(data)
+}
+
 #[cfg(feature = "typed_header")]
 mod typed_header {
 
@@ -520,7 +862,7 @@ mod typed_header {
         pub const TYPED_HEADER: &str = "/typed_header";
     }
 
-    use super::{validate_again, ParametersValidify};
+    use super::{check_validated, ParametersValidify};
     use crate::Validated;
     use axum::headers::{Error, Header, HeaderName, HeaderValue};
     use axum::http::StatusCode;
@@ -531,7 +873,7 @@ mod typed_header {
     pub(super) async fn extract_typed_header(
         Validated(TypedHeader(parameters)): Validated<TypedHeader<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 
     impl Header for ParametersValidify {
@@ -583,7 +925,7 @@ mod typed_header {
 
 #[cfg(feature = "typed_multipart")]
 mod typed_multipart {
-    use super::{validate_again, ParametersValidify};
+    use super::{check_validated, ParametersValidify};
     use crate::Validated;
     use axum::http::StatusCode;
     use axum_typed_multipart::{BaseMultipart, TypedMultipart, TypedMultipartError};
@@ -604,7 +946,7 @@ mod typed_multipart {
     pub(super) async fn extract_typed_multipart(
         Validated(TypedMultipart(parameters)): Validated<TypedMultipart<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 
     pub(super) async fn extract_base_multipart(
@@ -612,13 +954,13 @@ mod typed_multipart {
             BaseMultipart<ParametersValidify, TypedMultipartError>,
         >,
     ) -> StatusCode {
-        validate_again(data)
+        check_validated(&data)
     }
 }
 
 #[cfg(feature = "extra")]
 mod extra {
-    use super::{validate_again, ParametersValidify};
+    use super::{check_validated, ParametersValidify};
     use crate::tests::{Rejection, ValidTest, ValidTestParameter};
     use crate::{Validated, ValidifyRejection};
     use axum::extract::FromRequestParts;
@@ -729,7 +1071,7 @@ mod extra {
     pub async fn extract_cached(
         Validated(Cached(parameters)): Validated<Cached<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 
     pub async fn extract_with_rejection(
@@ -737,7 +1079,7 @@ mod extra {
             WithRejection<ParametersValidify, ValidifyWithRejectionRejection>,
         >,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 
     pub struct WithRejectionValidifyRejection<E> {
@@ -764,21 +1106,24 @@ mod extra {
             WithRejectionValidifyRejection<ParametersRejection>,
         >,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 }
 
 #[cfg(feature = "extra_typed_path")]
 mod extra_typed_path {
-    use super::validate_again;
-    use crate::{HasValidate, Validated};
+    use super::{check_modified, check_validated, check_validified};
+    use crate::{HasModify, HasValidate, Modified, Validated, ValidifiedByRef};
     use axum::http::StatusCode;
     use axum_extra::routing::TypedPath;
     use serde::Deserialize;
-    use validify::Validate;
+    use validify::{Validate, Validify};
 
     pub mod route {
         pub const EXTRA_TYPED_PATH: &str = "/extra_typed_path/:v0/:v1";
+        pub const EXTRA_TYPED_PATH_MODIFIED: &str = "/extra_typed_path_modified/:v0/:v1";
+        pub const EXTRA_TYPED_PATH_VALIDIFIED_BY_REF: &str =
+            "/extra_typed_path_validified_by_ref/:v0/:v1";
     }
 
     #[derive(Validate, TypedPath, Deserialize)]
@@ -798,16 +1143,72 @@ mod extra_typed_path {
         }
     }
 
+    #[derive(Validify, TypedPath, Deserialize, Clone, PartialEq, Eq)]
+    #[typed_path("/extra_typed_path_validified_by_ref/:v0/:v1")]
+    pub struct TypedPathParamValidifiedByRef {
+        #[validate(range(min = 5.0, max = 10.0))]
+        v0: i32,
+        #[modify(lowercase)]
+        #[validate(length(min = 1, max = 10))]
+        v1: String,
+    }
+
+    impl HasValidate for TypedPathParamValidifiedByRef {
+        type Validate = Self;
+
+        fn get_validate(&self) -> &Self::Validate {
+            self
+        }
+    }
+
+    impl HasModify for TypedPathParamValidifiedByRef {
+        type Modify = Self;
+
+        fn get_modify(&mut self) -> &mut Self::Modify {
+            self
+        }
+    }
+
+    #[derive(Validify, TypedPath, Deserialize, Clone, PartialEq, Eq)]
+    #[typed_path("/extra_typed_path_modified/:v0/:v1")]
+    pub struct TypedPathParamModified {
+        #[validate(range(min = 5.0, max = 10.0))]
+        v0: i32,
+        #[modify(lowercase)]
+        #[validate(length(min = 1, max = 10))]
+        v1: String,
+    }
+
+    impl HasModify for TypedPathParamModified {
+        type Modify = Self;
+
+        fn get_modify(&mut self) -> &mut Self::Modify {
+            self
+        }
+    }
+
     pub async fn extract_extra_typed_path(
         Validated(param): Validated<TypedPathParam>,
     ) -> StatusCode {
-        validate_again(param)
+        check_validated(&param)
+    }
+
+    pub async fn extract_extra_typed_path_modified(
+        Modified(param): Modified<TypedPathParamModified>,
+    ) -> StatusCode {
+        check_modified(&param)
+    }
+
+    pub async fn extract_extra_typed_path_validified_by_ref(
+        ValidifiedByRef(param): ValidifiedByRef<TypedPathParamValidifiedByRef>,
+    ) -> StatusCode {
+        check_validified(&param)
     }
 }
 
 #[cfg(feature = "extra_query")]
 mod extra_query {
-    use super::{validate_again, ParametersValidify};
+    use super::{check_validated, ParametersValidify};
     use crate::Validated;
     use axum::http::StatusCode;
     use axum_extra::extract::Query;
@@ -819,13 +1220,13 @@ mod extra_query {
     pub async fn extract_extra_query(
         Validated(Query(parameters)): Validated<Query<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 }
 
 #[cfg(feature = "extra_form")]
 mod extra_form {
-    use super::{validate_again, ParametersValidify};
+    use super::{check_validated, ParametersValidify};
     use crate::Validated;
     use axum::http::StatusCode;
     use axum_extra::extract::Form;
@@ -837,31 +1238,45 @@ mod extra_form {
     pub async fn extract_extra_form(
         Validated(Form(parameters)): Validated<Form<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 }
 
 #[cfg(feature = "extra_protobuf")]
 mod extra_protobuf {
-    use super::{validate_again, ParametersValidify};
-    use crate::Validated;
+    use super::{check_modified, check_validated, check_validified, ParametersValidify};
+    use crate::{Modified, Validated, ValidifiedByRef};
     use axum::http::StatusCode;
     use axum_extra::protobuf::Protobuf;
 
     pub mod route {
         pub const EXTRA_PROTOBUF: &str = "/extra_protobuf";
+        pub const EXTRA_PROTOBUF_MODIFIED: &str = "/extra_protobuf_modified";
+        pub const EXTRA_PROTOBUF_VALIDIFIED_BY_REF: &str = "/extra_protobuf_validified_by_ref";
     }
 
     pub async fn extract_extra_protobuf(
         Validated(Protobuf(parameters)): Validated<Protobuf<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
+    }
+
+    pub async fn extract_extra_protobuf_modified(
+        Modified(Protobuf(parameters)): Modified<Protobuf<ParametersValidify>>,
+    ) -> StatusCode {
+        check_modified(&parameters)
+    }
+
+    pub async fn extract_extra_protobuf_validified_by_ref(
+        ValidifiedByRef(Protobuf(parameters)): ValidifiedByRef<Protobuf<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validified(&parameters)
     }
 }
 
 #[cfg(feature = "yaml")]
 mod yaml {
-    use super::{validate_again, ParametersValidify};
+    use super::{check_validated, ParametersValidify};
     use crate::Validated;
     use axum::http::StatusCode;
     use axum_yaml::Yaml;
@@ -873,13 +1288,13 @@ mod yaml {
     pub async fn extract_yaml(
         Validated(Yaml(parameters)): Validated<Yaml<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 }
 
 #[cfg(feature = "msgpack")]
 mod msgpack {
-    use super::{validate_again, ParametersValidify};
+    use super::{check_validated, ParametersValidify};
     use crate::Validated;
     use axum::http::StatusCode;
     use axum_msgpack::{MsgPack, MsgPackRaw};
@@ -892,11 +1307,11 @@ mod msgpack {
     pub async fn extract_msgpack(
         Validated(MsgPack(parameters)): Validated<MsgPack<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
     pub async fn extract_msgpack_raw(
         Validated(MsgPackRaw(parameters)): Validated<MsgPackRaw<ParametersValidify>>,
     ) -> StatusCode {
-        validate_again(parameters)
+        check_validated(&parameters)
     }
 }

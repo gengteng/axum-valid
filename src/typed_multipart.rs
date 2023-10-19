@@ -133,31 +133,6 @@ impl<T: validify::Modify, R> crate::HasModify for BaseMultipart<T, R> {
     }
 }
 
-#[cfg(feature = "validify")]
-impl<T, R> crate::PayloadExtractor for BaseMultipart<T, R> {
-    type Payload = T;
-
-    fn get_payload(self) -> Self::Payload {
-        self.data
-    }
-}
-
-#[cfg(feature = "validify")]
-impl<T: validify::Validify, R> crate::HasValidify for BaseMultipart<T, R> {
-    type Validify = T;
-    type PayloadExtractor = BaseMultipart<T::Payload, R>;
-
-    fn from_validified(_v: Self::Validify) -> Self {
-        // BaseMultipart {
-        //     data,
-        //     rejection: Default::default(), // ❌: need rejection to be pub
-        // }
-        // waiting for this issue to be resolved:
-        // https://github.com/murar8/axum_typed_multipart/issues/55
-        unimplemented!()
-    }
-}
-
 impl<T> HasValidate for TypedMultipart<T> {
     type Validate = T;
     fn get_validate(&self) -> &T {

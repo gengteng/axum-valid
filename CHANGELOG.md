@@ -8,6 +8,17 @@
 
 ### Fixed
 
+## axum-valid 0.11.0 (2023-10-20)
+
+### Added
+
+* Added support for `validify`.
+* Introduced four new extractors using validify: `Validated`, `Modified`, `Validified`, and `ValidifiedByRef`.
+
+### Changed
+
+### Fixed
+
 ## axum-valid 0.10.1 (2023-10-10)
 
 ### Added

@@ -114,6 +114,25 @@ impl<T: validify::Modify> crate::HasModify for Query<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T> crate::PayloadExtractor for Query<T> {
+    type Payload = T;
+
+    fn get_payload(self) -> Self::Payload {
+        self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T: validify::Validify> crate::HasValidify for Query<T> {
+    type Validify = T;
+    type PayloadExtractor = Query<T::Payload>;
+
+    fn from_validified(v: Self::Validify) -> Self {
+        Query(v)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};

@@ -97,10 +97,10 @@
 
 #[cfg(feature = "garde")]
 use crate::Garde;
+#[cfg(feature = "validify")]
+use crate::{Modified, Validated, ValidifiedByRef};
 #[cfg(feature = "validator")]
 use crate::{Valid, ValidEx};
-#[cfg(feature = "validify")]
-use crate::{Validated, Validified};
 #[cfg(any(feature = "validator", feature = "garde", feature = "validify"))]
 use axum_extra::routing::TypedPath;
 #[cfg(any(feature = "validator", feature = "garde", feature = "validify"))]
@@ -127,6 +127,11 @@ impl<T: TypedPath + Display> TypedPath for Validated<T> {
 }
 
 #[cfg(feature = "validify")]
-impl<T: TypedPath + Display> TypedPath for Validified<T> {
+impl<T: TypedPath + Display> TypedPath for Modified<T> {
+    const PATH: &'static str = T::PATH;
+}
+
+#[cfg(feature = "validify")]
+impl<T: TypedPath + Display> TypedPath for ValidifiedByRef<T> {
     const PATH: &'static str = T::PATH;
 }

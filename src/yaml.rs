@@ -114,6 +114,23 @@ impl<T: validify::Modify> crate::HasModify for Yaml<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T> crate::PayloadExtractor for Yaml<T> {
+    type Payload = T;
+
+    fn get_payload(self) -> Self::Payload {
+        self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T: validify::Validify> crate::HasValidify for Yaml<T> {
+    type Validify = T;
+    type PayloadExtractor = Yaml<T::Payload>;
+    fn from_validified(v: Self::Validify) -> Self {
+        Yaml(v)
+    }
+}
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};

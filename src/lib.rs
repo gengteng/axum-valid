@@ -56,7 +56,8 @@ pub use crate::garde::{Garde, GardeRejection};
 
 #[cfg(feature = "validify")]
 pub use crate::validify::{
-    HasModify, HasValidify, Modified, PayloadExtractor, Validated, Validified, ValidifyRejection,
+    HasModify, HasValidify, Modified, PayloadExtractor, Validated, Validified, ValidifiedByRef,
+    ValidifyRejection,
 };
 
 /// `ValidationRejection` is returned when the validation extractor fails.

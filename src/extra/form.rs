@@ -114,6 +114,24 @@ impl<T: validify::Modify> crate::HasModify for Form<T> {
     }
 }
 
+#[cfg(feature = "validify")]
+impl<T> crate::PayloadExtractor for Form<T> {
+    type Payload = T;
+
+    fn get_payload(self) -> Self::Payload {
+        self.0
+    }
+}
+
+#[cfg(feature = "validify")]
+impl<T: validify::Validify> crate::HasValidify for Form<T> {
+    type Validify = T;
+    type PayloadExtractor = Form<T::Payload>;
+    fn from_validified(v: Self::Validify) -> Self {
+        Form(v)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};
