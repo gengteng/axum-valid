@@ -107,10 +107,19 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "typed_header")]
-    let router = router.route(
-        typed_header::route::TYPED_HEADER,
-        post(typed_header::extract_typed_header),
-    );
+    let router = router
+        .route(
+            typed_header::route::TYPED_HEADER,
+            post(typed_header::extract_typed_header),
+        )
+        .route(
+            typed_header::route::TYPED_HEADER_MODIFIED,
+            post(typed_header::extract_typed_header_modified),
+        )
+        .route(
+            typed_header::route::TYPED_HEADER_VALIDIFIED_BY_REF,
+            post(typed_header::extract_typed_header_validified_by_ref),
+        );
 
     #[cfg(feature = "typed_multipart")]
     let router = router
@@ -334,24 +343,62 @@ async fn test_main() -> anyhow::Result<()> {
         .execute_validified::<Query<ParametersValidify>>(Method::GET, route::QUERY_VALIDIFIED)
         .await?;
 
-    // Validified
+    // Validated
     test_executor
         .execute::<Form<ParametersValidify>>(Method::POST, route::FORM)
         .await?;
-
+    // Modified
+    test_executor
+        .execute_modified::<Form<ParametersValidify>>(Method::POST, route::FORM_MODIFIED)
+        .await?;
+    // ValidifiedByRef
+    test_executor
+        .execute::<Form<ParametersValidify>>(Method::POST, route::FORM_VALIDIFIED_BY_REF)
+        .await?;
     // Validified
     test_executor
+        .execute_validified::<Form<ParametersValidify>>(Method::POST, route::FORM_VALIDIFIED)
+        .await?;
+
+    // Validated
+    test_executor
         .execute::<Json<ParametersValidify>>(Method::POST, route::JSON)
+        .await?;
+    // Modified
+    test_executor
+        .execute_modified::<Json<ParametersValidify>>(Method::POST, route::JSON_MODIFIED)
+        .await?;
+    // ValidifiedByRef
+    test_executor
+        .execute::<Json<ParametersValidify>>(Method::POST, route::JSON_VALIDIFIED_BY_REF)
+        .await?;
+    // Validified
+    test_executor
+        .execute_validified::<Json<ParametersValidify>>(Method::POST, route::JSON_VALIDIFIED)
         .await?;
 
     #[cfg(feature = "typed_header")]
     {
         use axum::TypedHeader;
-        // Validified
+        // Validated
         test_executor
             .execute::<TypedHeader<ParametersValidify>>(
                 Method::POST,
                 typed_header::route::TYPED_HEADER,
+            )
+            .await?;
+        // Modified
+        test_executor
+            .execute_modified::<TypedHeader<ParametersValidify>>(
+                Method::POST,
+                typed_header::route::TYPED_HEADER_MODIFIED,
+            )
+            .await?;
+        // ValidifiedByRef
+        test_executor
+            .execute::<TypedHeader<ParametersValidify>>(
+                Method::POST,
+                typed_header::route::TYPED_HEADER_VALIDIFIED_BY_REF,
             )
             .await?;
     }
@@ -860,10 +907,12 @@ mod typed_header {
 
     pub(crate) mod route {
         pub const TYPED_HEADER: &str = "/typed_header";
+        pub const TYPED_HEADER_MODIFIED: &str = "/typed_header_modified";
+        pub const TYPED_HEADER_VALIDIFIED_BY_REF: &str = "/typed_header_validified_be_ref";
     }
 
-    use super::{check_validated, ParametersValidify};
-    use crate::Validated;
+    use super::{check_modified, check_validated, check_validified, ParametersValidify};
+    use crate::{Modified, Validated, ValidifiedByRef};
     use axum::headers::{Error, Header, HeaderName, HeaderValue};
     use axum::http::StatusCode;
     use axum::TypedHeader;
@@ -874,6 +923,18 @@ mod typed_header {
         Validated(TypedHeader(parameters)): Validated<TypedHeader<ParametersValidify>>,
     ) -> StatusCode {
         check_validated(&parameters)
+    }
+
+    pub(super) async fn extract_typed_header_modified(
+        Modified(TypedHeader(parameters)): Modified<TypedHeader<ParametersValidify>>,
+    ) -> StatusCode {
+        check_modified(&parameters)
+    }
+
+    pub(super) async fn extract_typed_header_validified_by_ref(
+        ValidifiedByRef(TypedHeader(parameters)): ValidifiedByRef<TypedHeader<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validified(&parameters)
     }
 
     impl Header for ParametersValidify {
