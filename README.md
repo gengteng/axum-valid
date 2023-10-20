@@ -53,7 +53,7 @@ pub async fn pager_from_json(
 ) {
     assert!((1..=50).contains(&pager.page_size));
     assert!((1..).contains(&pager.page_no));
-    // NOTE: support automatic dereferencing
+    // NOTE: all extractors provided support automatic dereferencing
     println!("page_no: {}, page_size: {}", pager.page_no, pager.page_size);
 }
 
@@ -107,7 +107,6 @@ pub async fn pager_from_query(Garde(Query(pager)): Garde<Query<Pager>>) {
 pub async fn pager_from_json(pager: Garde<Json<Pager>>) {
     assert!((1..=50).contains(&pager.page_size));
     assert!((1..).contains(&pager.page_no));
-    // NOTE: support automatic dereferencing
     println!("page_no: {}, page_size: {}", pager.page_no, pager.page_size);
 }
 
@@ -192,7 +191,6 @@ pub struct Parameters {
 }
 
 pub async fn parameters_from_json(modified_parameters: Modified<Json<Parameters>>) {
-    // NOTE: support automatic dereferencing
     assert_eq!(
         modified_parameters.v0,
         modified_parameters.v0.to_lowercase()
@@ -203,7 +201,6 @@ pub async fn parameters_from_json(modified_parameters: Modified<Json<Parameters>
 
 // NOTE: missing required fields will be treated as validation errors.
 pub async fn parameters_from_form(parameters: Validified<Form<Parameters>>) {
-    // NOTE: support automatic dereferencing
     assert_eq!(parameters.v0, parameters.v0.to_lowercase());
     assert_eq!(parameters.v1, parameters.v1.trim());
     assert!(parameters.validate().is_ok());
@@ -224,7 +221,6 @@ pub struct FormData {
 pub async fn parameters_from_typed_multipart(
     ValidifiedByRef(TypedMultipart(data)): ValidifiedByRef<TypedMultipart<FormData>>,
 ) {
-    // NOTE: support automatic dereferencing
     assert_eq!(data.v0, data.v0.to_lowercase());
     assert_eq!(data.v1, data.v1.trim());
     assert!(data.validate().is_ok());
