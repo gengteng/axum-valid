@@ -148,7 +148,7 @@ mod tests {
         }
 
         fn set_error_request(builder: RequestBuilder) -> RequestBuilder {
-            builder.json(T::error())
+            builder.json(&serde_json::json!({ "a" : 1}))
         }
 
         fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {
