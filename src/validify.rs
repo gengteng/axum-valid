@@ -389,3 +389,96 @@ where
         Ok(ValidifiedByRef(inner))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::Json;
+    use serde::Serialize;
+    use std::error::Error;
+    use std::io;
+
+    const VALIDIFY: &str = "validify";
+
+    #[test]
+    fn validify_deref_deref_mut_into_inner() {
+        let mut inner = String::from(VALIDIFY);
+        let mut v = Validated(inner.clone());
+        assert_eq!(&inner, v.deref());
+        inner.push_str(VALIDIFY);
+        v.deref_mut().push_str(VALIDIFY);
+        assert_eq!(&inner, v.deref());
+        println!("{}", v);
+        assert_eq!(inner, v.into_inner());
+
+        let mut inner = String::from(VALIDIFY);
+        let mut v = Modified(inner.clone());
+        assert_eq!(&inner, v.deref());
+        inner.push_str(VALIDIFY);
+        v.deref_mut().push_str(VALIDIFY);
+        assert_eq!(&inner, v.deref());
+        println!("{}", v);
+        assert_eq!(inner, v.into_inner());
+
+        let mut inner = String::from(VALIDIFY);
+        let mut v = Validified(inner.clone());
+        assert_eq!(&inner, v.deref());
+        inner.push_str(VALIDIFY);
+        v.deref_mut().push_str(VALIDIFY);
+        assert_eq!(&inner, v.deref());
+        println!("{}", v);
+        assert_eq!(inner, v.into_inner());
+
+        let mut inner = String::from(VALIDIFY);
+        let mut v = ValidifiedByRef(inner.clone());
+        assert_eq!(&inner, v.deref());
+        inner.push_str(VALIDIFY);
+        v.deref_mut().push_str(VALIDIFY);
+        assert_eq!(&inner, v.deref());
+        println!("{}", v);
+        assert_eq!(inner, v.into_inner());
+    }
+
+    #[test]
+    fn display_error() {
+        // ValidifyRejection::Valid Display
+        let mut report = ValidationErrors::new();
+        report.add(validify::ValidationError::new_schema(VALIDIFY));
+        let s = report.to_string();
+        let vr = ValidifyRejection::<String>::Valid(report);
+        assert_eq!(vr.to_string(), s);
+
+        // ValidifyRejection::Inner Display
+        let inner = String::from(VALIDIFY);
+        let vr = ValidifyRejection::<String>::Inner(inner.clone());
+        assert_eq!(inner.to_string(), vr.to_string());
+
+        // ValidifyRejection::Valid Error
+        let mut report = ValidationErrors::new();
+        report.add(validify::ValidationError::new_schema(VALIDIFY));
+        let vr = ValidifyRejection::<io::Error>::Valid(report);
+        assert!(
+            matches!(vr.source(), Some(source) if source.downcast_ref::<ValidationErrors>().is_some())
+        );
+
+        // ValidifyRejection::Valid Error
+        let vr =
+            ValidifyRejection::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, VALIDIFY));
+        assert!(
+            matches!(vr.source(), Some(source) if source.downcast_ref::<io::Error>().is_some())
+        );
+    }
+
+    #[test]
+    fn modified_into_response() {
+        #[derive(Validify, Serialize)]
+        struct Data {
+            #[modify(trim)]
+            v: String,
+        }
+        println!(
+            "{:?}",
+            Modified(Json(Data { v: "a  ".into() })).into_response()
+        );
+    }
+}
