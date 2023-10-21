@@ -8,7 +8,7 @@
 
 ### Fixed
 
-## axum-valid 0.11.0 (2023-10-20)
+## axum-valid 0.11.0 (2023-10-21)
 
 ### Added
 
