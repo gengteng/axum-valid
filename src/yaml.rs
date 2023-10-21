@@ -140,7 +140,7 @@ mod tests {
     use serde::Serialize;
 
     impl<T: ValidTestParameter + Serialize> ValidTest for Yaml<T> {
-        const ERROR_STATUS_CODE: StatusCode = StatusCode::UNSUPPORTED_MEDIA_TYPE;
+        const ERROR_STATUS_CODE: StatusCode = StatusCode::UNPROCESSABLE_ENTITY;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
             builder
@@ -152,8 +152,16 @@ mod tests {
         }
 
         fn set_error_request(builder: RequestBuilder) -> RequestBuilder {
-            // `Content-Type` not set, `Yaml` should return `415 Unsupported Media Type`
+            #[derive(Serialize, Default)]
+            struct ErrorData {
+                error_field: i32,
+            }
             builder
+                .header(reqwest::header::CONTENT_TYPE, "application/yaml")
+                .body(
+                    serde_yaml::to_string(&ErrorData::default())
+                        .expect("Failed to serialize parameters to yaml"),
+                )
         }
 
         fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {

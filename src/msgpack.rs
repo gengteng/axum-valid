@@ -202,8 +202,17 @@ mod tests {
         }
 
         fn set_error_request(builder: RequestBuilder) -> RequestBuilder {
-            // `Content-Type` not set, `MsgPack` should return `415 Unsupported Media Type`
+            #[derive(Serialize, Default)]
+            struct ErrorData {
+                error_field0: i32,
+                error_field1: Option<String>,
+            }
             builder
+                .header(reqwest::header::CONTENT_TYPE, "application/msgpack")
+                .body(
+                    rmp_serde::to_vec(&ErrorData::default())
+                        .expect("Failed to serialize parameters to msgpack"),
+                )
         }
 
         fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {
@@ -229,8 +238,17 @@ mod tests {
         }
 
         fn set_error_request(builder: RequestBuilder) -> RequestBuilder {
-            // `Content-Type` not set, `MsgPack` should return `415 Unsupported Media Type`
+            #[derive(Serialize, Default)]
+            struct ErrorData {
+                error_field0: i32,
+                error_field1: Option<String>,
+            }
             builder
+                .header(reqwest::header::CONTENT_TYPE, "application/msgpack")
+                .body(
+                    rmp_serde::to_vec(&ErrorData::default())
+                        .expect("Failed to serialize parameters to msgpack"),
+                )
         }
 
         fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {
