@@ -173,7 +173,15 @@ async fn test_main() -> anyhow::Result<()> {
         )
         .route(
             extra::route::WITH_REJECTION_VALIDIFY,
-            post(extra::extract_with_rejection_valid),
+            post(extra::extract_with_rejection_validifiy),
+        )
+        .route(
+            extra::route::WITH_REJECTION_VALIDIFY_MODIFIED,
+            post(extra::extract_with_rejection_validifiy_modified),
+        )
+        .route(
+            extra::route::WITH_REJECTION_VALIDIFY_VALIDIFIED_BY_REF,
+            post(extra::extract_with_rejection_validifiy_validified_by_ref),
         );
 
     #[cfg(feature = "extra_typed_path")]
@@ -594,11 +602,29 @@ async fn test_main() -> anyhow::Result<()> {
             )
             .await?;
 
+        // Validated
         test_executor
             .execute::<WithRejection<
                 Validated<ParametersValidify>,
                 WithRejectionValidifyRejection<ParametersRejection>,
             >>(Method::POST, extra::route::WITH_REJECTION_VALIDIFY)
+            .await?;
+        // Modified
+        test_executor
+            .execute_modified::<WithRejection<
+                Modified<ParametersValidify>,
+                ValidifyWithRejectionRejection,
+            >>(Method::POST, extra::route::WITH_REJECTION_VALIDIFY_MODIFIED)
+            .await?;
+        // ValidifiedByRef
+        test_executor
+            .execute::<WithRejection<
+                ValidifiedByRef<ParametersValidify>,
+                WithRejectionValidifyRejection<ParametersRejection>,
+            >>(
+                Method::POST,
+                extra::route::WITH_REJECTION_VALIDIFY_VALIDIFIED_BY_REF,
+            )
             .await?;
     }
 
@@ -1325,7 +1351,7 @@ mod typed_multipart {
 mod extra {
     use super::{check_modified, check_validated, check_validified, ParametersValidify};
     use crate::tests::{Rejection, ValidTest, ValidTestParameter};
-    use crate::{Modified, Validated, ValidifiedByRef, ValidifyRejection};
+    use crate::{HasModify, Modified, Validated, ValidifiedByRef, ValidifyRejection};
     use axum::extract::FromRequestParts;
     use axum::http::request::Parts;
     use axum::http::StatusCode;
@@ -1341,6 +1367,9 @@ mod extra {
         pub const WITH_REJECTION_MODIFIED: &str = "/with_rejection_modified";
         pub const WITH_REJECTION_VALIDIFIED_BY_REF: &str = "/with_rejection_validified_by_ref";
         pub const WITH_REJECTION_VALIDIFY: &str = "/with_rejection_validify";
+        pub const WITH_REJECTION_VALIDIFY_MODIFIED: &str = "/with_rejection_validify_modified";
+        pub const WITH_REJECTION_VALIDIFY_VALIDIFIED_BY_REF: &str =
+            "/with_rejection_validify_validified_by_ref";
     }
     pub const PARAMETERS_HEADER: &str = "parameters-header";
     pub const CACHED_REJECTION_STATUS: StatusCode = StatusCode::FORBIDDEN;
@@ -1408,6 +1437,14 @@ mod extra {
                 serde_json::to_string(ParametersValidify::invalid())
                     .expect("Failed to serialize parameters"),
             )
+        }
+    }
+
+    impl HasModify for ParametersValidify {
+        type Modify = Self;
+
+        fn get_modify(&mut self) -> &mut Self::Modify {
+            self
         }
     }
 
@@ -1495,13 +1532,31 @@ mod extra {
         }
     }
 
-    pub async fn extract_with_rejection_valid(
+    pub async fn extract_with_rejection_validifiy(
         WithRejection(Validated(parameters), _): WithRejection<
             Validated<ParametersValidify>,
             WithRejectionValidifyRejection<ParametersRejection>,
         >,
     ) -> StatusCode {
         check_validated(&parameters)
+    }
+
+    pub async fn extract_with_rejection_validifiy_modified(
+        WithRejection(Modified(parameters), _): WithRejection<
+            Modified<ParametersValidify>,
+            ValidifyWithRejectionRejection,
+        >,
+    ) -> StatusCode {
+        check_modified(&parameters)
+    }
+
+    pub async fn extract_with_rejection_validifiy_validified_by_ref(
+        WithRejection(ValidifiedByRef(parameters), _): WithRejection<
+            ValidifiedByRef<ParametersValidify>,
+            WithRejectionValidifyRejection<ParametersRejection>,
+        >,
+    ) -> StatusCode {
+        check_validified(&parameters)
     }
 }
 

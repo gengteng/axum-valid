@@ -464,6 +464,7 @@ This project is licensed under the MIT License.
 * [axum](https://crates.io/crates/axum)
 * [validator](https://crates.io/crates/validator)
 * [garde](https://crates.io/crates/garde)
+* [validify](https://crates.io/crates/validify)
 * [serde](https://crates.io/crates/serde)
 * [axum-extra](https://crates.io/crates/axum-extra)
 * [axum-yaml](https://crates.io/crates/axum-yaml)
