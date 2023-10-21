@@ -128,8 +128,24 @@ async fn test_main() -> anyhow::Result<()> {
             post(typed_multipart::extract_typed_multipart),
         )
         .route(
+            typed_multipart::route::TYPED_MULTIPART_MODIFIED,
+            post(typed_multipart::extract_typed_multipart_modified),
+        )
+        .route(
+            typed_multipart::route::TYPED_MULTIPART_VALIDIFIED_BY_REF,
+            post(typed_multipart::extract_typed_multipart_validified_by_ref),
+        )
+        .route(
             typed_multipart::route::BASE_MULTIPART,
             post(typed_multipart::extract_base_multipart),
+        )
+        .route(
+            typed_multipart::route::BASE_MULTIPART_MODIFIED,
+            post(typed_multipart::extract_base_multipart_modified),
+        )
+        .route(
+            typed_multipart::route::BASE_MULTIPART_VALIDIFIED_BY_REF,
+            post(typed_multipart::extract_base_multipart_validified_by_ref),
         );
 
     #[cfg(feature = "extra")]
@@ -407,19 +423,47 @@ async fn test_main() -> anyhow::Result<()> {
     {
         use axum_typed_multipart::{BaseMultipart, TypedMultipart, TypedMultipartError};
 
-        // Validified
+        // Validated
         test_executor
             .execute::<BaseMultipart<ParametersValidify, TypedMultipartError>>(
                 Method::POST,
                 typed_multipart::route::BASE_MULTIPART,
             )
             .await?;
+        // Modified
+        test_executor
+            .execute_modified::<BaseMultipart<ParametersValidify, TypedMultipartError>>(
+                Method::POST,
+                typed_multipart::route::BASE_MULTIPART_MODIFIED,
+            )
+            .await?;
+        // ValidifiedByRef
+        test_executor
+            .execute::<BaseMultipart<ParametersValidify, TypedMultipartError>>(
+                Method::POST,
+                typed_multipart::route::BASE_MULTIPART_VALIDIFIED_BY_REF,
+            )
+            .await?;
 
-        // Validified
+        // Validated
         test_executor
             .execute::<TypedMultipart<ParametersValidify>>(
                 Method::POST,
                 typed_multipart::route::TYPED_MULTIPART,
+            )
+            .await?;
+        // Modified
+        test_executor
+            .execute_modified::<TypedMultipart<ParametersValidify>>(
+                Method::POST,
+                typed_multipart::route::TYPED_MULTIPART_MODIFIED,
+            )
+            .await?;
+        // ValidifiedByRef
+        test_executor
+            .execute::<TypedMultipart<ParametersValidify>>(
+                Method::POST,
+                typed_multipart::route::TYPED_MULTIPART_VALIDIFIED_BY_REF,
             )
             .await?;
     }
@@ -877,11 +921,14 @@ async fn extract_json_validified_by_ref(
 fn check_validated<V: Validate>(validate: &V) -> StatusCode {
     // The `Validified` extractor has validated the `parameters` once,
     // it should have returned `400 BAD REQUEST` if the `parameters` were invalid,
-    // Let's validate them again to check if the `Validified` extractor works well.
+    // Let's validate them again to check if the `Validated` extractor works well.
     // If it works properly, this function will never return `500 INTERNAL SERVER ERROR`
     match validate.validate() {
         Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        Err(e) => {
+            eprintln!("Data is unvalidated: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     }
 }
 
@@ -986,14 +1033,19 @@ mod typed_header {
 
 #[cfg(feature = "typed_multipart")]
 mod typed_multipart {
-    use super::{check_validated, ParametersValidify};
-    use crate::Validated;
+    use super::{check_modified, check_validated, check_validified, ParametersValidify};
+    use crate::{Modified, Validated, ValidifiedByRef};
     use axum::http::StatusCode;
     use axum_typed_multipart::{BaseMultipart, TypedMultipart, TypedMultipartError};
 
     pub mod route {
         pub const TYPED_MULTIPART: &str = "/typed_multipart";
+        pub const TYPED_MULTIPART_MODIFIED: &str = "/typed_multipart_modified";
+        pub const TYPED_MULTIPART_VALIDIFIED_BY_REF: &str = "/typed_multipart_validified_by_ref";
+
         pub const BASE_MULTIPART: &str = "/base_multipart";
+        pub const BASE_MULTIPART_MODIFIED: &str = "/base_multipart_modified";
+        pub const BASE_MULTIPART_VALIDIFIED_BY_REF: &str = "/base_multipart_validified_by_ref";
     }
 
     impl From<&ParametersValidify> for reqwest::multipart::Form {
@@ -1010,12 +1062,42 @@ mod typed_multipart {
         check_validated(&parameters)
     }
 
+    pub(super) async fn extract_typed_multipart_modified(
+        Modified(TypedMultipart(parameters)): Modified<TypedMultipart<ParametersValidify>>,
+    ) -> StatusCode {
+        check_modified(&parameters)
+    }
+
+    pub(super) async fn extract_typed_multipart_validified_by_ref(
+        ValidifiedByRef(TypedMultipart(parameters)): ValidifiedByRef<
+            TypedMultipart<ParametersValidify>,
+        >,
+    ) -> StatusCode {
+        check_validified(&parameters)
+    }
+
     pub(super) async fn extract_base_multipart(
         Validated(BaseMultipart { data, .. }): Validated<
             BaseMultipart<ParametersValidify, TypedMultipartError>,
         >,
     ) -> StatusCode {
         check_validated(&data)
+    }
+
+    pub(super) async fn extract_base_multipart_modified(
+        Modified(BaseMultipart { data, .. }): Modified<
+            BaseMultipart<ParametersValidify, TypedMultipartError>,
+        >,
+    ) -> StatusCode {
+        check_modified(&data)
+    }
+
+    pub(super) async fn extract_base_multipart_validified_by_ref(
+        ValidifiedByRef(BaseMultipart { data, .. }): ValidifiedByRef<
+            BaseMultipart<ParametersValidify, TypedMultipartError>,
+        >,
+    ) -> StatusCode {
+        check_validified(&data)
     }
 }
 
