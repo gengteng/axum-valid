@@ -169,11 +169,11 @@ mod tests {
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
             let mut vec = Vec::new();
             T::valid().encode(&mut vec);
-            let hv = vec.pop().unwrap();
+            let hv = vec.pop().expect("get header value");
             let mut headers = HeaderMap::default();
             headers.insert(
                 T::name().as_str(),
-                HeaderValue::from_bytes(hv.as_bytes()).unwrap(),
+                HeaderValue::from_bytes(hv.as_bytes()).expect("build header value"),
             );
             builder.headers(headers)
         }
@@ -185,11 +185,11 @@ mod tests {
         fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {
             let mut vec = Vec::new();
             T::invalid().encode(&mut vec);
-            let hv = vec.pop().unwrap();
+            let hv = vec.pop().expect("get header value");
             let mut headers = HeaderMap::default();
             headers.insert(
                 T::name().as_str(),
-                HeaderValue::from_bytes(hv.as_bytes()).unwrap(),
+                HeaderValue::from_bytes(hv.as_bytes()).expect("build header value"),
             );
             builder.headers(headers)
         }
