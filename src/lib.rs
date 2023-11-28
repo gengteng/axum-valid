@@ -9,21 +9,15 @@ pub mod form;
 pub mod garde;
 #[cfg(feature = "json")]
 pub mod json;
-#[cfg(feature = "msgpack")]
-pub mod msgpack;
 pub mod path;
 #[cfg(feature = "query")]
 pub mod query;
 #[cfg(feature = "typed_header")]
 pub mod typed_header;
-#[cfg(feature = "typed_multipart")]
-pub mod typed_multipart;
 #[cfg(feature = "validator")]
 pub mod validator;
 #[cfg(feature = "validify")]
 pub mod validify;
-#[cfg(feature = "yaml")]
-pub mod yaml;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -117,7 +111,8 @@ impl<V: Display, E: IntoResponse> IntoResponse for ValidationRejection<V, E> {
 
 #[cfg(test)]
 mod tests {
-    use reqwest::{RequestBuilder, StatusCode};
+    use axum::http::StatusCode;
+    use reqwest::RequestBuilder;
 
     /// # Valid test parameter
     pub trait ValidTestParameter: 'static {

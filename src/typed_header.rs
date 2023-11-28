@@ -14,10 +14,11 @@
 //! ```no_run
 //! #[cfg(feature = "validator")]
 //! mod validator_example {
-//!     use axum::headers::{Error, Header, HeaderValue};
+//!     use axum_extra::headers::{Error, Header, HeaderValue};
+//!     use axum_extra::typed_header::TypedHeader;
 //!     use axum::http::HeaderName;
 //!     use axum::routing::post;
-//!     use axum::{Router, TypedHeader};
+//!     use axum::Router;
 //!     use axum_valid::Valid;
 //!     use validator::Validate;
 //!
@@ -60,10 +61,11 @@
 //!
 //! #[cfg(feature = "garde")]
 //! mod garde_example {
-//!     use axum::headers::{Error, Header, HeaderValue};
+//!     use axum_extra::headers::{Error, Header, HeaderValue};
+//!     use axum_extra::typed_header::TypedHeader;
 //!     use axum::http::HeaderName;
 //!     use axum::routing::post;
-//!     use axum::{Router, TypedHeader};
+//!     use axum::Router;
 //!     use axum_valid::Garde;
 //!     use garde::Validate;
 //!
@@ -106,14 +108,16 @@
 //!
 //! # #[tokio::main]
 //! # async fn main() -> anyhow::Result<()> {
+//! #     use std::net::SocketAddr;
 //! #     use axum::Router;
+//! #     use tokio::net::TcpListener;
 //! #     let router = Router::new();
 //! #     #[cfg(feature = "validator")]
 //! #     let router = router.nest("/validator", validator_example::router());
 //! #     #[cfg(feature = "garde")]
 //! #     let router = router.nest("/garde", garde_example::router());
-//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//! #         .serve(router.into_make_service())
+//! #     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+//! #     axum::serve(listener, router.into_make_service())
 //! #         .await?;
 //! #     Ok(())
 //! # }
@@ -122,7 +126,7 @@
 use crate::HasValidate;
 #[cfg(feature = "validator")]
 use crate::HasValidateArgs;
-use axum::TypedHeader;
+use axum_extra::typed_header::TypedHeader;
 #[cfg(feature = "validator")]
 use validator::ValidateArgs;
 
@@ -153,18 +157,24 @@ impl<T: validify::Modify> crate::HasModify for TypedHeader<T> {
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};
-    use axum::headers::{Header, HeaderMapExt};
     use axum::http::StatusCode;
-    use axum::TypedHeader;
-    use reqwest::header::HeaderMap;
+    use axum_extra::headers::Header;
+    use axum_extra::typed_header::TypedHeader;
+    use reqwest::header::{HeaderMap, HeaderValue};
     use reqwest::RequestBuilder;
 
     impl<T: ValidTestParameter + Header + Clone> ValidTest for TypedHeader<T> {
         const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
+            let mut vec = Vec::new();
+            T::valid().encode(&mut vec);
+            let hv = vec.pop().unwrap();
             let mut headers = HeaderMap::default();
-            headers.typed_insert(T::valid().clone());
+            headers.insert(
+                T::name().as_str(),
+                HeaderValue::from_bytes(hv.as_bytes()).unwrap(),
+            );
             builder.headers(headers)
         }
 
@@ -173,8 +183,14 @@ mod tests {
         }
 
         fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {
+            let mut vec = Vec::new();
+            T::invalid().encode(&mut vec);
+            let hv = vec.pop().unwrap();
             let mut headers = HeaderMap::default();
-            headers.typed_insert(T::invalid().clone());
+            headers.insert(
+                T::name().as_str(),
+                HeaderValue::from_bytes(hv.as_bytes()).unwrap(),
+            );
             builder.headers(headers)
         }
     }

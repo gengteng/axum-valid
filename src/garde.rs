@@ -10,9 +10,8 @@ pub mod test;
 
 use crate::{HasValidate, ValidationRejection};
 use axum::async_trait;
-use axum::extract::{FromRef, FromRequest, FromRequestParts};
+use axum::extract::{FromRef, FromRequest, FromRequestParts, Request};
 use axum::http::request::Parts;
-use axum::http::Request;
 use garde::{Report, Validate};
 use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -69,17 +68,16 @@ impl<E> From<Report> for GardeRejection<E> {
 }
 
 #[async_trait]
-impl<State, Body, Extractor, Context> FromRequest<State, Body> for Garde<Extractor>
+impl<State, Extractor, Context> FromRequest<State> for Garde<Extractor>
 where
     State: Send + Sync,
-    Body: Send + Sync + 'static,
     Context: Send + Sync + FromRef<State>,
-    Extractor: HasValidate + FromRequest<State, Body>,
+    Extractor: HasValidate + FromRequest<State>,
     <Extractor as HasValidate>::Validate: garde::Validate<Context = Context>,
 {
-    type Rejection = GardeRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
+    type Rejection = GardeRejection<<Extractor as FromRequest<State>>::Rejection>;
 
-    async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &State) -> Result<Self, Self::Rejection> {
         let context: Context = FromRef::from_ref(state);
         let inner = Extractor::from_request(req, state)
             .await

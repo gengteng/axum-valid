@@ -5,15 +5,17 @@ use crate::{
     HasValidate, Modified, Validated, Validified, ValidifiedByRef, VALIDATION_ERROR_STATUS,
 };
 use axum::extract::{Path, Query};
+use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
 use hyper::Method;
 use once_cell::sync::Lazy;
-use reqwest::{StatusCode, Url};
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::any::type_name;
 use std::net::SocketAddr;
 use std::ops::Deref;
+use tokio::net::TcpListener;
 use validify::{Modify, Validate, Validify};
 
 #[derive(Clone, Deserialize, Serialize, Validify, Eq, PartialEq)]
@@ -300,15 +302,14 @@ async fn test_main() -> anyhow::Result<()> {
             post(msgpack::extract_msgpack_raw_validified_by_ref),
         );
 
-    let server = axum::Server::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16)))
-        .serve(router.into_make_service());
-    let server_addr = server.local_addr();
+    let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+    let server_addr = listener.local_addr()?;
+    let server = axum::serve(listener, router.into_make_service());
     println!("Axum server address: {}.", server_addr);
 
-    let (server_guard, close) = tokio::sync::oneshot::channel::<()>();
-    let server_handle = tokio::spawn(server.with_graceful_shutdown(async move {
-        let _ = close.await;
-    }));
+    tokio::spawn(async move {
+        let _ = server.await;
+    });
 
     let server_url = format!("http://{}", server_addr);
     let test_executor = TestExecutor::from(Url::parse(&format!("http://{}", server_addr))?);
@@ -383,8 +384,8 @@ async fn test_main() -> anyhow::Result<()> {
             .send()
             .await?;
         assert_eq!(
-            valid_path_response.status(),
-            expected_valid_status,
+            valid_path_response.status().as_u16(),
+            expected_valid_status.as_u16(),
             "Valid '{}' test failed.",
             path_type_name
         );
@@ -395,8 +396,8 @@ async fn test_main() -> anyhow::Result<()> {
             .send()
             .await?;
         assert_eq!(
-            error_path_response.status(),
-            expected_error_status,
+            error_path_response.status().as_u16(),
+            expected_error_status.as_u16(),
             "Error '{}' test failed: {}",
             path_type_name,
             error_path_response.text().await?
@@ -411,8 +412,8 @@ async fn test_main() -> anyhow::Result<()> {
             .send()
             .await?;
         assert_eq!(
-            invalid_path_response.status(),
-            expected_invalid_status,
+            invalid_path_response.status().as_u16(),
+            expected_invalid_status.as_u16(),
             "Invalid '{}' test failed.",
             path_type_name
         );
@@ -482,7 +483,7 @@ async fn test_main() -> anyhow::Result<()> {
 
     #[cfg(feature = "typed_header")]
     {
-        use axum::TypedHeader;
+        use axum_extra::typed_header::TypedHeader;
         // Validated
         test_executor
             .execute::<TypedHeader<ParametersValidify>>(
@@ -683,8 +684,8 @@ async fn test_main() -> anyhow::Result<()> {
                 .send()
                 .await?;
             assert_eq!(
-                valid_extra_typed_path_response.status(),
-                expected_valid_status,
+                valid_extra_typed_path_response.status().as_u16(),
+                expected_valid_status.as_u16(),
                 "Validified '{}' test failed.",
                 extra_typed_path_type_name
             );
@@ -695,8 +696,8 @@ async fn test_main() -> anyhow::Result<()> {
                 .send()
                 .await?;
             assert_eq!(
-                error_extra_typed_path_response.status(),
-                expected_error_status,
+                error_extra_typed_path_response.status().as_u16(),
+                expected_error_status.as_u16(),
                 "Error '{}' test failed.",
                 extra_typed_path_type_name
             );
@@ -710,8 +711,8 @@ async fn test_main() -> anyhow::Result<()> {
                 .send()
                 .await?;
             assert_eq!(
-                invalid_extra_typed_path_response.status(),
-                expected_invalid_status,
+                invalid_extra_typed_path_response.status().as_u16(),
+                expected_invalid_status.as_u16(),
                 "Invalid '{}' test failed.",
                 extra_typed_path_type_name
             );
@@ -906,8 +907,6 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
     }
 
-    drop(server_guard);
-    server_handle.await??;
     Ok(())
 }
 
@@ -994,8 +993,8 @@ impl TestExecutor {
         let valid_builder = self.client.request(method.clone(), url.clone());
         let valid_response = T::set_valid_request(valid_builder).send().await?;
         assert_eq!(
-            valid_response.status(),
-            expected_valid_status,
+            valid_response.status().as_u16(),
+            expected_valid_status.as_u16(),
             "Validified '{}' test failed: {}.",
             type_name,
             valid_response.text().await?
@@ -1004,8 +1003,8 @@ impl TestExecutor {
         let error_builder = self.client.request(method.clone(), url.clone());
         let error_response = T::set_error_request(error_builder).send().await?;
         assert_eq!(
-            error_response.status(),
-            expected_error_status,
+            error_response.status().as_u16(),
+            expected_error_status.as_u16(),
             "Error '{}' test failed: {}.",
             type_name,
             error_response.text().await?
@@ -1014,8 +1013,8 @@ impl TestExecutor {
         let invalid_builder = self.client.request(method, url);
         let invalid_response = T::set_invalid_request(invalid_builder).send().await?;
         assert_eq!(
-            invalid_response.status(),
-            expected_invalid_status,
+            invalid_response.status().as_u16(),
+            expected_invalid_status.as_u16(),
             "Invalid '{}' test failed: {}.",
             type_name,
             invalid_response.text().await?
@@ -1040,8 +1039,8 @@ impl TestExecutor {
 #[cfg(feature = "into_json")]
 pub async fn check_json(type_name: &'static str, response: reqwest::Response) {
     assert_eq!(
-        response.headers()[axum::http::header::CONTENT_TYPE],
-        axum::http::HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
+        response.headers()[reqwest::header::CONTENT_TYPE],
+        reqwest::header::HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
         "'{}' rejection into json test failed",
         type_name
     );
@@ -1206,9 +1205,9 @@ mod typed_header {
 
     use super::{check_modified, check_validated, check_validified, ParametersValidify};
     use crate::{Modified, Validated, ValidifiedByRef};
-    use axum::headers::{Error, Header, HeaderName, HeaderValue};
     use axum::http::StatusCode;
-    use axum::TypedHeader;
+    use axum_extra::headers::{Error, Header, HeaderName, HeaderValue};
+    use axum_extra::typed_header::TypedHeader;
 
     pub static AXUM_VALID_PARAMETERS: HeaderName = HeaderName::from_static("axum-valid-parameters");
 

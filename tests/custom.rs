@@ -4,14 +4,14 @@
 #![cfg(feature = "validator")]
 
 use axum::extract::FromRequestParts;
-use axum::http::request::Parts;
+use axum::http::{request::Parts, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::Router;
 use axum_valid::{HasValidate, Valid, VALIDATION_ERROR_STATUS};
-use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
+use tokio::net::TcpListener;
 use validator::Validate;
 
 const MY_DATA_HEADER: &str = "My-Data";
@@ -75,16 +75,15 @@ impl HasValidate for MyData {
 async fn main() -> anyhow::Result<()> {
     let router = Router::new().route("/", get(handler));
 
-    let server = axum::Server::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16)))
-        .serve(router.into_make_service());
-
-    let server_addr = server.local_addr();
+    let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+    let server_addr = listener.local_addr()?;
+    let server = axum::serve(listener, router.into_make_service());
     println!("Axum server address: {}.", server_addr);
 
-    let (server_guard, close) = tokio::sync::oneshot::channel::<()>();
-    let server_handle = tokio::spawn(server.with_graceful_shutdown(async move {
-        let _ = close.await;
-    }));
+    // let (server_guard, close) = tokio::sync::oneshot::channel::<()>();
+    tokio::spawn(async move {
+        let _ = server.await;
+    });
 
     let client = reqwest::Client::default();
     let url = format!("http://{}/", server_addr);
@@ -97,7 +96,10 @@ async fn main() -> anyhow::Result<()> {
         .header(MY_DATA_HEADER, serde_json::to_string(&valid_my_data)?)
         .send()
         .await?;
-    assert_eq!(valid_my_data_response.status(), StatusCode::OK);
+    assert_eq!(
+        valid_my_data_response.status().as_u16(),
+        StatusCode::OK.as_u16()
+    );
 
     let invalid_json = String::from("{{}");
     let valid_my_data_response = client
@@ -105,7 +107,10 @@ async fn main() -> anyhow::Result<()> {
         .header(MY_DATA_HEADER, invalid_json)
         .send()
         .await?;
-    assert_eq!(valid_my_data_response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        valid_my_data_response.status().as_u16(),
+        StatusCode::BAD_REQUEST.as_u16()
+    );
 
     let invalid_my_data = MyData {
         content: String::new(),
@@ -115,13 +120,16 @@ async fn main() -> anyhow::Result<()> {
         .header(MY_DATA_HEADER, serde_json::to_string(&invalid_my_data)?)
         .send()
         .await?;
-    assert_eq!(invalid_my_data_response.status(), VALIDATION_ERROR_STATUS);
+    assert_eq!(
+        invalid_my_data_response.status().as_u16(),
+        VALIDATION_ERROR_STATUS.as_u16()
+    );
     // #[cfg(feature = "into_json")]
     // test::check_json(invalid_my_data_response).await;
     println!("Valid<MyData> works.");
 
-    drop(server_guard);
-    server_handle.await??;
+    // drop(server_guard);
+    // server_handle.await??;
     Ok(())
 }
 

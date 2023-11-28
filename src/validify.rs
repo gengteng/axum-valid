@@ -10,9 +10,8 @@ pub mod test;
 
 use crate::{HasValidate, ValidationRejection};
 use axum::async_trait;
-use axum::extract::{FromRequest, FromRequestParts};
+use axum::extract::{FromRequest, FromRequestParts, Request};
 use axum::http::request::Parts;
-use axum::http::Request;
 use axum::response::{IntoResponse, Response};
 use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut};
@@ -241,16 +240,15 @@ pub trait HasValidify: Sized {
 }
 
 #[async_trait]
-impl<State, Body, Extractor> FromRequest<State, Body> for Validated<Extractor>
+impl<State, Extractor> FromRequest<State> for Validated<Extractor>
 where
     State: Send + Sync,
-    Body: Send + Sync + 'static,
-    Extractor: HasValidate + FromRequest<State, Body>,
+    Extractor: HasValidate + FromRequest<State>,
     Extractor::Validate: validify::Validate,
 {
-    type Rejection = ValidifyRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
+    type Rejection = ValidifyRejection<<Extractor as FromRequest<State>>::Rejection>;
 
-    async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &State) -> Result<Self, Self::Rejection> {
         let inner = Extractor::from_request(req, state)
             .await
             .map_err(ValidifyRejection::Inner)?;
@@ -278,15 +276,14 @@ where
 }
 
 #[async_trait]
-impl<State, Body, Extractor> FromRequest<State, Body> for Modified<Extractor>
+impl<State, Extractor> FromRequest<State> for Modified<Extractor>
 where
     State: Send + Sync,
-    Body: Send + Sync + 'static,
-    Extractor: HasModify + FromRequest<State, Body>,
+    Extractor: HasModify + FromRequest<State>,
 {
-    type Rejection = <Extractor as FromRequest<State, Body>>::Rejection;
+    type Rejection = <Extractor as FromRequest<State>>::Rejection;
 
-    async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &State) -> Result<Self, Self::Rejection> {
         let mut inner = Extractor::from_request(req, state).await?;
         inner.get_modify().modify();
         Ok(Modified(inner))
@@ -309,18 +306,17 @@ where
 }
 
 #[async_trait]
-impl<State, Body, Extractor> FromRequest<State, Body> for Validified<Extractor>
+impl<State, Extractor> FromRequest<State> for Validified<Extractor>
 where
     State: Send + Sync,
-    Body: Send + Sync + 'static,
     Extractor: HasValidify,
     Extractor::Validify: Validify,
-    Extractor::PayloadExtractor: FromRequest<State, Body>,
+    Extractor::PayloadExtractor: FromRequest<State>,
 {
     type Rejection =
-        ValidifyRejection<<Extractor::PayloadExtractor as FromRequest<State, Body>>::Rejection>;
+        ValidifyRejection<<Extractor::PayloadExtractor as FromRequest<State>>::Rejection>;
 
-    async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &State) -> Result<Self, Self::Rejection> {
         let payload = Extractor::PayloadExtractor::from_request(req, state)
             .await
             .map_err(ValidifyRejection::Inner)?;
@@ -352,16 +348,15 @@ where
 }
 
 #[async_trait]
-impl<State, Body, Extractor> FromRequest<State, Body> for ValidifiedByRef<Extractor>
+impl<State, Extractor> FromRequest<State> for ValidifiedByRef<Extractor>
 where
     State: Send + Sync,
-    Body: Send + Sync + 'static,
-    Extractor: HasValidate + HasModify + FromRequest<State, Body>,
+    Extractor: HasValidate + HasModify + FromRequest<State>,
     Extractor::Validate: Validate,
 {
-    type Rejection = ValidifyRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
+    type Rejection = ValidifyRejection<<Extractor as FromRequest<State>>::Rejection>;
 
-    async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &State) -> Result<Self, Self::Rejection> {
         let mut inner = Extractor::from_request(req, state)
             .await
             .map_err(ValidifyRejection::Inner)?;

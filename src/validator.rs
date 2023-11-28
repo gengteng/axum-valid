@@ -10,9 +10,8 @@ pub mod test;
 
 use crate::{HasValidate, ValidationRejection};
 use axum::async_trait;
-use axum::extract::{FromRef, FromRequest, FromRequestParts};
+use axum::extract::{FromRef, FromRequest, FromRequestParts, Request};
 use axum::http::request::Parts;
-use axum::http::Request;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use validator::{Validate, ValidateArgs, ValidationErrors};
@@ -155,16 +154,15 @@ pub trait HasValidateArgs<'v> {
 }
 
 #[async_trait]
-impl<State, Body, Extractor> FromRequest<State, Body> for Valid<Extractor>
+impl<State, Extractor> FromRequest<State> for Valid<Extractor>
 where
     State: Send + Sync,
-    Body: Send + Sync + 'static,
-    Extractor: HasValidate + FromRequest<State, Body>,
+    Extractor: HasValidate + FromRequest<State>,
     Extractor::Validate: Validate,
 {
-    type Rejection = ValidRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
+    type Rejection = ValidRejection<<Extractor as FromRequest<State>>::Rejection>;
 
-    async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &State) -> Result<Self, Self::Rejection> {
         let inner = Extractor::from_request(req, state)
             .await
             .map_err(ValidRejection::Inner)?;
@@ -192,19 +190,18 @@ where
 }
 
 #[async_trait]
-impl<State, Body, Extractor, Args> FromRequest<State, Body> for ValidEx<Extractor, Args>
+impl<State, Extractor, Args> FromRequest<State> for ValidEx<Extractor, Args>
 where
     State: Send + Sync,
-    Body: Send + Sync + 'static,
     Args: Send
         + Sync
         + FromRef<State>
         + for<'a> Arguments<'a, T = <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
-    Extractor: for<'v> HasValidateArgs<'v> + FromRequest<State, Body>,
+    Extractor: for<'v> HasValidateArgs<'v> + FromRequest<State>,
 {
-    type Rejection = ValidRejection<<Extractor as FromRequest<State, Body>>::Rejection>;
+    type Rejection = ValidRejection<<Extractor as FromRequest<State>>::Rejection>;
 
-    async fn from_request(req: Request<Body>, state: &State) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &State) -> Result<Self, Self::Rejection> {
         let arguments: Args = FromRef::from_ref(state);
         let inner = Extractor::from_request(req, state)
             .await

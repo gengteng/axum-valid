@@ -9,6 +9,8 @@
 
 ## 📑 Overview
 
+**Note: This is an alpha version. It currently supports extractors from Axum 0.7 and Axum-extra 0.9 only. Support for extractors from `axum-yaml`, `axum-msgpack`, and `axum_typed_multipart` will be provided once their dependencies are updated.**
+
 **axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates **validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient validation and data handling extractors for Axum applications.
 
 ## 🚀 Basic usage
@@ -26,12 +28,14 @@ cargo add axum-valid
 * Example
 
 ```rust,ignore
-use validator::Validate;
-use serde::Deserialize;
-use axum_valid::Valid;
 use axum::extract::Query;
-use axum::{Json, Router};
 use axum::routing::{get, post};
+use axum::{Json, Router};
+use axum_valid::Valid;
+use serde::Deserialize;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
+use validator::Validate;
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct Pager {
@@ -41,16 +45,12 @@ pub struct Pager {
     pub page_no: usize,
 }
 
-pub async fn pager_from_query(
-    Valid(Query(pager)): Valid<Query<Pager>>,
-) {
+pub async fn pager_from_query(Valid(Query(pager)): Valid<Query<Pager>>) {
     assert!((1..=50).contains(&pager.page_size));
     assert!((1..).contains(&pager.page_no));
 }
 
-pub async fn pager_from_json(
-    pager: Valid<Json<Pager>>,
-) {
+pub async fn pager_from_json(pager: Valid<Json<Pager>>) {
     assert!((1..=50).contains(&pager.page_size));
     assert!((1..).contains(&pager.page_no));
     // NOTE: all extractors provided support automatic dereferencing
@@ -62,9 +62,8 @@ async fn main() -> anyhow::Result<()> {
     let router = Router::new()
         .route("/query", get(pager_from_query))
         .route("/json", post(pager_from_json));
-    axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-        .serve(router.into_make_service())
-        .await?;
+    let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+    axum::serve(listener, router.into_make_service()).await?;
     Ok(())
 }
 ```
@@ -90,6 +89,8 @@ use axum::{Json, Router};
 use axum_valid::Garde;
 use garde::Validate;
 use serde::Deserialize;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct Pager {
@@ -132,12 +133,10 @@ async fn main() -> anyhow::Result<()> {
         state_field: 1,
         without_validation_arguments: (),
     });
-    axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-        .serve(router.into_make_service())
-        .await?;
+    let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+    axum::serve(listener, router.into_make_service()).await?;
     Ok(())
 }
-
 ```
 
 ### 📦 `Validated<E>`, `Modified<E>`, `Validified<E>` and `ValidifiedByRef<E>`
@@ -162,9 +161,10 @@ cargo add axum-valid --features validify,basic,typed_multipart --no-default-feat
 use axum::extract::Query;
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
-use axum_typed_multipart::{TryFromMultipart, TypedMultipart};
 use axum_valid::{Modified, Validated, Validified, ValidifiedByRef};
 use serde::Deserialize;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
 use validify::{Validate, Validify};
 
 #[derive(Debug, Validify, Deserialize)]
@@ -206,25 +206,32 @@ pub async fn parameters_from_form(parameters: Validified<Form<Parameters>>) {
     assert!(parameters.validate().is_ok());
 }
 
-// NOTE: TypedMultipart doesn't using serde::Deserialize to construct data
-// we should use ValidifiedByRef instead of Validified
-#[derive(Debug, Validify, TryFromMultipart)]
-pub struct FormData {
-    #[modify(lowercase)]
-    #[validate(length(min = 1, max = 50))]
-    pub v0: String,
-    #[modify(trim)]
-    #[validate(length(min = 1, max = 100))]
-    pub v1: String,
+pub async fn parameters_from_form_by_ref(parameters: ValidifiedByRef<Form<Parameters>>) {
+    assert_eq!(parameters.v0, parameters.v0.to_lowercase());
+    assert_eq!(parameters.v1, parameters.v1.trim());
+    assert!(parameters.validate().is_ok());
 }
 
-pub async fn parameters_from_typed_multipart(
-    ValidifiedByRef(TypedMultipart(data)): ValidifiedByRef<TypedMultipart<FormData>>,
-) {
-    assert_eq!(data.v0, data.v0.to_lowercase());
-    assert_eq!(data.v1, data.v1.trim());
-    assert!(data.validate().is_ok());
-}
+// WARN: TypedMultipart will be supported in the stable release.
+// NOTE: TypedMultipart doesn't using serde::Deserialize to construct data
+// we should use ValidifiedByRef instead of Validified
+// #[derive(Debug, Validify, TryFromMultipart)]
+// pub struct FormData {
+//     #[modify(lowercase)]
+//     #[validate(length(min = 1, max = 50))]
+//     pub v0: String,
+//     #[modify(trim)]
+//     #[validate(length(min = 1, max = 100))]
+//     pub v1: String,
+// }
+//
+// pub async fn parameters_from_typed_multipart(
+//     ValidifiedByRef(TypedMultipart(data)): ValidifiedByRef<TypedMultipart<FormData>>,
+// ) {
+//     assert_eq!(data.v0, data.v0.to_lowercase());
+//     assert_eq!(data.v1, data.v1.trim());
+//     assert!(data.validate().is_ok());
+// }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -232,10 +239,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/validated", get(pager_from_query))
         .route("/modified", post(parameters_from_json))
         .route("/validified", post(parameters_from_form))
-        .route("/validified_by_ref", post(parameters_from_typed_multipart));
-    axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-        .serve(router.into_make_service())
-        .await?;
+        .route("/validified_by_ref", post(parameters_from_form_by_ref));
+    // .route("/validified_by_ref", post(parameters_from_typed_multipart));
+    let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+    axum::serve(listener, router.into_make_service()).await?;
     Ok(())
 }
 ```
@@ -261,7 +268,9 @@ use axum::routing::post;
 use axum::{Form, Router};
 use axum_valid::{Arguments, ValidEx};
 use serde::Deserialize;
+use std::net::SocketAddr;
 use std::ops::{RangeFrom, RangeInclusive};
+use tokio::net::TcpListener;
 use validator::{Validate, ValidateArgs, ValidationError};
 
 // NOTE: When some fields use custom validation functions with arguments,
@@ -324,12 +333,10 @@ async fn main() -> anyhow::Result<()> {
     // NOTE: The PagerValidArgs can also be stored in a XxxState,
     // make sure it implements FromRef<XxxState>.
 
-    axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-        .serve(router.into_make_service())
-        .await?;
+    let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+    axum::serve(listener, router.into_make_service()).await?;
     Ok(())
 }
-
 ```
 
 ### 📦 `Garde<E>`
@@ -337,9 +344,9 @@ async fn main() -> anyhow::Result<()> {
 * Install
 
 ```shell
-cargo add validator --features derive
-cargo add axum-valid
-# validator is enabled by default
+cargo add garde
+cargo add axum-valid --features garde,basic --no-default-features
+# excluding validator
 ```
 
 * Example
@@ -350,7 +357,9 @@ use axum::{Form, Router};
 use axum_valid::Garde;
 use garde::Validate;
 use serde::Deserialize;
+use std::net::SocketAddr;
 use std::ops::{RangeFrom, RangeInclusive};
+use tokio::net::TcpListener;
 
 #[derive(Debug, Validate, Deserialize)]
 #[garde(context(PagerValidContext))]
@@ -397,9 +406,8 @@ async fn main() -> anyhow::Result<()> {
     // NOTE: The PagerValidContext can also be stored in a XxxState,
     // make sure it implements FromRef<XxxState>.
     // Consider using Arc to reduce deep copying costs.
-    axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-        .serve(router.into_make_service())
-        .await?;
+    let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+    axum::serve(listener, router.into_make_service()).await?;
     Ok(())
 }
 ```
@@ -431,10 +439,7 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 | json             | Enables support for `Json`                                                                                                               | [`json`]                                     | ✅       | ✅       | ✅     |
 | query            | Enables support for `Query`                                                                                                              | [`query`]                                    | ✅       | ✅       | ✅     |
 | form             | Enables support for `Form`                                                                                                               | [`form`]                                     | ✅       | ✅       | ✅     |
-| typed_header     | Enables support for `TypedHeader`                                                                                                        | [`typed_header`]                             | ❌       | ✅       | ✅     |
-| typed_multipart  | Enables support for `TypedMultipart` and `BaseMultipart` from `axum_typed_multipart`                                                     | [`typed_multipart`]                          | ❌       | ✅       | ✅     |
-| msgpack          | Enables support for `MsgPack` and `MsgPackRaw` from `axum-msgpack`                                                                       | [`msgpack`]                                  | ❌       | ✅       | ✅     |
-| yaml             | Enables support for `Yaml` from `axum-yaml`                                                                                              | [`yaml`]                                     | ❌       | ✅       | ✅     |
+| typed_header     | Enables support for `TypedHeader` from `axum-extra`                                                                                      | [`typed_header`]                             | ❌       | ✅       | ✅     |
 | extra            | Enables support for `Cached`, `WithRejection` from `axum-extra`                                                                          | [`extra`]                                    | ❌       | ✅       | ✅     |
 | extra_typed_path | Enables support for `T: TypedPath` from `axum-extra`                                                                                     | [`extra::typed_path`]                        | ❌       | ✅       | ✅     |
 | extra_query      | Enables support for `Query` from `axum-extra`                                                                                            | [`extra::query`]                             | ❌       | ✅       | ✅     |

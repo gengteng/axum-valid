@@ -66,14 +66,16 @@
 //!
 //! # #[tokio::main]
 //! # async fn main() -> anyhow::Result<()> {
+//! #     use std::net::SocketAddr;
 //! #     use axum::Router;
+//! #     use tokio::net::TcpListener;
 //! #     let router = Router::new();
 //! #     #[cfg(feature = "validator")]
 //! #     let router = router.nest("/validator", validator_example::router());
 //! #     #[cfg(feature = "garde")]
 //! #     let router = router.nest("/garde", garde_example::router());
-//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//! #         .serve(router.into_make_service())
+//! #     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+//! #     axum::serve(listener, router.into_make_service())
 //! #         .await?;
 //! #     Ok(())
 //! # }

@@ -70,14 +70,16 @@
 //!
 //! # #[tokio::main]
 //! # async fn main() -> anyhow::Result<()> {
+//! #     use std::net::SocketAddr;
 //! #     use axum::Router;
+//! #     use tokio::net::TcpListener;
 //! #     let router = Router::new();
 //! #     #[cfg(feature = "validator")]
 //! #     let router = router.nest("/validator", validator_example::router());
 //! #     #[cfg(feature = "garde")]
 //! #     let router = router.nest("/garde", garde_example::router());
-//! #     axum::Server::bind(&([0u8, 0, 0, 0], 8080).into())
-//! #         .serve(router.into_make_service())
+//! #     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
+//! #     axum::serve(listener, router.into_make_service())
 //! #         .await?;
 //! #     Ok(())
 //! # }
@@ -135,8 +137,9 @@ impl<T: validify::Validify> crate::HasValidify for Form<T> {
 #[cfg(test)]
 mod tests {
     use crate::tests::{ValidTest, ValidTestParameter};
+    use axum::http::StatusCode;
     use axum_extra::extract::Form;
-    use reqwest::{RequestBuilder, StatusCode};
+    use reqwest::RequestBuilder;
     use serde::Serialize;
 
     impl<T: ValidTestParameter + Serialize> ValidTest for Form<T> {
