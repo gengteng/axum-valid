@@ -9,7 +9,7 @@
 
 ## 📑 Overview
 
-**Note: This is an alpha version. It currently supports extractors from Axum 0.7 and Axum-extra 0.9 only. Support for extractors from `axum-yaml`, `axum-msgpack`, and `axum_typed_multipart` will be provided once their dependencies are updated.**
+> **Note: This is an alpha version. It currently supports extractors from `axum` 0.7 and `axum-extra` 0.9 only. Support for extractors from `axum-yaml`, `axum-msgpack`, and `axum_typed_multipart` will be provided once their dependencies are updated.**
 
 **axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates **validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient validation and data handling extractors for Axum applications.
 
