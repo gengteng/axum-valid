@@ -1,6 +1,6 @@
 [package]
 name = "axum-valid"
-version = "0.12.0-alpha"
+version = "0.12.0"
 description = "Provides validation extractors for your Axum application, allowing you to validate data using validator, garde, validify or all of them."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
