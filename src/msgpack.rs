@@ -192,7 +192,7 @@ mod tests {
     use serde::Serialize;
 
     impl<T: ValidTestParameter + Serialize> ValidTest for MsgPack<T> {
-        const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
+        const ERROR_STATUS_CODE: StatusCode = StatusCode::UNPROCESSABLE_ENTITY;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
             builder
@@ -228,7 +228,7 @@ mod tests {
     }
 
     impl<T: ValidTestParameter + Serialize> ValidTest for MsgPackRaw<T> {
-        const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
+        const ERROR_STATUS_CODE: StatusCode = StatusCode::UNPROCESSABLE_ENTITY;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
             builder
