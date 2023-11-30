@@ -440,6 +440,10 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 | query            | Enables support for `Query`                                                                                                              | [`query`]                                    | ✅       | ✅       | ✅     |
 | form             | Enables support for `Form`                                                                                                               | [`form`]                                     | ✅       | ✅       | ✅     |
 | typed_header     | Enables support for `TypedHeader` from `axum-extra`                                                                                      | [`typed_header`]                             | ❌       | ✅       | ✅     |
+| msgpack          | Enables support for `MsgPack` and `MsgPackRaw` from `axum-serde`                                                                         | [`msgpack`]                                  | ❌       | ✅       | ✅     |
+| yaml             | Enables support for `Yaml` from `axum-serde`                                                                                             | [`yaml`]                                     | ❌       | ✅       | ✅     |
+| xml              | Enables support for `Xml` from `axum-serde`                                                                                              | [`xml`]                                      | ❌       | ✅       | ✅     |
+| toml             | Enables support for `Toml` from `axum-serde`                                                                                             | [`toml`]                                     | ❌       | ✅       | ✅     |
 | extra            | Enables support for `Cached`, `WithRejection` from `axum-extra`                                                                          | [`extra`]                                    | ❌       | ✅       | ✅     |
 | extra_typed_path | Enables support for `T: TypedPath` from `axum-extra`                                                                                     | [`extra::typed_path`]                        | ❌       | ✅       | ✅     |
 | extra_query      | Enables support for `Query` from `axum-extra`                                                                                            | [`extra::query`]                             | ❌       | ✅       | ✅     |
@@ -472,6 +476,5 @@ This project is licensed under the MIT License.
 * [validify](https://crates.io/crates/validify)
 * [serde](https://crates.io/crates/serde)
 * [axum-extra](https://crates.io/crates/axum-extra)
-* [axum-yaml](https://crates.io/crates/axum-yaml)
-* [axum-msgpack](https://crates.io/crates/axum-msgpack)
+* [axum-serde](https://crates.io/crates/axum-serde)
 * [axum_typed_multipart](https://crates.io/crates/axum_typed_multipart)

@@ -828,7 +828,7 @@ async fn test_main() -> anyhow::Result<()> {
 
     #[cfg(feature = "yaml")]
     {
-        use axum_yaml::Yaml;
+        use axum_serde::Yaml;
 
         // Validated
         test_executor
@@ -853,7 +853,7 @@ async fn test_main() -> anyhow::Result<()> {
 
     #[cfg(feature = "msgpack")]
     {
-        use axum_msgpack::{MsgPack, MsgPackRaw};
+        use axum_serde::{MsgPack, MsgPackRaw};
         // Validated
         test_executor
             .execute::<MsgPack<ParametersValidify>>(Method::POST, msgpack::route::MSGPACK)
@@ -1770,7 +1770,7 @@ mod yaml {
     use super::{check_modified, check_validated, check_validified, ParametersValidify};
     use crate::{Modified, Validated, Validified, ValidifiedByRef};
     use axum::http::StatusCode;
-    use axum_yaml::Yaml;
+    use axum_serde::Yaml;
 
     pub mod route {
         pub const YAML: &str = "/yaml";
@@ -1809,7 +1809,7 @@ mod msgpack {
     use super::{check_modified, check_validated, check_validified, ParametersValidify};
     use crate::{Modified, Validated, Validified, ValidifiedByRef};
     use axum::http::StatusCode;
-    use axum_msgpack::{MsgPack, MsgPackRaw};
+    use axum_serde::{MsgPack, MsgPackRaw};
 
     pub mod route {
         pub const MSGPACK: &str = "/msgpack";

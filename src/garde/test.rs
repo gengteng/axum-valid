@@ -371,7 +371,7 @@ async fn test_main() -> anyhow::Result<()> {
 
     #[cfg(feature = "yaml")]
     {
-        use axum_yaml::Yaml;
+        use axum_serde::Yaml;
         test_executor
             .execute::<Yaml<ParametersGarde>>(Method::POST, yaml::route::YAML)
             .await?;
@@ -379,7 +379,7 @@ async fn test_main() -> anyhow::Result<()> {
 
     #[cfg(feature = "msgpack")]
     {
-        use axum_msgpack::{MsgPack, MsgPackRaw};
+        use axum_serde::{MsgPack, MsgPackRaw};
         test_executor
             .execute::<MsgPack<ParametersGarde>>(Method::POST, msgpack::route::MSGPACK)
             .await?;
@@ -853,7 +853,7 @@ mod yaml {
     use super::{validate_again, ParametersGarde};
     use crate::Garde;
     use axum::http::StatusCode;
-    use axum_yaml::Yaml;
+    use axum_serde::Yaml;
 
     pub mod route {
         pub const YAML: &str = "/yaml";
@@ -869,7 +869,7 @@ mod msgpack {
     use super::{validate_again, ParametersGarde};
     use crate::Garde;
     use axum::http::StatusCode;
-    use axum_msgpack::{MsgPack, MsgPackRaw};
+    use axum_serde::{MsgPack, MsgPackRaw};
 
     pub mod route {
         pub const MSGPACK: &str = "/msgpack";

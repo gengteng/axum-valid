@@ -9,6 +9,8 @@ pub mod form;
 pub mod garde;
 #[cfg(feature = "json")]
 pub mod json;
+#[cfg(feature = "msgpack")]
+pub mod msgpack;
 pub mod path;
 #[cfg(feature = "query")]
 pub mod query;
@@ -18,6 +20,13 @@ pub mod typed_header;
 pub mod validator;
 #[cfg(feature = "validify")]
 pub mod validify;
+#[cfg(feature = "yaml")]
+pub mod yaml;
+
+#[cfg(feature = "toml")]
+pub mod toml;
+#[cfg(feature = "xml")]
+pub mod xml;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
