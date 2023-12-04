@@ -9,8 +9,6 @@
 
 ## 📑 Overview
 
-> **Note: This is an alpha version. It currently supports extractors from `axum` 0.7 and `axum-extra` 0.9 only. Support for extractors from `axum-yaml`, `axum-msgpack`, and `axum_typed_multipart` will be provided once their dependencies are updated.**
-
 **axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates **validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient validation and data handling extractors for Axum applications.
 
 ## 🚀 Basic usage
@@ -161,6 +159,7 @@ cargo add axum-valid --features validify,basic,typed_multipart --no-default-feat
 use axum::extract::Query;
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
+use axum_typed_multipart::{TryFromMultipart, TypedMultipart};
 use axum_valid::{Modified, Validated, Validified, ValidifiedByRef};
 use serde::Deserialize;
 use std::net::SocketAddr;
@@ -206,32 +205,25 @@ pub async fn parameters_from_form(parameters: Validified<Form<Parameters>>) {
     assert!(parameters.validate().is_ok());
 }
 
-pub async fn parameters_from_form_by_ref(parameters: ValidifiedByRef<Form<Parameters>>) {
-    assert_eq!(parameters.v0, parameters.v0.to_lowercase());
-    assert_eq!(parameters.v1, parameters.v1.trim());
-    assert!(parameters.validate().is_ok());
-}
-
-// WARN: TypedMultipart will be supported in the stable release.
 // NOTE: TypedMultipart doesn't using serde::Deserialize to construct data
 // we should use ValidifiedByRef instead of Validified
-// #[derive(Debug, Validify, TryFromMultipart)]
-// pub struct FormData {
-//     #[modify(lowercase)]
-//     #[validate(length(min = 1, max = 50))]
-//     pub v0: String,
-//     #[modify(trim)]
-//     #[validate(length(min = 1, max = 100))]
-//     pub v1: String,
-// }
-//
-// pub async fn parameters_from_typed_multipart(
-//     ValidifiedByRef(TypedMultipart(data)): ValidifiedByRef<TypedMultipart<FormData>>,
-// ) {
-//     assert_eq!(data.v0, data.v0.to_lowercase());
-//     assert_eq!(data.v1, data.v1.trim());
-//     assert!(data.validate().is_ok());
-// }
+#[derive(Debug, Validify, TryFromMultipart)]
+pub struct FormData {
+    #[modify(lowercase)]
+    #[validate(length(min = 1, max = 50))]
+    pub v0: String,
+    #[modify(trim)]
+    #[validate(length(min = 1, max = 100))]
+    pub v1: String,
+}
+
+pub async fn parameters_from_typed_multipart(
+    ValidifiedByRef(TypedMultipart(data)): ValidifiedByRef<TypedMultipart<FormData>>,
+) {
+    assert_eq!(data.v0, data.v0.to_lowercase());
+    assert_eq!(data.v1, data.v1.trim());
+    assert!(data.validate().is_ok());
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -239,8 +231,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/validated", get(pager_from_query))
         .route("/modified", post(parameters_from_json))
         .route("/validified", post(parameters_from_form))
-        .route("/validified_by_ref", post(parameters_from_form_by_ref));
-    // .route("/validified_by_ref", post(parameters_from_typed_multipart));
+        .route("/validified_by_ref", post(parameters_from_typed_multipart));
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
     axum::serve(listener, router.into_make_service()).await?;
     Ok(())
@@ -463,7 +454,7 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 
 To determine the compatible versions of dependencies that work together, please refer to the dependencies listed in the `Cargo.toml` file. The version numbers listed there will indicate the compatible versions.
 
-If you encounter code compilation problems, it could be attributed to either missing trait bounds, unmet feature requirements, or incorrect dependency version selections.
+If you encounter code compilation problems, it could be attributed to either **missing trait bounds**, **unmet feature requirements**, or **incorrect dependency version selections**.
 
 ## 📜 License
 
