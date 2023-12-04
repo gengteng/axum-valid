@@ -140,6 +140,12 @@ async fn test_main() -> anyhow::Result<()> {
             post(msgpack::extract_msgpack_raw),
         );
 
+    #[cfg(feature = "xml")]
+    let router = router.route(xml::route::XML, post(xml::extract_xml));
+
+    #[cfg(feature = "toml")]
+    let router = router.route(toml::route::TOML, post(toml::extract_toml));
+
     let router = router.with_state(MyState::default());
 
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
@@ -385,6 +391,22 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         test_executor
             .execute::<MsgPackRaw<ParametersGarde>>(Method::POST, msgpack::route::MSGPACK_RAW)
+            .await?;
+    }
+
+    #[cfg(feature = "xml")]
+    {
+        use axum_serde::Xml;
+        test_executor
+            .execute::<Xml<ParametersGarde>>(Method::POST, xml::route::XML)
+            .await?;
+    }
+
+    #[cfg(feature = "toml")]
+    {
+        use axum_serde::Toml;
+        test_executor
+            .execute::<Toml<ParametersGarde>>(Method::POST, toml::route::TOML)
             .await?;
     }
 
@@ -884,6 +906,38 @@ mod msgpack {
     pub async fn extract_msgpack_raw(
         Garde(MsgPackRaw(parameters)): Garde<MsgPackRaw<ParametersGarde>>,
     ) -> StatusCode {
+        validate_again(parameters, ())
+    }
+}
+
+#[cfg(feature = "xml")]
+mod xml {
+    use super::{validate_again, ParametersGarde};
+    use crate::Garde;
+    use axum::http::StatusCode;
+    use axum_serde::Xml;
+
+    pub mod route {
+        pub const XML: &str = "/xml";
+    }
+
+    pub async fn extract_xml(Garde(Xml(parameters)): Garde<Xml<ParametersGarde>>) -> StatusCode {
+        validate_again(parameters, ())
+    }
+}
+
+#[cfg(feature = "toml")]
+mod toml {
+    use super::{validate_again, ParametersGarde};
+    use crate::Garde;
+    use axum::http::StatusCode;
+    use axum_serde::Toml;
+
+    pub mod route {
+        pub const TOML: &str = "/toml";
+    }
+
+    pub async fn extract_toml(Garde(Toml(parameters)): Garde<Toml<ParametersGarde>>) -> StatusCode {
         validate_again(parameters, ())
     }
 }

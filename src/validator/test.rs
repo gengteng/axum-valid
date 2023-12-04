@@ -271,6 +271,16 @@ async fn test_main() -> anyhow::Result<()> {
             post(msgpack::extract_msgpack_raw_ex),
         );
 
+    #[cfg(feature = "xml")]
+    let router = router
+        .route(xml::route::XML, post(xml::extract_xml))
+        .route(xml::route::XML_EX, post(xml::extract_xml_ex));
+
+    #[cfg(feature = "toml")]
+    let router = router
+        .route(toml::route::TOML, post(toml::extract_toml))
+        .route(toml::route::TOML_EX, post(toml::extract_toml_ex));
+
     let router = router.with_state(state);
 
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
@@ -581,6 +591,28 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         test_executor
             .execute::<MsgPackRaw<Parameters>>(Method::POST, msgpack::route::MSGPACK_RAW_EX)
+            .await?;
+    }
+
+    #[cfg(feature = "xml")]
+    {
+        use axum_serde::Xml;
+        test_executor
+            .execute::<Xml<Parameters>>(Method::POST, xml::route::XML)
+            .await?;
+        test_executor
+            .execute::<Xml<Parameters>>(Method::POST, xml::route::XML_EX)
+            .await?;
+    }
+
+    #[cfg(feature = "toml")]
+    {
+        use axum_serde::Toml;
+        test_executor
+            .execute::<Toml<Parameters>>(Method::POST, toml::route::TOML)
+            .await?;
+        test_executor
+            .execute::<Toml<Parameters>>(Method::POST, toml::route::TOML_EX)
             .await?;
     }
 
@@ -1354,6 +1386,61 @@ mod msgpack {
     pub async fn extract_msgpack_raw_ex(
         ValidEx(MsgPackRaw(parameters), args): ValidEx<
             MsgPackRaw<ParametersEx>,
+            ParametersExValidationArguments,
+        >,
+    ) -> StatusCode {
+        validate_again_ex(parameters, args.get())
+    }
+}
+
+#[cfg(feature = "xml")]
+mod xml {
+    use super::{
+        validate_again, validate_again_ex, Parameters, ParametersEx,
+        ParametersExValidationArguments,
+    };
+    use crate::{Arguments, Valid, ValidEx};
+    use axum::http::StatusCode;
+    use axum_serde::Xml;
+
+    pub mod route {
+        pub const XML: &str = "/xml";
+        pub const XML_EX: &str = "/xml_ex";
+    }
+
+    pub async fn extract_xml(Valid(Xml(parameters)): Valid<Xml<Parameters>>) -> StatusCode {
+        validate_again(parameters)
+    }
+
+    pub async fn extract_xml_ex(
+        ValidEx(Xml(parameters), args): ValidEx<Xml<ParametersEx>, ParametersExValidationArguments>,
+    ) -> StatusCode {
+        validate_again_ex(parameters, args.get())
+    }
+}
+
+#[cfg(feature = "toml")]
+mod toml {
+    use super::{
+        validate_again, validate_again_ex, Parameters, ParametersEx,
+        ParametersExValidationArguments,
+    };
+    use crate::{Arguments, Valid, ValidEx};
+    use axum::http::StatusCode;
+    use axum_serde::Toml;
+
+    pub mod route {
+        pub const TOML: &str = "/toml";
+        pub const TOML_EX: &str = "/toml_ex";
+    }
+
+    pub async fn extract_toml(Valid(Toml(parameters)): Valid<Toml<Parameters>>) -> StatusCode {
+        validate_again(parameters)
+    }
+
+    pub async fn extract_toml_ex(
+        ValidEx(Toml(parameters), args): ValidEx<
+            Toml<ParametersEx>,
             ParametersExValidationArguments,
         >,
     ) -> StatusCode {

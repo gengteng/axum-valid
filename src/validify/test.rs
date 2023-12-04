@@ -302,6 +302,35 @@ async fn test_main() -> anyhow::Result<()> {
             post(msgpack::extract_msgpack_raw_validified_by_ref),
         );
 
+    #[cfg(feature = "xml")]
+    let router = router
+        .route(xml::route::XML, post(xml::extract_xml))
+        .route(xml::route::XML_MODIFIED, post(xml::extract_xml_modified))
+        .route(
+            xml::route::XML_VALIDIFIED,
+            post(xml::extract_xml_validified),
+        )
+        .route(
+            xml::route::XML_VALIDIFIED_BY_REF,
+            post(xml::extract_xml_validified_by_ref),
+        );
+
+    #[cfg(feature = "toml")]
+    let router = router
+        .route(toml::route::TOML, post(toml::extract_toml))
+        .route(
+            toml::route::TOML_MODIFIED,
+            post(toml::extract_toml_modified),
+        )
+        .route(
+            toml::route::TOML_VALIDIFIED,
+            post(toml::extract_toml_validified),
+        )
+        .route(
+            toml::route::TOML_VALIDIFIED_BY_REF,
+            post(toml::extract_toml_validified_by_ref),
+        );
+
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
     let server_addr = listener.local_addr()?;
     let server = axum::serve(listener, router.into_make_service());
@@ -904,6 +933,53 @@ async fn test_main() -> anyhow::Result<()> {
                 Method::POST,
                 msgpack::route::MSGPACK_RAW_VALIDIFIED_BY_REF,
             )
+            .await?;
+    }
+
+    #[cfg(feature = "xml")]
+    {
+        use axum_serde::Xml;
+
+        // Validated
+        test_executor
+            .execute::<Xml<ParametersValidify>>(Method::POST, xml::route::XML)
+            .await?;
+        // Modified
+        test_executor
+            .execute_modified::<Xml<ParametersValidify>>(Method::POST, xml::route::XML_MODIFIED)
+            .await?;
+        // Validified
+        test_executor
+            .execute_validified::<Xml<ParametersValidify>>(Method::POST, xml::route::XML_VALIDIFIED)
+            .await?;
+        // ValidifiedByRef
+        test_executor
+            .execute::<Xml<ParametersValidify>>(Method::POST, xml::route::XML_VALIDIFIED_BY_REF)
+            .await?;
+    }
+
+    #[cfg(feature = "toml")]
+    {
+        use axum_serde::Toml;
+
+        // Validated
+        test_executor
+            .execute::<Toml<ParametersValidify>>(Method::POST, toml::route::TOML)
+            .await?;
+        // Modified
+        test_executor
+            .execute_modified::<Toml<ParametersValidify>>(Method::POST, toml::route::TOML_MODIFIED)
+            .await?;
+        // Validified
+        test_executor
+            .execute_validified::<Toml<ParametersValidify>>(
+                Method::POST,
+                toml::route::TOML_VALIDIFIED,
+            )
+            .await?;
+        // ValidifiedByRef
+        test_executor
+            .execute::<Toml<ParametersValidify>>(Method::POST, toml::route::TOML_VALIDIFIED_BY_REF)
             .await?;
     }
 
@@ -1865,6 +1941,84 @@ mod msgpack {
 
     pub async fn extract_msgpack_raw_validified_by_ref(
         ValidifiedByRef(MsgPackRaw(parameters)): ValidifiedByRef<MsgPackRaw<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validified(&parameters)
+    }
+}
+
+#[cfg(feature = "xml")]
+mod xml {
+    use super::{check_modified, check_validated, check_validified, ParametersValidify};
+    use crate::{Modified, Validated, Validified, ValidifiedByRef};
+    use axum::http::StatusCode;
+    use axum_serde::Xml;
+
+    pub mod route {
+        pub const XML: &str = "/xml";
+        pub const XML_MODIFIED: &str = "/xml_modified";
+        pub const XML_VALIDIFIED: &str = "/xml_validified";
+        pub const XML_VALIDIFIED_BY_REF: &str = "/xml_validified_by_ref";
+    }
+
+    pub async fn extract_xml(
+        Validated(Xml(parameters)): Validated<Xml<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validated(&parameters)
+    }
+
+    pub async fn extract_xml_modified(
+        Modified(Xml(parameters)): Modified<Xml<ParametersValidify>>,
+    ) -> StatusCode {
+        check_modified(&parameters)
+    }
+
+    pub async fn extract_xml_validified(
+        Validified(Xml(parameters)): Validified<Xml<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validified(&parameters)
+    }
+
+    pub async fn extract_xml_validified_by_ref(
+        ValidifiedByRef(Xml(parameters)): ValidifiedByRef<Xml<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validified(&parameters)
+    }
+}
+
+#[cfg(feature = "toml")]
+mod toml {
+    use super::{check_modified, check_validated, check_validified, ParametersValidify};
+    use crate::{Modified, Validated, Validified, ValidifiedByRef};
+    use axum::http::StatusCode;
+    use axum_serde::Toml;
+
+    pub mod route {
+        pub const TOML: &str = "/toml";
+        pub const TOML_MODIFIED: &str = "/toml_modified";
+        pub const TOML_VALIDIFIED: &str = "/toml_validified";
+        pub const TOML_VALIDIFIED_BY_REF: &str = "/toml_validified_by_ref";
+    }
+
+    pub async fn extract_toml(
+        Validated(Toml(parameters)): Validated<Toml<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validated(&parameters)
+    }
+
+    pub async fn extract_toml_modified(
+        Modified(Toml(parameters)): Modified<Toml<ParametersValidify>>,
+    ) -> StatusCode {
+        check_modified(&parameters)
+    }
+
+    pub async fn extract_toml_validified(
+        Validified(Toml(parameters)): Validified<Toml<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validified(&parameters)
+    }
+
+    pub async fn extract_toml_validified_by_ref(
+        ValidifiedByRef(Toml(parameters)): ValidifiedByRef<Toml<ParametersValidify>>,
     ) -> StatusCode {
         check_validified(&parameters)
     }
