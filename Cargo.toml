@@ -39,6 +39,10 @@ optional = true
 version = "0.1.0"
 optional = true
 
+[dependencies.axum_typed_multipart]
+version = "0.11.0"
+optional = true
+
 [dependencies.serde]
 version = "1.0.193"
 optional = true
@@ -74,6 +78,7 @@ msgpack = ["dep:axum-serde", "axum-serde/msgpack"]
 yaml = ["dep:axum-serde", "axum-serde/yaml"]
 xml = ["dep:axum-serde", "axum-serde/xml"]
 toml = ["dep:axum-serde", "axum-serde/toml"]
+typed_multipart = ["dep:axum_typed_multipart"]
 into_json = ["json", "dep:serde"]
 422 = []
 extra = ["dep:axum-extra"]
@@ -82,7 +87,7 @@ extra_query = ["extra", "axum-extra/query"]
 extra_form = ["extra", "axum-extra/form"]
 extra_protobuf = ["extra", "axum-extra/protobuf"]
 all_extra_types = ["extra", "typed_header", "extra_typed_path", "extra_query", "extra_form", "extra_protobuf"]
-all_types = ["json", "form", "query", "msgpack", "yaml", "xml", "toml", "all_extra_types"]
+all_types = ["json", "form", "query", "msgpack", "yaml", "xml", "toml", "all_extra_types", "typed_multipart"]
 full_validator = ["validator", "all_types", "422", "into_json"]
 full_garde = ["garde", "all_types", "422", "into_json"]
 full_validify = ["validify", "all_types", "422", "into_json"]

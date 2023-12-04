@@ -19,6 +19,10 @@ use validator::{Validate, ValidateArgs, ValidationError};
 
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
+#[cfg_attr(
+    feature = "typed_multipart",
+    derive(axum_typed_multipart::TryFromMultipart)
+)]
 pub struct Parameters {
     #[validate(range(min = 5, max = 10))]
     #[cfg_attr(feature = "extra_protobuf", prost(int32, tag = "1"))]
@@ -30,6 +34,10 @@ pub struct Parameters {
 
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
+#[cfg_attr(
+    feature = "typed_multipart",
+    derive(axum_typed_multipart::TryFromMultipart)
+)]
 pub struct ParametersEx {
     #[validate(custom(function = "validate_v0", arg = "&'v_a RangeInclusive<i32>"))]
     #[cfg_attr(feature = "extra_protobuf", prost(int32, tag = "1"))]

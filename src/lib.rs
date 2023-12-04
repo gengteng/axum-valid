@@ -25,6 +25,8 @@ pub mod yaml;
 
 #[cfg(feature = "toml")]
 pub mod toml;
+#[cfg(feature = "typed_multipart")]
+pub mod typed_multipart;
 #[cfg(feature = "xml")]
 pub mod xml;
 
