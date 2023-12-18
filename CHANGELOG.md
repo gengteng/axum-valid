@@ -4,6 +4,8 @@
 
 ### Added
 
+* Add support for aide.
+
 ### Changed
 
 ### Fixed
@@ -14,7 +16,7 @@
 
 ### Changed
 
-* Update axum-serde from 0.1.0 to 0.2.0
+* Update axum-serde from 0.1.0 to 0.2.0.
 
 ### Fixed
 

@@ -449,6 +449,7 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 | full_garde       | Enables `garde`, `all_types`, `422` and `into_json`. Consider using `default-features = false` to exclude default `validator` support    | N/A                                          | ❌       | ✅       | ✅     |
 | full_garde       | Enables `validify`, `all_types`, `422` and `into_json`. Consider using `default-features = false` to exclude default `validator` support | N/A                                          | ❌       | ✅       | ✅     |
 | full             | Enables all features above                                                                                                               | N/A                                          | ❌       | ✅       | ✅     |
+| aide             | Enables support for `aide`                                                                                                               | N/A                                          | ❌       | ❌       | ❌     | 
 
 ## 🔌 Compatibility
 
@@ -470,3 +471,4 @@ This project is licensed under the MIT License.
 * [axum-extra](https://crates.io/crates/axum-extra)
 * [axum-serde](https://crates.io/crates/axum-serde)
 * [axum_typed_multipart](https://crates.io/crates/axum_typed_multipart)
+* [aide](https://crates.io/crates/aide)
