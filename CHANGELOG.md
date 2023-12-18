@@ -8,6 +8,29 @@
 
 ### Fixed
 
+## axum-valid 0.13.0 (2023-12-14)
+
+### Added
+
+### Changed
+
+* Update axum-serde from 0.1.0 to 0.2.0
+
+### Fixed
+
+## axum-valid 0.12.0 (2023-12-04)
+
+### Added
+
+* Add Support for Xml, Toml from axum-serde.
+
+### Changed
+
+* Update axum from 0.6 to 0.7.
+* Use axum-serde instead of axum-yaml and axum-msgpack.
+
+### Fixed
+
 ## axum-valid 0.11.0 (2023-10-21)
 
 ### Added

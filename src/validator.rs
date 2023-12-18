@@ -28,6 +28,7 @@ use validator::{Validate, ValidateArgs, ValidationErrors};
 /// For examples with custom extractors, check out the `tests/custom.rs` file.
 ///
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Valid<E>(pub E);
 
 impl<E> Deref for Valid<E> {
@@ -71,6 +72,7 @@ impl<E> Valid<E> {
 /// Although current module documentation predominantly showcases `Valid` examples, the usage of `ValidEx` is analogous.
 ///
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct ValidEx<E, A>(pub E, pub A);
 
 impl<E, A> Deref for ValidEx<E, A> {

@@ -24,6 +24,7 @@ use validify::{Modify, Validate, ValidationErrors, Validify};
 /// It only does validation, usage is similar to `Valid`.
 ///
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Validated<E>(pub E);
 
 impl<E> Deref for Validated<E> {
@@ -73,6 +74,7 @@ impl<E> Validated<E> {
 ///
 /// This allows applying modifications during response conversion by leveraging validify.
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Modified<E>(pub E);
 
 impl<E> Deref for Modified<E> {
@@ -121,6 +123,7 @@ impl<E: IntoResponse + HasModify> IntoResponse for Modified<E> {
 /// And can treat missing fields as validation errors.
 ///
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Validified<E>(pub E);
 
 impl<E> Deref for Validified<E> {
@@ -160,6 +163,7 @@ impl<E> Validified<E> {
 /// Suitable for inner extractors not based on `serde`.
 ///
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct ValidifiedByRef<E>(pub E);
 
 impl<E> Deref for ValidifiedByRef<E> {
