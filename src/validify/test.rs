@@ -10,6 +10,8 @@ use axum::routing::{get, post};
 use axum::{Form, Json, Router};
 use hyper::Method;
 use once_cell::sync::Lazy;
+#[cfg(feature = "extra_protobuf")]
+use prost::Message;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::any::type_name;
@@ -19,7 +21,7 @@ use tokio::net::TcpListener;
 use validify::{Modify, Validate, Validify};
 
 #[derive(Clone, Deserialize, Serialize, Validify, Eq, PartialEq)]
-#[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
+#[cfg_attr(feature = "extra_protobuf", derive(Message))]
 #[cfg_attr(
     feature = "typed_multipart",
     derive(axum_typed_multipart::TryFromMultipart)

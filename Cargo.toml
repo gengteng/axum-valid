@@ -22,7 +22,7 @@ categories = [
 edition = "2021"
 
 [package.metadata.docs.rs]
-features = ["full"]
+features = ["full", "aide"]
 
 [dependencies]
 axum = { version = "0.7.1", default-features = false }
