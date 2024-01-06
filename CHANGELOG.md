@@ -4,9 +4,19 @@
 
 ### Added
 
-* Add support for aide.
+### Changed
+
+### Fixed
+
+## axum-valid 0.14.0 (2024-01-06)
+
+### Added
 
 ### Changed
+
+* Add support for aide through the 'aide' feature.
+* Upgrade garde to 0.17.0.
+* Upgrade validify to 1.3.0. (This update also resulted in some refactoring. Please refer to the `README.md` for the latest examples.)
 
 ### Fixed
 
