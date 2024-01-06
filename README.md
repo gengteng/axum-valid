@@ -164,9 +164,10 @@ use axum_valid::{Modified, Validated, Validified, ValidifiedByRef};
 use serde::Deserialize;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
-use validify::{Validate, Validify};
+use validify::{Payload, Validate, Validify};
 
-#[derive(Debug, Validify, Deserialize)]
+// Payload is required.(Added in validify 1.3.0)
+#[derive(Debug, Validify, Deserialize, Payload)]
 pub struct Pager {
     #[validate(range(min = 1.0, max = 50.0))]
     pub page_size: usize,
@@ -179,7 +180,8 @@ pub async fn pager_from_query(Validated(Query(pager)): Validated<Query<Pager>>) 
     assert!((1..).contains(&pager.page_no));
 }
 
-#[derive(Debug, Validify, Deserialize)]
+// Payload is required.(Added in validify 1.3.0)
+#[derive(Debug, Validify, Deserialize, Payload)]
 pub struct Parameters {
     #[modify(lowercase)]
     #[validate(length(min = 1, max = 50))]
