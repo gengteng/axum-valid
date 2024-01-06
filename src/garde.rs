@@ -25,7 +25,6 @@ use std::ops::{Deref, DerefMut};
 /// If using arguments, you must pass the arguments to Garde extractor via state, meaning implementing `FromRef<StateType>` for your validation arguments type.
 ///
 #[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Garde<E>(pub E);
 
 impl<E> Deref for Garde<E> {
@@ -55,6 +54,16 @@ impl<E> Garde<E> {
     /// successfully validated.
     pub fn into_inner(self) -> E {
         self.0
+    }
+}
+
+#[cfg(feature = "aide")]
+impl<T> aide::OperationInput for Garde<T>
+where
+    T: aide::OperationInput,
+{
+    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+        T::operation_input(ctx, operation);
     }
 }
 

@@ -28,7 +28,6 @@ use validator::{Validate, ValidateArgs, ValidationErrors};
 /// For examples with custom extractors, check out the `tests/custom.rs` file.
 ///
 #[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Valid<E>(pub E);
 
 impl<E> Deref for Valid<E> {
@@ -45,7 +44,7 @@ impl<E> DerefMut for Valid<E> {
     }
 }
 
-impl<T: Display, A> Display for ValidEx<T, A> {
+impl<T: Display> Display for Valid<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
@@ -55,6 +54,16 @@ impl<E> Valid<E> {
     /// Consume the `Valid` extractor and returns the inner type.
     pub fn into_inner(self) -> E {
         self.0
+    }
+}
+
+#[cfg(feature = "aide")]
+impl<T> aide::OperationInput for Valid<T>
+where
+    T: aide::OperationInput,
+{
+    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+        T::operation_input(ctx, operation);
     }
 }
 
@@ -72,7 +81,6 @@ impl<E> Valid<E> {
 /// Although current module documentation predominantly showcases `Valid` examples, the usage of `ValidEx` is analogous.
 ///
 #[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct ValidEx<E, A>(pub E, pub A);
 
 impl<E, A> Deref for ValidEx<E, A> {
@@ -89,7 +97,7 @@ impl<E, A> DerefMut for ValidEx<E, A> {
     }
 }
 
-impl<T: Display> Display for Valid<T> {
+impl<T: Display, A> Display for ValidEx<T, A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
@@ -114,6 +122,16 @@ impl<E, A> ValidEx<E, A> {
         A: Arguments<'a>,
     {
         self.1.get()
+    }
+}
+
+#[cfg(feature = "aide")]
+impl<T, A> aide::OperationInput for ValidEx<T, A>
+where
+    T: aide::OperationInput,
+{
+    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+        T::operation_input(ctx, operation);
     }
 }
 

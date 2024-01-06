@@ -24,7 +24,6 @@ use validify::{Modify, Validate, ValidationErrors, ValidifyPayload};
 /// It only does validation, usage is similar to `Valid`.
 ///
 #[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Validated<E>(pub E);
 
 impl<E> Deref for Validated<E> {
@@ -57,6 +56,16 @@ impl<E> Validated<E> {
     }
 }
 
+#[cfg(feature = "aide")]
+impl<T> aide::OperationInput for Validated<T>
+where
+    T: aide::OperationInput,
+{
+    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+        T::operation_input(ctx, operation);
+    }
+}
+
 /// # `Modified` data extractor / response
 ///
 /// ## Extractor
@@ -74,7 +83,6 @@ impl<E> Validated<E> {
 ///
 /// This allows applying modifications during response conversion by leveraging validify.
 #[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Modified<E>(pub E);
 
 impl<E> Deref for Modified<E> {
@@ -114,6 +122,38 @@ impl<E: IntoResponse + HasModify> IntoResponse for Modified<E> {
     }
 }
 
+#[cfg(feature = "aide")]
+impl<T> aide::OperationInput for Modified<T>
+where
+    T: aide::OperationInput,
+{
+    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+        T::operation_input(ctx, operation);
+    }
+}
+
+#[cfg(feature = "aide")]
+impl<T> aide::OperationOutput for Modified<T>
+where
+    T: aide::OperationOutput,
+{
+    type Inner = T::Inner;
+
+    fn operation_response(
+        ctx: &mut aide::gen::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) -> Option<aide::openapi::Response> {
+        T::operation_response(ctx, operation)
+    }
+
+    fn inferred_responses(
+        ctx: &mut aide::gen::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) -> Vec<(Option<u16>, aide::openapi::Response)> {
+        T::inferred_responses(ctx, operation)
+    }
+}
+
 /// # `Validified` data extractor
 ///
 /// `Validified` provides construction, modification and validation abilities based on `validify`.
@@ -123,7 +163,6 @@ impl<E: IntoResponse + HasModify> IntoResponse for Modified<E> {
 /// And can treat missing fields as validation errors.
 ///
 #[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct Validified<E>(pub E);
 
 impl<E> Deref for Validified<E> {
@@ -156,6 +195,16 @@ impl<E> Validified<E> {
     }
 }
 
+#[cfg(feature = "aide")]
+impl<T> aide::OperationInput for Validified<T>
+where
+    T: aide::OperationInput,
+{
+    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+        T::operation_input(ctx, operation);
+    }
+}
+
 /// # `ValidifiedByRef` data extractor
 ///
 /// `ValidifiedByRef` is similar to `Validified`, but operates via reference.
@@ -163,7 +212,6 @@ impl<E> Validified<E> {
 /// Suitable for inner extractors not based on `serde`.
 ///
 #[derive(Debug, Clone, Copy, Default)]
-#[cfg_attr(feature = "aide", derive(aide::OperationIo))]
 pub struct ValidifiedByRef<E>(pub E);
 
 impl<E> Deref for ValidifiedByRef<E> {
@@ -193,6 +241,16 @@ impl<E> ValidifiedByRef<E> {
     /// successfully validated.
     pub fn into_inner(self) -> E {
         self.0
+    }
+}
+
+#[cfg(feature = "aide")]
+impl<T> aide::OperationInput for ValidifiedByRef<T>
+where
+    T: aide::OperationInput,
+{
+    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+        T::operation_input(ctx, operation);
     }
 }
 
