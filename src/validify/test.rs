@@ -18,15 +18,24 @@ use std::any::type_name;
 use std::net::SocketAddr;
 use std::ops::Deref;
 use tokio::net::TcpListener;
-use validify::{Modify, Validate, Validify};
+use validify::{Modify, Payload, Validate, Validify};
 
-#[derive(Clone, Deserialize, Serialize, Validify, Eq, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, Validify, Payload, Eq, PartialEq)]
+pub struct ParametersValidify {
+    #[validate(range(min = 5.0, max = 10.0))]
+    v0: i32,
+    #[modify(lowercase)]
+    #[validate(length(min = 1, max = 10))]
+    v1: String,
+}
+
+#[derive(Clone, Validify, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(Message))]
 #[cfg_attr(
     feature = "typed_multipart",
     derive(axum_typed_multipart::TryFromMultipart)
 )]
-pub struct ParametersValidify {
+pub struct ParametersValidifyWithoutPayload {
     #[validate(range(min = 5.0, max = 10.0))]
     #[cfg_attr(feature = "extra_protobuf", prost(int32, tag = "1"))]
     v0: i32,
@@ -56,6 +65,18 @@ static INVALID_PARAMETERS: Lazy<ParametersValidify> = Lazy::new(|| ParametersVal
     v1: String::from("ABCDEFGHIJKLMN"),
 });
 
+static VALID_PARAMETERS_WITHOUT_PAYLOAD: Lazy<ParametersValidifyWithoutPayload> =
+    Lazy::new(|| ParametersValidifyWithoutPayload {
+        v0: 5,
+        v1: String::from("ABCDEFG"),
+    });
+
+static INVALID_PARAMETERS_WITHOUT_PAYLOAD: Lazy<ParametersValidifyWithoutPayload> =
+    Lazy::new(|| ParametersValidifyWithoutPayload {
+        v0: 6,
+        v1: String::from("ABCDEFGHIJKLMN"),
+    });
+
 impl ValidTestParameter for ParametersValidify {
     fn valid() -> &'static Self {
         VALID_PARAMETERS.deref()
@@ -67,6 +88,20 @@ impl ValidTestParameter for ParametersValidify {
 
     fn invalid() -> &'static Self {
         INVALID_PARAMETERS.deref()
+    }
+}
+
+impl ValidTestParameter for ParametersValidifyWithoutPayload {
+    fn valid() -> &'static Self {
+        VALID_PARAMETERS_WITHOUT_PAYLOAD.deref()
+    }
+
+    fn error() -> &'static [(&'static str, &'static str)] {
+        &[("not_v0_or_v1", "value")]
+    }
+
+    fn invalid() -> &'static Self {
+        INVALID_PARAMETERS_WITHOUT_PAYLOAD.deref()
     }
 }
 
@@ -836,21 +871,21 @@ async fn test_main() -> anyhow::Result<()> {
         use axum_extra::protobuf::Protobuf;
         // Validated
         test_executor
-            .execute::<Protobuf<ParametersValidify>>(
+            .execute::<Protobuf<ParametersValidifyWithoutPayload>>(
                 Method::POST,
                 extra_protobuf::route::EXTRA_PROTOBUF,
             )
             .await?;
         // Modified
         test_executor
-            .execute_modified::<Protobuf<ParametersValidify>>(
+            .execute_modified::<Protobuf<ParametersValidifyWithoutPayload>>(
                 Method::POST,
                 extra_protobuf::route::EXTRA_PROTOBUF_MODIFIED,
             )
             .await?;
         // ValidifiedByRef
         test_executor
-            .execute::<Protobuf<ParametersValidify>>(
+            .execute::<Protobuf<ParametersValidifyWithoutPayload>>(
                 Method::POST,
                 extra_protobuf::route::EXTRA_PROTOBUF_VALIDIFIED_BY_REF,
             )
@@ -1356,7 +1391,10 @@ mod typed_header {
 
 #[cfg(feature = "typed_multipart")]
 mod typed_multipart {
-    use super::{check_modified, check_validated, check_validified, ParametersValidify};
+    use super::{
+        check_modified, check_validated, check_validified, ParametersValidify,
+        ParametersValidifyWithoutPayload,
+    };
     use crate::{Modified, Validated, ValidifiedByRef};
     use axum::http::StatusCode;
     use axum_typed_multipart::{BaseMultipart, TypedMultipart, TypedMultipartError};
@@ -1380,20 +1418,24 @@ mod typed_multipart {
     }
 
     pub(super) async fn extract_typed_multipart(
-        Validated(TypedMultipart(parameters)): Validated<TypedMultipart<ParametersValidify>>,
+        Validated(TypedMultipart(parameters)): Validated<
+            TypedMultipart<ParametersValidifyWithoutPayload>,
+        >,
     ) -> StatusCode {
         check_validated(&parameters)
     }
 
     pub(super) async fn extract_typed_multipart_modified(
-        Modified(TypedMultipart(parameters)): Modified<TypedMultipart<ParametersValidify>>,
+        Modified(TypedMultipart(parameters)): Modified<
+            TypedMultipart<ParametersValidifyWithoutPayload>,
+        >,
     ) -> StatusCode {
         check_modified(&parameters)
     }
 
     pub(super) async fn extract_typed_multipart_validified_by_ref(
         ValidifiedByRef(TypedMultipart(parameters)): ValidifiedByRef<
-            TypedMultipart<ParametersValidify>,
+            TypedMultipart<ParametersValidifyWithoutPayload>,
         >,
     ) -> StatusCode {
         check_validified(&parameters)
@@ -1401,7 +1443,7 @@ mod typed_multipart {
 
     pub(super) async fn extract_base_multipart(
         Validated(BaseMultipart { data, .. }): Validated<
-            BaseMultipart<ParametersValidify, TypedMultipartError>,
+            BaseMultipart<ParametersValidifyWithoutPayload, TypedMultipartError>,
         >,
     ) -> StatusCode {
         check_validated(&data)
@@ -1409,7 +1451,7 @@ mod typed_multipart {
 
     pub(super) async fn extract_base_multipart_modified(
         Modified(BaseMultipart { data, .. }): Modified<
-            BaseMultipart<ParametersValidify, TypedMultipartError>,
+            BaseMultipart<ParametersValidifyWithoutPayload, TypedMultipartError>,
         >,
     ) -> StatusCode {
         check_modified(&data)
@@ -1417,7 +1459,7 @@ mod typed_multipart {
 
     pub(super) async fn extract_base_multipart_validified_by_ref(
         ValidifiedByRef(BaseMultipart { data, .. }): ValidifiedByRef<
-            BaseMultipart<ParametersValidify, TypedMultipartError>,
+            BaseMultipart<ParametersValidifyWithoutPayload, TypedMultipartError>,
         >,
     ) -> StatusCode {
         check_validified(&data)
@@ -1813,7 +1855,9 @@ mod extra_form {
 
 #[cfg(feature = "extra_protobuf")]
 mod extra_protobuf {
-    use super::{check_modified, check_validated, check_validified, ParametersValidify};
+    use super::{
+        check_modified, check_validated, check_validified, ParametersValidifyWithoutPayload,
+    };
     use crate::{Modified, Validated, ValidifiedByRef};
     use axum::http::StatusCode;
     use axum_extra::protobuf::Protobuf;
@@ -1825,19 +1869,21 @@ mod extra_protobuf {
     }
 
     pub async fn extract_extra_protobuf(
-        Validated(Protobuf(parameters)): Validated<Protobuf<ParametersValidify>>,
+        Validated(Protobuf(parameters)): Validated<Protobuf<ParametersValidifyWithoutPayload>>,
     ) -> StatusCode {
         check_validated(&parameters)
     }
 
     pub async fn extract_extra_protobuf_modified(
-        Modified(Protobuf(parameters)): Modified<Protobuf<ParametersValidify>>,
+        Modified(Protobuf(parameters)): Modified<Protobuf<ParametersValidifyWithoutPayload>>,
     ) -> StatusCode {
         check_modified(&parameters)
     }
 
     pub async fn extract_extra_protobuf_validified_by_ref(
-        ValidifiedByRef(Protobuf(parameters)): ValidifiedByRef<Protobuf<ParametersValidify>>,
+        ValidifiedByRef(Protobuf(parameters)): ValidifiedByRef<
+            Protobuf<ParametersValidifyWithoutPayload>,
+        >,
     ) -> StatusCode {
         check_validified(&parameters)
     }

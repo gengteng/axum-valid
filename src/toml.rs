@@ -126,10 +126,10 @@ impl<T> crate::PayloadExtractor for Toml<T> {
 }
 
 #[cfg(feature = "validify")]
-impl<T: validify::Validify> crate::HasValidify for Toml<T> {
+impl<T: validify::Validify + validify::ValidifyPayload> crate::HasValidify for Toml<T> {
     type Validify = T;
     type PayloadExtractor = Toml<T::Payload>;
-    fn from_validified(v: Self::Validify) -> Self {
+    fn from_validify(v: Self::Validify) -> Self {
         Toml(v)
     }
 }

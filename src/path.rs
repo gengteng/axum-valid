@@ -122,11 +122,11 @@ impl<T> crate::PayloadExtractor for Path<T> {
 }
 
 #[cfg(feature = "validify")]
-impl<T: validify::Validify> crate::HasValidify for Path<T> {
+impl<T: validify::Validify + validify::ValidifyPayload> crate::HasValidify for Path<T> {
     type Validify = T;
     type PayloadExtractor = Path<T::Payload>;
 
-    fn from_validified(v: Self::Validify) -> Self {
+    fn from_validify(v: Self::Validify) -> Self {
         Path(v)
     }
 }

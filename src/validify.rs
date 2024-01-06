@@ -15,7 +15,7 @@ use axum::http::request::Parts;
 use axum::response::{IntoResponse, Response};
 use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut};
-use validify::{Modify, Validate, ValidationErrors, Validify};
+use validify::{Modify, Validate, ValidationErrors, ValidifyPayload};
 
 /// # `Validated` data extractor
 ///
@@ -232,15 +232,15 @@ pub trait PayloadExtractor {
 ///
 pub trait HasValidify: Sized {
     /// Inner type that can be modified and validated using `validify`.
-    type Validify: Validify;
+    type Validify: ValidifyPayload;
 
     /// Extracts payload from the request,
     /// which will be used to construct the `Self::Validify` type  
     /// and perform modification and validation on it.
-    type PayloadExtractor: PayloadExtractor<Payload = <Self::Validify as Validify>::Payload>;
+    type PayloadExtractor: PayloadExtractor<Payload = <Self::Validify as ValidifyPayload>::Payload>;
 
     /// Re-packages the validified data back into the inner Extractor type.  
-    fn from_validified(v: Self::Validify) -> Self;
+    fn from_validify(v: Self::Validify) -> Self;
 }
 
 #[async_trait]
@@ -314,7 +314,6 @@ impl<State, Extractor> FromRequest<State> for Validified<Extractor>
 where
     State: Send + Sync,
     Extractor: HasValidify,
-    Extractor::Validify: Validify,
     Extractor::PayloadExtractor: FromRequest<State>,
 {
     type Rejection =
@@ -323,10 +322,10 @@ where
     async fn from_request(req: Request, state: &State) -> Result<Self, Self::Rejection> {
         let payload = Extractor::PayloadExtractor::from_request(req, state)
             .await
-            .map_err(ValidifyRejection::Inner)?;
-        Ok(Validified(Extractor::from_validified(
-            Extractor::Validify::validify(payload.get_payload())?,
-        )))
+            .map_err(ValidifyRejection::Inner)?
+            .get_payload();
+        let validify = Extractor::Validify::validify_from(payload)?;
+        Ok(Validified(Extractor::from_validify(validify)))
     }
 }
 
@@ -335,7 +334,6 @@ impl<State, Extractor> FromRequestParts<State> for Validified<Extractor>
 where
     State: Send + Sync,
     Extractor: HasValidify,
-    Extractor::Validify: Validify,
     Extractor::PayloadExtractor: FromRequestParts<State>,
 {
     type Rejection =
@@ -344,10 +342,10 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &State) -> Result<Self, Self::Rejection> {
         let payload = Extractor::PayloadExtractor::from_request_parts(parts, state)
             .await
-            .map_err(ValidifyRejection::Inner)?;
-        Ok(Validified(Extractor::from_validified(
-            Extractor::Validify::validify(payload.get_payload())?,
-        )))
+            .map_err(ValidifyRejection::Inner)?
+            .get_payload();
+        let validify = Extractor::Validify::validify_from(payload)?;
+        Ok(Validified(Extractor::from_validify(validify)))
     }
 }
 
@@ -470,6 +468,7 @@ mod tests {
 
     #[test]
     fn modified_into_response() {
+        use validify::Validify;
         #[derive(Validify, Serialize)]
         struct Data {
             #[modify(trim)]

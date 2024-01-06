@@ -126,10 +126,10 @@ impl<T> crate::PayloadExtractor for Yaml<T> {
 }
 
 #[cfg(feature = "validify")]
-impl<T: validify::Validify> crate::HasValidify for Yaml<T> {
+impl<T: validify::Validify + validify::ValidifyPayload> crate::HasValidify for Yaml<T> {
     type Validify = T;
     type PayloadExtractor = Yaml<T::Payload>;
-    fn from_validified(v: Self::Validify) -> Self {
+    fn from_validify(v: Self::Validify) -> Self {
         Yaml(v)
     }
 }

@@ -133,10 +133,10 @@ impl<T> crate::PayloadExtractor for MsgPack<T> {
 }
 
 #[cfg(feature = "validify")]
-impl<T: validify::Validify> crate::HasValidify for MsgPack<T> {
+impl<T: validify::Validify + validify::ValidifyPayload> crate::HasValidify for MsgPack<T> {
     type Validify = T;
     type PayloadExtractor = MsgPack<T::Payload>;
-    fn from_validified(v: Self::Validify) -> Self {
+    fn from_validify(v: Self::Validify) -> Self {
         MsgPack(v)
     }
 }
@@ -175,10 +175,10 @@ impl<T> crate::PayloadExtractor for MsgPackRaw<T> {
 }
 
 #[cfg(feature = "validify")]
-impl<T: validify::Validify> crate::HasValidify for MsgPackRaw<T> {
+impl<T: validify::Validify + validify::ValidifyPayload> crate::HasValidify for MsgPackRaw<T> {
     type Validify = T;
     type PayloadExtractor = MsgPackRaw<T::Payload>;
-    fn from_validified(v: Self::Validify) -> Self {
+    fn from_validify(v: Self::Validify) -> Self {
         MsgPackRaw(v)
     }
 }

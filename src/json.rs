@@ -126,10 +126,10 @@ impl<T> crate::PayloadExtractor for Json<T> {
 }
 
 #[cfg(feature = "validify")]
-impl<T: validify::Validify> crate::HasValidify for Json<T> {
+impl<T: validify::Validify + validify::ValidifyPayload> crate::HasValidify for Json<T> {
     type Validify = T;
     type PayloadExtractor = Json<T::Payload>;
-    fn from_validified(v: Self::Validify) -> Self {
+    fn from_validify(v: Self::Validify) -> Self {
         Json(v)
     }
 }
