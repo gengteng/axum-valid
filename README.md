@@ -409,15 +409,15 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 ## 🗂️ Extractors List
 
 
-| Extractor             | Backend / Feature | Data's trait bound                                 | Functionality                          | Benefits                                   | Drawbacks                                        |
-|-----------------------|-------------------|----------------------------------------------------|----------------------------------------|--------------------------------------------|--------------------------------------------------|
-| `Valid<E>`	           | validator	        | `validator::Validate`                              | Validation	                            |                                            |                                                  |                                                 
-| `ValidEx<E, A>`	      | validator	        | `validator::ValidateArgs`                          | Validation with arguments              | 		                                         | More complex arguments coding                    |
-| `Garde<E>`	           | garde	            | `garde::Validate`                                  | Validation with or without arguments	  |                                            | Require empty tuple as the argument if use state |                                  |
-| `Validated<E>`	       | validify	         | `validify::Validate`                               | Validation	                            |                                            |                                                  |
-| `Modified<E>`	        | validify	         | `validify::Modify`                                 | Modification / Conversion to response  | 		                                         |                                                  |                                                  
-| `Validified<E>`	      | validify	         | `validify::Validify` and `serde::DeserializeOwned` | Construction, modification, validation | Treat missing fields as validation errors	 | Only works with extractors using `serde`         |
-| `ValidifiedByRef<E>`	 | validify          | `validify::Validate` and `validify::Modify`        | Modification, validation               |                                            |                                                  |
+| Extractor             | Backend / Feature | Data's trait bound                                                              | Functionality                          | Benefits                                   | Drawbacks                                        |
+|-----------------------|-------------------|---------------------------------------------------------------------------------|----------------------------------------|--------------------------------------------|--------------------------------------------------|
+| `Valid<E>`	           | validator	        | `validator::Validate`                                                           | Validation	                            |                                            |                                                  |                                                 
+| `ValidEx<E, A>`	      | validator	        | `validator::ValidateArgs`                                                       | Validation with arguments              | 		                                         | More complex arguments coding                    |
+| `Garde<E>`	           | garde	            | `garde::Validate`                                                               | Validation with or without arguments	  |                                            | Require empty tuple as the argument if use state |                                  |
+| `Validated<E>`	       | validify	         | `validify::Validate`                                                            | Validation	                            |                                            |                                                  |
+| `Modified<E>`	        | validify	         | `validify::Modify`                                                              | Modification / Conversion to response  | 		                                         |                                                  |                                                  
+| `Validified<E>`	      | validify	         | `validify::Validify`, `validify::ValidifyPayload` and `serde::DeserializeOwned` | Construction, modification, validation | Treat missing fields as validation errors	 | Only works with extractors using `serde`         |
+| `ValidifiedByRef<E>`	 | validify          | `validify::Validate` and `validify::Modify`                                     | Modification, validation               |                                            |                                                  |
 
 ## ⚙️ Features
 
