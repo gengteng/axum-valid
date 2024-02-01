@@ -8,6 +8,16 @@
 
 ### Fixed
 
+## axum-valid 0.15.0 (2024-02-01)
+
+### Added
+
+### Changed
+
+* Upgrade garde to 0.18.0.
+
+### Fixed
+
 ## axum-valid 0.14.0 (2024-01-06)
 
 ### Added

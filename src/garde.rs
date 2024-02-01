@@ -83,7 +83,7 @@ where
     State: Send + Sync,
     Context: Send + Sync + FromRef<State>,
     Extractor: HasValidate + FromRequest<State>,
-    <Extractor as HasValidate>::Validate: garde::Validate<Context = Context>,
+    <Extractor as HasValidate>::Validate: Validate<Context = Context>,
 {
     type Rejection = GardeRejection<<Extractor as FromRequest<State>>::Rejection>;
 

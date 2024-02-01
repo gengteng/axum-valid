@@ -73,7 +73,7 @@ In case of inner extractor errors, it will first return the Rejection from the i
 * Install
 
 ```shell
-cargo add garde
+cargo add garde --features derive
 cargo add axum-valid --features garde,basic --no-default-features
 # excluding validator
 ```
