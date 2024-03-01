@@ -31,8 +31,8 @@ pub struct ParametersValidify {
 #[derive(Clone, Validify, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(Message))]
 #[cfg_attr(
-feature = "typed_multipart",
-derive(axum_typed_multipart::TryFromMultipart)
+    feature = "typed_multipart",
+    derive(axum_typed_multipart::TryFromMultipart)
 )]
 pub struct ParametersValidifyWithoutPayload {
     #[validate(range(min = 5.0, max = 10.0))]
@@ -145,7 +145,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "typed_header")]
-        let router = router
+    let router = router
         .route(
             typed_header::route::TYPED_HEADER,
             post(typed_header::extract_typed_header),
@@ -160,7 +160,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "typed_multipart")]
-        let router = router
+    let router = router
         .route(
             typed_multipart::route::TYPED_MULTIPART,
             post(typed_multipart::extract_typed_multipart),
@@ -187,7 +187,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra")]
-        let router = router
+    let router = router
         .route(extra::route::CACHED, post(extra::extract_cached))
         .route(
             extra::route::CACHED_MODIFIED,
@@ -223,7 +223,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_typed_path")]
-        let router = router
+    let router = router
         .route(
             extra_typed_path::route::EXTRA_TYPED_PATH,
             get(extra_typed_path::extract_extra_typed_path),
@@ -238,7 +238,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_query")]
-        let router = router
+    let router = router
         .route(
             extra_query::route::EXTRA_QUERY,
             post(extra_query::extract_extra_query),
@@ -257,7 +257,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_form")]
-        let router = router
+    let router = router
         .route(
             extra_form::route::EXTRA_FORM,
             post(extra_form::extract_extra_form),
@@ -276,7 +276,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_protobuf")]
-        let router = router
+    let router = router
         .route(
             extra_protobuf::route::EXTRA_PROTOBUF,
             post(extra_protobuf::extract_extra_protobuf),
@@ -291,7 +291,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "yaml")]
-        let router = router
+    let router = router
         .route(yaml::route::YAML, post(yaml::extract_yaml))
         .route(
             yaml::route::YAML_MODIFIED,
@@ -307,7 +307,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "msgpack")]
-        let router = router
+    let router = router
         .route(msgpack::route::MSGPACK, post(msgpack::extract_msgpack))
         .route(
             msgpack::route::MSGPACK_MODIFIED,
@@ -339,7 +339,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "xml")]
-        let router = router
+    let router = router
         .route(xml::route::XML, post(xml::extract_xml))
         .route(xml::route::XML_MODIFIED, post(xml::extract_xml_modified))
         .route(
@@ -352,7 +352,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "toml")]
-        let router = router
+    let router = router
         .route(toml::route::TOML, post(toml::extract_toml))
         .route(
             toml::route::TOML_MODIFIED,
@@ -368,7 +368,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "sonic")]
-        let router = router
+    let router = router
         .route(sonic::route::SONIC, post(sonic::extract_sonic))
         .route(
             sonic::route::SONIC_MODIFIED,
@@ -409,7 +409,7 @@ async fn test_main() -> anyhow::Result<()> {
             VALIDATION_ERROR_STATUS,
             true,
         )
-            .await
+        .await
     }
 
     async fn test_extra_path_modified(
@@ -426,7 +426,7 @@ async fn test_main() -> anyhow::Result<()> {
             StatusCode::OK,
             false,
         )
-            .await
+        .await
     }
 
     async fn test_extra_path_validified(
@@ -443,7 +443,7 @@ async fn test_main() -> anyhow::Result<()> {
             VALIDATION_ERROR_STATUS,
             true,
         )
-            .await
+        .await
     }
 
     async fn do_test_extra_path(
@@ -726,7 +726,7 @@ async fn test_main() -> anyhow::Result<()> {
                 VALIDATION_ERROR_STATUS,
                 true,
             )
-                .await
+            .await
         }
 
         async fn test_extra_typed_path_modified(
@@ -743,7 +743,7 @@ async fn test_main() -> anyhow::Result<()> {
                 StatusCode::OK,
                 false,
             )
-                .await
+            .await
         }
 
         async fn do_test_extra_typed_path(
@@ -804,7 +804,7 @@ async fn test_main() -> anyhow::Result<()> {
                     extra_typed_path_type_name,
                     invalid_extra_typed_path_response,
                 )
-                    .await;
+                .await;
             }
             println!("All {} tests passed.", extra_typed_path_type_name);
             Ok(())
@@ -818,7 +818,7 @@ async fn test_main() -> anyhow::Result<()> {
             "extra_typed_path_validified_by_ref",
             &server_url,
         )
-            .await?;
+        .await?;
     }
 
     #[cfg(feature = "extra_query")]
@@ -1045,7 +1045,10 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         // Modified
         test_executor
-            .execute_modified::<Sonic<ParametersValidify>>(Method::POST, sonic::route::SONIC_MODIFIED)
+            .execute_modified::<Sonic<ParametersValidify>>(
+                Method::POST,
+                sonic::route::SONIC_MODIFIED,
+            )
             .await?;
         // Validified
         test_executor
@@ -1056,7 +1059,10 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         // ValidifiedByRef
         test_executor
-            .execute::<Sonic<ParametersValidify>>(Method::POST, sonic::route::SONIC_VALIDIFIED_BY_REF)
+            .execute::<Sonic<ParametersValidify>>(
+                Method::POST,
+                sonic::route::SONIC_VALIDIFIED_BY_REF,
+            )
             .await?;
     }
 
@@ -1089,7 +1095,7 @@ impl TestExecutor {
             T::INVALID_STATUS_CODE,
             true,
         )
-            .await
+        .await
     }
 
     /// Execute all tests for `Modified` without validation
@@ -1106,7 +1112,7 @@ impl TestExecutor {
             StatusCode::OK,
             false,
         )
-            .await
+        .await
     }
 
     /// Execute all tests for `Modified` without validation
@@ -1123,7 +1129,7 @@ impl TestExecutor {
             T::INVALID_STATUS_CODE,
             false,
         )
-            .await
+        .await
     }
 
     async fn do_execute<T: ValidTest>(
@@ -1387,9 +1393,9 @@ mod typed_header {
         }
 
         fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
-            where
-                Self: Sized,
-                I: Iterator<Item=&'i HeaderValue>,
+        where
+            Self: Sized,
+            I: Iterator<Item = &'i HeaderValue>,
         {
             let value = values.next().ok_or_else(Error::invalid)?;
             let src = std::str::from_utf8(value.as_bytes()).map_err(|_| Error::invalid())?;
@@ -1557,8 +1563,8 @@ mod extra {
     //  1.3. Implement your extractor (`FromRequestParts` or `FromRequest`)
     #[axum::async_trait]
     impl<S> FromRequestParts<S> for ParametersValidify
-        where
-            S: Send + Sync,
+    where
+        S: Send + Sync,
     {
         type Rejection = ParametersRejection;
 

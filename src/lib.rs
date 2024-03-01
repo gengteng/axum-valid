@@ -23,13 +23,13 @@ pub mod validify;
 #[cfg(feature = "yaml")]
 pub mod yaml;
 
+mod sonic;
 #[cfg(feature = "toml")]
 pub mod toml;
 #[cfg(feature = "typed_multipart")]
 pub mod typed_multipart;
 #[cfg(feature = "xml")]
 pub mod xml;
-mod sonic;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
