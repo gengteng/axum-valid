@@ -1,6 +1,6 @@
 [package]
 name = "axum-valid"
-version = "0.15.1"
+version = "0.16.0"
 description = "Provides validation extractors for your Axum application, allowing you to validate data using validator, garde, validify or all of them."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
@@ -36,7 +36,7 @@ default-features = false
 optional = true
 
 [dependencies.axum-serde]
-version = "0.2.0"
+version = "0.3.0"
 optional = true
 
 [dependencies.axum_typed_multipart]
@@ -55,7 +55,6 @@ optional = true
 anyhow = "1.0.75"
 axum = { version = "0.7.1", features = ["macros"] }
 tokio = { version = "1.34.0", features = ["full"] }
-hyper = { version = "0.14.27", features = ["full"] }
 reqwest = { version = "0.11.23", features = ["json", "multipart"] }
 serde = { version = "1.0.195", features = ["derive"] }
 validator = { version = "0.16.1", features = ["derive"] }
@@ -83,6 +82,7 @@ msgpack = ["dep:axum-serde", "axum-serde/msgpack"]
 yaml = ["dep:axum-serde", "axum-serde/yaml"]
 xml = ["dep:axum-serde", "axum-serde/xml"]
 toml = ["dep:axum-serde", "axum-serde/toml"]
+sonic = ["dep:axum-serde", "axum-serde/sonic"]
 typed_multipart = ["dep:axum_typed_multipart"]
 into_json = ["json", "dep:serde", "garde?/serde"]
 422 = []
@@ -92,7 +92,7 @@ extra_query = ["extra", "axum-extra/query"]
 extra_form = ["extra", "axum-extra/form"]
 extra_protobuf = ["extra", "axum-extra/protobuf"]
 all_extra_types = ["extra", "typed_header", "extra_typed_path", "extra_query", "extra_form", "extra_protobuf"]
-all_types = ["json", "form", "query", "msgpack", "yaml", "xml", "toml", "all_extra_types", "typed_multipart"]
+all_types = ["json", "form", "query", "msgpack", "yaml", "xml", "toml", "sonic", "all_extra_types", "typed_multipart"]
 full_validator = ["validator", "all_types", "422", "into_json"]
 full_garde = ["garde", "all_types", "422", "into_json"]
 full_validify = ["validify", "all_types", "422", "into_json"]

@@ -29,6 +29,7 @@ pub mod toml;
 pub mod typed_multipart;
 #[cfg(feature = "xml")]
 pub mod xml;
+mod sonic;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};

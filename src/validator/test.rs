@@ -6,9 +6,8 @@ use axum::extract::{FromRef, Path, Query};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
-use hyper::Method;
 use once_cell::sync::Lazy;
-use reqwest::Url;
+use reqwest::{Method, Url};
 use serde::{Deserialize, Serialize};
 use std::any::type_name;
 use std::net::SocketAddr;
@@ -20,8 +19,8 @@ use validator::{Validate, ValidateArgs, ValidationError};
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
 #[cfg_attr(
-    feature = "typed_multipart",
-    derive(axum_typed_multipart::TryFromMultipart)
+feature = "typed_multipart",
+derive(axum_typed_multipart::TryFromMultipart)
 )]
 pub struct Parameters {
     #[validate(range(min = 5, max = 10))]
@@ -35,8 +34,8 @@ pub struct Parameters {
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
 #[cfg_attr(
-    feature = "typed_multipart",
-    derive(axum_typed_multipart::TryFromMultipart)
+feature = "typed_multipart",
+derive(axum_typed_multipart::TryFromMultipart)
 )]
 pub struct ParametersEx {
     #[validate(custom(function = "validate_v0", arg = "&'v_a RangeInclusive<i32>"))]
@@ -156,7 +155,7 @@ async fn test_main() -> anyhow::Result<()> {
         .route(route::JSON_EX, post(extract_json_ex));
 
     #[cfg(feature = "typed_header")]
-    let router = router
+        let router = router
         .route(
             typed_header::route::TYPED_HEADER,
             post(typed_header::extract_typed_header),
@@ -167,7 +166,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "typed_multipart")]
-    let router = router
+        let router = router
         .route(
             typed_multipart::route::TYPED_MULTIPART,
             post(typed_multipart::extract_typed_multipart),
@@ -186,7 +185,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra")]
-    let router = router
+        let router = router
         .route(extra::route::CACHED, post(extra::extract_cached))
         .route(extra::route::CACHED_EX, post(extra::extract_cached_ex))
         .route(
@@ -207,7 +206,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_typed_path")]
-    let router = router
+        let router = router
         .route(
             extra_typed_path::route::EXTRA_TYPED_PATH,
             get(extra_typed_path::extract_extra_typed_path),
@@ -218,7 +217,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_query")]
-    let router = router
+        let router = router
         .route(
             extra_query::route::EXTRA_QUERY,
             post(extra_query::extract_extra_query),
@@ -229,7 +228,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_form")]
-    let router = router
+        let router = router
         .route(
             extra_form::route::EXTRA_FORM,
             post(extra_form::extract_extra_form),
@@ -240,7 +239,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_protobuf")]
-    let router = router
+        let router = router
         .route(
             extra_protobuf::route::EXTRA_PROTOBUF,
             post(extra_protobuf::extract_extra_protobuf),
@@ -251,12 +250,12 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "yaml")]
-    let router = router
+        let router = router
         .route(yaml::route::YAML, post(yaml::extract_yaml))
         .route(yaml::route::YAML_EX, post(yaml::extract_yaml_ex));
 
     #[cfg(feature = "msgpack")]
-    let router = router
+        let router = router
         .route(msgpack::route::MSGPACK, post(msgpack::extract_msgpack))
         .route(
             msgpack::route::MSGPACK_EX,
@@ -272,14 +271,19 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "xml")]
-    let router = router
+        let router = router
         .route(xml::route::XML, post(xml::extract_xml))
         .route(xml::route::XML_EX, post(xml::extract_xml_ex));
 
     #[cfg(feature = "toml")]
-    let router = router
+        let router = router
         .route(toml::route::TOML, post(toml::extract_toml))
         .route(toml::route::TOML_EX, post(toml::extract_toml_ex));
+
+    #[cfg(feature = "sonic")]
+        let router = router
+        .route(sonic::route::SONIC, post(sonic::extract_sonic))
+        .route(sonic::route::SONIC_EX, post(sonic::extract_sonic_ex));
 
     let router = router.with_state(state);
 
@@ -524,7 +528,7 @@ async fn test_main() -> anyhow::Result<()> {
                 extra_typed_path_type_name,
                 invalid_extra_typed_path_response,
             )
-            .await;
+                .await;
             println!("All {} tests passed.", extra_typed_path_type_name);
             Ok(())
         }
@@ -613,6 +617,17 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         test_executor
             .execute::<Toml<Parameters>>(Method::POST, toml::route::TOML_EX)
+            .await?;
+    }
+
+    #[cfg(feature = "sonic")]
+    {
+        use axum_serde::Sonic;
+        test_executor
+            .execute::<Sonic<Parameters>>(Method::POST, sonic::route::SONIC)
+            .await?;
+        test_executor
+            .execute::<Sonic<Parameters>>(Method::POST, sonic::route::SONIC_EX)
             .await?;
     }
 
@@ -776,7 +791,6 @@ fn validate_again_ex<'v, V: ValidateArgs<'v>>(
 
 #[cfg(feature = "typed_header")]
 mod typed_header {
-
     pub(crate) mod route {
         pub const TYPED_HEADER: &str = "/typed_header";
         pub const TYPED_HEADER_EX: &str = "/typed_header_ex";
@@ -812,9 +826,9 @@ mod typed_header {
         }
 
         fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
-        where
-            Self: Sized,
-            I: Iterator<Item = &'i HeaderValue>,
+            where
+                Self: Sized,
+                I: Iterator<Item=&'i HeaderValue>,
         {
             let value = values.next().ok_or_else(Error::invalid)?;
             let src = std::str::from_utf8(value.as_bytes()).map_err(|_| Error::invalid())?;
@@ -845,9 +859,9 @@ mod typed_header {
         }
 
         fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
-        where
-            Self: Sized,
-            I: Iterator<Item = &'i HeaderValue>,
+            where
+                Self: Sized,
+                I: Iterator<Item=&'i HeaderValue>,
         {
             let value = values.next().ok_or_else(Error::invalid)?;
             let src = std::str::from_utf8(value.as_bytes()).map_err(|_| Error::invalid())?;
@@ -965,6 +979,7 @@ mod extra {
         pub const WITH_REJECTION_VALID: &str = "/with_rejection_valid";
         pub const WITH_REJECTION_VALID_EX: &str = "/with_rejection_valid_ex";
     }
+
     pub const PARAMETERS_HEADER: &str = "parameters-header";
     pub const CACHED_REJECTION_STATUS: StatusCode = StatusCode::FORBIDDEN;
 
@@ -992,8 +1007,8 @@ mod extra {
     //  1.3. Implement your extractor (`FromRequestParts` or `FromRequest`)
     #[axum::async_trait]
     impl<S> FromRequestParts<S> for Parameters
-    where
-        S: Send + Sync,
+        where
+            S: Send + Sync,
     {
         type Rejection = ParametersRejection;
 
@@ -1008,8 +1023,8 @@ mod extra {
 
     #[axum::async_trait]
     impl<S> FromRequestParts<S> for ParametersEx
-    where
-        S: Send + Sync,
+        where
+            S: Send + Sync,
     {
         type Rejection = ParametersRejection;
 
@@ -1441,6 +1456,35 @@ mod toml {
     pub async fn extract_toml_ex(
         ValidEx(Toml(parameters), args): ValidEx<
             Toml<ParametersEx>,
+            ParametersExValidationArguments,
+        >,
+    ) -> StatusCode {
+        validate_again_ex(parameters, args.get())
+    }
+}
+
+#[cfg(feature = "sonic")]
+mod sonic {
+    use super::{
+        validate_again, validate_again_ex, Parameters, ParametersEx,
+        ParametersExValidationArguments,
+    };
+    use crate::{Arguments, Valid, ValidEx};
+    use axum::http::StatusCode;
+    use axum_serde::Sonic;
+
+    pub mod route {
+        pub const SONIC: &str = "/sonic";
+        pub const SONIC_EX: &str = "/sonic_ex";
+    }
+
+    pub async fn extract_sonic(Valid(Sonic(parameters)): Valid<Sonic<Parameters>>) -> StatusCode {
+        validate_again(parameters)
+    }
+
+    pub async fn extract_sonic_ex(
+        ValidEx(Sonic(parameters), args): ValidEx<
+            Sonic<ParametersEx>,
             ParametersExValidationArguments,
         >,
     ) -> StatusCode {

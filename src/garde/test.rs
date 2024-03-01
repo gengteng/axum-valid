@@ -7,9 +7,8 @@ use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
 use garde::Validate;
-use hyper::Method;
 use once_cell::sync::Lazy;
-use reqwest::Url;
+use reqwest::{Method, Url};
 use serde::{Deserialize, Serialize};
 use std::any::type_name;
 use std::net::SocketAddr;
@@ -19,8 +18,8 @@ use tokio::net::TcpListener;
 #[derive(Clone, Deserialize, Serialize, Validate, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(prost::Message))]
 #[cfg_attr(
-    feature = "typed_multipart",
-    derive(axum_typed_multipart::TryFromMultipart)
+feature = "typed_multipart",
+derive(axum_typed_multipart::TryFromMultipart)
 )]
 pub struct ParametersGarde {
     #[garde(range(min = 5, max = 10))]
@@ -77,13 +76,13 @@ async fn test_main() -> anyhow::Result<()> {
         .route(route::JSON, post(extract_json));
 
     #[cfg(feature = "typed_header")]
-    let router = router.route(
+        let router = router.route(
         typed_header::route::TYPED_HEADER,
         post(typed_header::extract_typed_header),
     );
 
     #[cfg(feature = "typed_multipart")]
-    let router = router
+        let router = router
         .route(
             typed_multipart::route::TYPED_MULTIPART,
             post(typed_multipart::extract_typed_multipart),
@@ -94,7 +93,7 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra")]
-    let router = router
+        let router = router
         .route(extra::route::CACHED, post(extra::extract_cached))
         .route(
             extra::route::WITH_REJECTION,
@@ -106,34 +105,34 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "extra_typed_path")]
-    let router = router.route(
+        let router = router.route(
         extra_typed_path::route::EXTRA_TYPED_PATH,
         get(extra_typed_path::extract_extra_typed_path),
     );
 
     #[cfg(feature = "extra_query")]
-    let router = router.route(
+        let router = router.route(
         extra_query::route::EXTRA_QUERY,
         post(extra_query::extract_extra_query),
     );
 
     #[cfg(feature = "extra_form")]
-    let router = router.route(
+        let router = router.route(
         extra_form::route::EXTRA_FORM,
         post(extra_form::extract_extra_form),
     );
 
     #[cfg(feature = "extra_protobuf")]
-    let router = router.route(
+        let router = router.route(
         extra_protobuf::route::EXTRA_PROTOBUF,
         post(extra_protobuf::extract_extra_protobuf),
     );
 
     #[cfg(feature = "yaml")]
-    let router = router.route(yaml::route::YAML, post(yaml::extract_yaml));
+        let router = router.route(yaml::route::YAML, post(yaml::extract_yaml));
 
     #[cfg(feature = "msgpack")]
-    let router = router
+        let router = router
         .route(msgpack::route::MSGPACK, post(msgpack::extract_msgpack))
         .route(
             msgpack::route::MSGPACK_RAW,
@@ -141,10 +140,13 @@ async fn test_main() -> anyhow::Result<()> {
         );
 
     #[cfg(feature = "xml")]
-    let router = router.route(xml::route::XML, post(xml::extract_xml));
+        let router = router.route(xml::route::XML, post(xml::extract_xml));
 
     #[cfg(feature = "toml")]
-    let router = router.route(toml::route::TOML, post(toml::extract_toml));
+        let router = router.route(toml::route::TOML, post(toml::extract_toml));
+
+    #[cfg(feature = "sonic")]
+        let router = router.route(sonic::route::SONIC, post(sonic::extract_sonic));
 
     let router = router.with_state(MyState::default());
 
@@ -340,7 +342,7 @@ async fn test_main() -> anyhow::Result<()> {
                 extra_typed_path_type_name,
                 invalid_extra_typed_path_response,
             )
-            .await;
+                .await;
             println!("All {} tests passed.", extra_typed_path_type_name);
             Ok(())
         }
@@ -407,6 +409,14 @@ async fn test_main() -> anyhow::Result<()> {
         use axum_serde::Toml;
         test_executor
             .execute::<Toml<ParametersGarde>>(Method::POST, toml::route::TOML)
+            .await?;
+    }
+
+    #[cfg(feature = "sonic")]
+    {
+        use axum_serde::Sonic;
+        test_executor
+            .execute::<Sonic<ParametersGarde>>(Method::POST, sonic::route::SONIC)
             .await?;
     }
 
@@ -528,7 +538,6 @@ fn validate_again<V: Validate>(validate: V, context: V::Context) -> StatusCode {
 
 #[cfg(feature = "typed_header")]
 mod typed_header {
-
     pub(crate) mod route {
         pub const TYPED_HEADER: &str = "/typed_header";
     }
@@ -553,9 +562,9 @@ mod typed_header {
         }
 
         fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
-        where
-            Self: Sized,
-            I: Iterator<Item = &'i HeaderValue>,
+            where
+                Self: Sized,
+                I: Iterator<Item=&'i HeaderValue>,
         {
             let value = values.next().ok_or_else(Error::invalid)?;
             let src = std::str::from_utf8(value.as_bytes()).map_err(|_| Error::invalid())?;
@@ -646,6 +655,7 @@ mod extra {
         pub const WITH_REJECTION: &str = "/with_rejection";
         pub const WITH_REJECTION_GARDE: &str = "/with_rejection_garde";
     }
+
     pub const PARAMETERS_HEADER: &str = "parameters-header";
     pub const CACHED_REJECTION_STATUS: StatusCode = StatusCode::FORBIDDEN;
 
@@ -673,8 +683,8 @@ mod extra {
     //  1.3. Implement your extractor (`FromRequestParts` or `FromRequest`)
     #[axum::async_trait]
     impl<S> FromRequestParts<S> for ParametersGarde
-    where
-        S: Send + Sync,
+        where
+            S: Send + Sync,
     {
         type Rejection = ParametersRejection;
 
@@ -903,6 +913,7 @@ mod msgpack {
     ) -> StatusCode {
         validate_again(parameters, ())
     }
+
     pub async fn extract_msgpack_raw(
         Garde(MsgPackRaw(parameters)): Garde<MsgPackRaw<ParametersGarde>>,
     ) -> StatusCode {
@@ -938,6 +949,22 @@ mod toml {
     }
 
     pub async fn extract_toml(Garde(Toml(parameters)): Garde<Toml<ParametersGarde>>) -> StatusCode {
+        validate_again(parameters, ())
+    }
+}
+
+#[cfg(feature = "sonic")]
+mod sonic {
+    use super::{validate_again, ParametersGarde};
+    use crate::Garde;
+    use axum::http::StatusCode;
+    use axum_serde::Sonic;
+
+    pub mod route {
+        pub const SONIC: &str = "/sonic";
+    }
+
+    pub async fn extract_sonic(Garde(Sonic(parameters)): Garde<Sonic<ParametersGarde>>) -> StatusCode {
         validate_again(parameters, ())
     }
 }
