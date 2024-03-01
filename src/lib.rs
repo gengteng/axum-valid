@@ -23,7 +23,8 @@ pub mod validify;
 #[cfg(feature = "yaml")]
 pub mod yaml;
 
-mod sonic;
+#[cfg(feature = "sonic")]
+pub mod sonic;
 #[cfg(feature = "toml")]
 pub mod toml;
 #[cfg(feature = "typed_multipart")]
