@@ -8,6 +8,29 @@
 
 ### Fixed
 
+## axum-valid 0.16.0 (2024-03-01)
+
+### Added
+
+* Add support for `Sonic<T>` from axum-serde.
+
+### Changed
+
+* Upgrade axum-serde to 0.3.0.
+* Remove unnecessary development dependencies.
+
+### Fixed
+
+## axum-valid 0.15.1 (2024-02-28)
+
+### Added
+
+### Changed
+
+### Fixed
+
+* Fix the compilation error on docs.rs.
+
 ## axum-valid 0.15.0 (2024-02-01)
 
 ### Added
@@ -26,7 +49,8 @@
 
 * Add support for aide through the 'aide' feature.
 * Upgrade garde to 0.17.0.
-* Upgrade validify to 1.3.0. (This update also resulted in some refactoring. Please refer to the `README.md` for the latest examples.)
+* Upgrade validify to 1.3.0. (This update also resulted in some refactoring. Please refer to the `README.md` for the
+  latest examples.)
 
 ### Fixed
 
@@ -70,7 +94,8 @@
 
 ### Changed
 
-* When enabling features starting with `extra_` like `extra_query`, the `extra` feature will now be automatically enabled. Previously, users had to manually enable both `extra` and `extra_*`.
+* When enabling features starting with `extra_` like `extra_query`, the `extra` feature will now be automatically
+  enabled. Previously, users had to manually enable both `extra` and `extra_*`.
 
 ### Fixed
 
@@ -135,10 +160,10 @@
 ### Added
 
 * Support for more extractors
-  * `TypedHeader`
-  * `MsgPack` and `MsgPackRaw` from `axum-msgpack`
-  * `Yaml` from `axum-yaml`
-  * `Cached`, `WithRejection`, `Query`, `Form` and `Protobuf` from `axum-extra`
+    * `TypedHeader`
+    * `MsgPack` and `MsgPackRaw` from `axum-msgpack`
+    * `Yaml` from `axum-yaml`
+    * `Cached`, `WithRejection`, `Query`, `Form` and `Protobuf` from `axum-extra`
 * Tests and feature flags
 
 ### Changed
@@ -150,8 +175,9 @@
 ### Added
 
 * Feature flags
-  * `422`: Use 422 Unprocessable Entity instead of 400 Bad Request as the status code when validation fails.
-  * `into_json`: When this feature is enabled, validation errors will be serialized into JSON format and returned as the HTTP body.
+    * `422`: Use 422 Unprocessable Entity instead of 400 Bad Request as the status code when validation fails.
+    * `into_json`: When this feature is enabled, validation errors will be serialized into JSON format and returned as
+      the HTTP body.
 
 ### Changed
 
