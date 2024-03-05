@@ -114,7 +114,7 @@ impl<T: TypedPath + Display> TypedPath for Valid<T> {
 }
 
 #[cfg(feature = "validator")]
-impl<T: TypedPath + Display, A> TypedPath for ValidEx<T, A> {
+impl<T: TypedPath + Display> TypedPath for ValidEx<T> {
     const PATH: &'static str = T::PATH;
 }
 

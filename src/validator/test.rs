@@ -1,8 +1,8 @@
 #![cfg(feature = "validator")]
 
 use crate::tests::{ValidTest, ValidTestParameter};
-use crate::{Arguments, HasValidate, HasValidateArgs, Valid, ValidEx, VALIDATION_ERROR_STATUS};
-use axum::extract::{FromRef, Path, Query};
+use crate::{HasValidate, HasValidateArgs, Valid, ValidEx, VALIDATION_ERROR_STATUS};
+use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Form, Json, Router};
@@ -37,23 +37,28 @@ pub struct Parameters {
     feature = "typed_multipart",
     derive(axum_typed_multipart::TryFromMultipart)
 )]
+#[validate(context = ParametersExValidationArguments)]
 pub struct ParametersEx {
-    #[validate(custom(function = "validate_v0", arg = "&'v_a RangeInclusive<i32>"))]
+    #[validate(custom(function = "validate_v0", use_context))]
     #[cfg_attr(feature = "extra_protobuf", prost(int32, tag = "1"))]
     v0: i32,
-    #[validate(custom(function = "validate_v1", arg = "&'v_a RangeInclusive<usize>"))]
+    #[validate(custom(function = "validate_v1", use_context))]
     #[cfg_attr(feature = "extra_protobuf", prost(string, tag = "2"))]
     v1: String,
 }
 
-fn validate_v0(v: i32, args: &RangeInclusive<i32>) -> Result<(), ValidationError> {
-    args.contains(&v)
+fn validate_v0(v: &i32, args: &ParametersExValidationArguments) -> Result<(), ValidationError> {
+    args.inner
+        .v0_range
+        .contains(v)
         .then_some(())
         .ok_or_else(|| ValidationError::new("v0 is out of range"))
 }
 
-fn validate_v1(v: &str, args: &RangeInclusive<usize>) -> Result<(), ValidationError> {
-    args.contains(&v.len())
+fn validate_v1(v: &str, args: &ParametersExValidationArguments) -> Result<(), ValidationError> {
+    args.inner
+        .v1_length_range
+        .contains(&v.len())
         .then_some(())
         .ok_or_else(|| ValidationError::new("v1 is invalid"))
 }
@@ -67,13 +72,6 @@ struct ParametersExValidationArgumentsInner {
 #[derive(Debug, Clone, Default)]
 pub struct ParametersExValidationArguments {
     inner: Arc<ParametersExValidationArgumentsInner>,
-}
-
-impl<'a> Arguments<'a> for ParametersExValidationArguments {
-    type T = ParametersEx;
-    fn get(&'a self) -> <ParametersEx as ValidateArgs<'a>>::Args {
-        (&self.inner.v0_range, &self.inner.v1_length_range)
-    }
 }
 
 impl Default for ParametersExValidationArgumentsInner {
@@ -146,12 +144,18 @@ async fn test_main() -> anyhow::Result<()> {
 
     let router = Router::new()
         .route(route::PATH, get(extract_path))
+        .route(route::PATH_EX, get(extract_path_ex));
+    #[cfg(feature = "query")]
+    let router = router
         .route(route::QUERY, get(extract_query))
+        .route(route::QUERY_EX, get(extract_query_ex));
+    #[cfg(feature = "form")]
+    let router = router
         .route(route::FORM, post(extract_form))
+        .route(route::FORM_EX, post(extract_form_ex));
+    #[cfg(feature = "json")]
+    let router = router
         .route(route::JSON, post(extract_json))
-        .route(route::PATH_EX, get(extract_path_ex))
-        .route(route::QUERY_EX, get(extract_query_ex))
-        .route(route::FORM_EX, post(extract_form_ex))
         .route(route::JSON_EX, post(extract_json_ex));
 
     #[cfg(feature = "typed_header")]
@@ -355,35 +359,44 @@ async fn test_main() -> anyhow::Result<()> {
     test_extra_path(&test_executor, "path", &server_url).await?;
     test_extra_path(&test_executor, "path_ex", &server_url).await?;
 
-    // Valid
-    test_executor
-        .execute::<Query<Parameters>>(Method::GET, route::QUERY)
-        .await?;
+    #[cfg(feature = "query")]
+    {
+        // Valid
+        test_executor
+            .execute::<Query<Parameters>>(Method::GET, route::QUERY)
+            .await?;
 
-    // ValidEx
-    test_executor
-        .execute::<Query<Parameters>>(Method::GET, route::QUERY_EX)
-        .await?;
+        // ValidEx
+        test_executor
+            .execute::<Query<Parameters>>(Method::GET, route::QUERY_EX)
+            .await?;
+    }
 
-    // Valid
-    test_executor
-        .execute::<Form<Parameters>>(Method::POST, route::FORM)
-        .await?;
+    #[cfg(feature = "form")]
+    {
+        // Valid
+        test_executor
+            .execute::<Form<Parameters>>(Method::POST, route::FORM)
+            .await?;
 
-    // ValidEx
-    test_executor
-        .execute::<Form<Parameters>>(Method::POST, route::FORM_EX)
-        .await?;
+        // ValidEx
+        test_executor
+            .execute::<Form<Parameters>>(Method::POST, route::FORM_EX)
+            .await?;
+    }
 
-    // Valid
-    test_executor
-        .execute::<Json<Parameters>>(Method::POST, route::JSON)
-        .await?;
+    #[cfg(feature = "json")]
+    {
+        // Valid
+        test_executor
+            .execute::<Json<Parameters>>(Method::POST, route::JSON)
+            .await?;
 
-    // ValidEx
-    test_executor
-        .execute::<Json<Parameters>>(Method::POST, route::JSON_EX)
-        .await?;
+        // ValidEx
+        test_executor
+            .execute::<Json<Parameters>>(Method::POST, route::JSON_EX)
+            .await?;
+    }
 
     #[cfg(feature = "typed_header")]
     {
@@ -729,9 +742,10 @@ async fn extract_path(Valid(Path(parameters)): Valid<Path<Parameters>>) -> Statu
 }
 
 async fn extract_path_ex(
-    ValidEx(Path(parameters), args): ValidEx<Path<ParametersEx>, ParametersExValidationArguments>,
+    ValidEx(Path(parameters)): ValidEx<Path<ParametersEx>>,
+    State(arguments): State<ParametersExValidationArguments>,
 ) -> StatusCode {
-    validate_again_ex(parameters, args.get())
+    validate_again_ex(parameters, &arguments)
 }
 
 async fn extract_query(Valid(Query(parameters)): Valid<Query<Parameters>>) -> StatusCode {
@@ -739,9 +753,10 @@ async fn extract_query(Valid(Query(parameters)): Valid<Query<Parameters>>) -> St
 }
 
 async fn extract_query_ex(
-    ValidEx(Query(parameters), args): ValidEx<Query<ParametersEx>, ParametersExValidationArguments>,
+    ValidEx(Query(parameters)): ValidEx<Query<ParametersEx>>,
+    State(arguments): State<ParametersExValidationArguments>,
 ) -> StatusCode {
-    validate_again_ex(parameters, args.get())
+    validate_again_ex(parameters, &arguments)
 }
 
 async fn extract_form(Valid(Form(parameters)): Valid<Form<Parameters>>) -> StatusCode {
@@ -749,9 +764,10 @@ async fn extract_form(Valid(Form(parameters)): Valid<Form<Parameters>>) -> Statu
 }
 
 async fn extract_form_ex(
-    ValidEx(Form(parameters), args): ValidEx<Form<ParametersEx>, ParametersExValidationArguments>,
+    State(arguments): State<ParametersExValidationArguments>,
+    ValidEx(Form(parameters)): ValidEx<Form<ParametersEx>>,
 ) -> StatusCode {
-    validate_again_ex(parameters, args.get())
+    validate_again_ex(parameters, &arguments)
 }
 
 async fn extract_json(Valid(Json(parameters)): Valid<Json<Parameters>>) -> StatusCode {
@@ -759,9 +775,10 @@ async fn extract_json(Valid(Json(parameters)): Valid<Json<Parameters>>) -> Statu
 }
 
 async fn extract_json_ex(
-    ValidEx(Json(parameters), args): ValidEx<Json<ParametersEx>, ParametersExValidationArguments>,
+    State(arguments): State<ParametersExValidationArguments>,
+    ValidEx(Json(parameters)): ValidEx<Json<ParametersEx>>,
 ) -> StatusCode {
-    validate_again_ex(parameters, args.get())
+    validate_again_ex(parameters, &arguments)
 }
 
 fn validate_again<V: Validate>(validate: V) -> StatusCode {
@@ -783,7 +800,7 @@ fn validate_again_ex<'v, V: ValidateArgs<'v>>(
     // it should have returned `400 BAD REQUEST` if the `parameters` were invalid,
     // Let's validate them again to check if the `ValidEx` extractor works well.
     // If it works properly, this function will never return `500 INTERNAL SERVER ERROR`
-    match validate.validate_args(args) {
+    match validate.validate_with_args(args) {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
@@ -798,7 +815,8 @@ mod typed_header {
 
     use super::{validate_again, Parameters};
     use super::{validate_again_ex, ParametersEx, ParametersExValidationArguments};
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_extra::headers::{Error, Header, HeaderName, HeaderValue};
     use axum_extra::typed_header::TypedHeader;
@@ -812,12 +830,10 @@ mod typed_header {
     }
 
     pub(super) async fn extract_typed_header_ex(
-        ValidEx(TypedHeader(parameters), args): ValidEx<
-            TypedHeader<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(TypedHeader(parameters)): ValidEx<TypedHeader<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 
     impl Header for Parameters {
@@ -906,7 +922,8 @@ mod typed_multipart {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_typed_multipart::{BaseMultipart, TypedMultipart, TypedMultipartError};
 
@@ -932,12 +949,10 @@ mod typed_multipart {
     }
 
     pub(super) async fn extract_typed_multipart_ex(
-        ValidEx(TypedMultipart(parameters), args): ValidEx<
-            TypedMultipart<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(TypedMultipart(parameters)): ValidEx<TypedMultipart<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 
     pub(super) async fn extract_base_multipart(
@@ -947,12 +962,12 @@ mod typed_multipart {
     }
 
     pub(super) async fn extract_base_multipart_ex(
-        ValidEx(BaseMultipart { data, .. }, args): ValidEx<
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(BaseMultipart { data, .. }): ValidEx<
             BaseMultipart<ParametersEx, TypedMultipartError>,
-            ParametersExValidationArguments,
         >,
     ) -> StatusCode {
-        validate_again_ex(data, args.get())
+        validate_again_ex(data, &arguments)
     }
 }
 
@@ -963,8 +978,8 @@ mod extra {
         ParametersExValidationArguments,
     };
     use crate::tests::{Rejection, ValidTest, ValidTestParameter};
-    use crate::{Arguments, Valid, ValidEx, ValidRejection};
-    use axum::extract::FromRequestParts;
+    use crate::{Valid, ValidEx, ValidRejection};
+    use axum::extract::{FromRequestParts, State};
     use axum::http::request::Parts;
     use axum::http::StatusCode;
     use axum::response::{IntoResponse, Response};
@@ -1094,12 +1109,10 @@ mod extra {
     }
 
     pub async fn extract_cached_ex(
-        ValidEx(Cached(parameters), args): ValidEx<
-            Cached<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Cached(parameters)): ValidEx<Cached<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 
     pub async fn extract_with_rejection(
@@ -1111,12 +1124,12 @@ mod extra {
     }
 
     pub async fn extract_with_rejection_ex(
-        ValidEx(WithRejection(parameters, _), args): ValidEx<
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(WithRejection(parameters, _)): ValidEx<
             WithRejection<ParametersEx, ValidWithRejectionRejection>,
-            ParametersExValidationArguments,
         >,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 
     pub struct WithRejectionValidRejection<E> {
@@ -1147,24 +1160,26 @@ mod extra {
     }
 
     pub async fn extract_with_rejection_valid_ex(
-        WithRejection(ValidEx(parameters, args), _): WithRejection<
-            ValidEx<ParametersEx, ParametersExValidationArguments>,
+        State(arguments): State<ParametersExValidationArguments>,
+        WithRejection(ValidEx(parameters), _): WithRejection<
+            ValidEx<ParametersEx>,
             WithRejectionValidRejection<ParametersRejection>,
         >,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }
 
 #[cfg(feature = "extra_typed_path")]
 mod extra_typed_path {
     use super::{validate_again, validate_again_ex};
-    use crate::{Arguments, HasValidate, HasValidateArgs, Valid, ValidEx};
+    use crate::{HasValidate, HasValidateArgs, Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_extra::routing::TypedPath;
     use serde::Deserialize;
     use std::ops::RangeInclusive;
-    use validator::{Validate, ValidateArgs};
+    use validator::{Validate, ValidationError};
 
     pub mod route {
         pub const EXTRA_TYPED_PATH: &str = "/extra_typed_path/:v0/:v1";
@@ -1192,12 +1207,33 @@ mod extra_typed_path {
         validate_again(param)
     }
 
+    fn validate_v0(
+        v: &i32,
+        args: &TypedPathParamExValidationArguments,
+    ) -> Result<(), ValidationError> {
+        args.v0_range
+            .contains(v)
+            .then_some(())
+            .ok_or_else(|| ValidationError::new("v0 is out of range"))
+    }
+
+    fn validate_v1(
+        v: &str,
+        args: &TypedPathParamExValidationArguments,
+    ) -> Result<(), ValidationError> {
+        args.v1_length_range
+            .contains(&v.len())
+            .then_some(())
+            .ok_or_else(|| ValidationError::new("v1 is invalid"))
+    }
+
     #[derive(Validate, TypedPath, Deserialize)]
     #[typed_path("/extra_typed_path_ex/:v0/:v1")]
+    #[validate(context = TypedPathParamExValidationArguments)]
     pub struct TypedPathParamEx {
-        #[validate(custom(function = "super::validate_v0", arg = "&'v_a RangeInclusive<i32>"))]
+        #[validate(custom(function = "validate_v0", use_context))]
         v0: i32,
-        #[validate(custom(function = "super::validate_v1", arg = "&'v_a RangeInclusive<usize>"))]
+        #[validate(custom(function = "validate_v1", use_context))]
         v1: String,
     }
 
@@ -1224,17 +1260,11 @@ mod extra_typed_path {
         }
     }
 
-    impl<'a> Arguments<'a> for TypedPathParamExValidationArguments {
-        type T = TypedPathParamEx;
-        fn get(&'a self) -> <TypedPathParamEx as ValidateArgs<'a>>::Args {
-            (&self.v0_range, &self.v1_length_range)
-        }
-    }
-
     pub async fn extract_extra_typed_path_ex(
-        ValidEx(param, args): ValidEx<TypedPathParamEx, TypedPathParamExValidationArguments>,
+        State(arguments): State<TypedPathParamExValidationArguments>,
+        ValidEx(param): ValidEx<TypedPathParamEx>,
     ) -> StatusCode {
-        validate_again_ex(param, args.get())
+        validate_again_ex(param, &arguments)
     }
 }
 
@@ -1244,7 +1274,8 @@ mod extra_query {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_extra::extract::Query;
 
@@ -1260,12 +1291,10 @@ mod extra_query {
     }
 
     pub async fn extract_extra_query_ex(
-        ValidEx(Query(parameters), args): ValidEx<
-            Query<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Query(parameters)): ValidEx<Query<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }
 
@@ -1275,7 +1304,8 @@ mod extra_form {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_extra::extract::Form;
 
@@ -1291,12 +1321,10 @@ mod extra_form {
     }
 
     pub async fn extract_extra_form_ex(
-        ValidEx(Form(parameters), args): ValidEx<
-            Form<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Form(parameters)): ValidEx<Form<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }
 
@@ -1306,7 +1334,8 @@ mod extra_protobuf {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_extra::protobuf::Protobuf;
 
@@ -1322,12 +1351,10 @@ mod extra_protobuf {
     }
 
     pub async fn extract_extra_protobuf_ex(
-        ValidEx(Protobuf(parameters), args): ValidEx<
-            Protobuf<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Protobuf(parameters)): ValidEx<Protobuf<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }
 
@@ -1337,7 +1364,8 @@ mod yaml {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_serde::Yaml;
 
@@ -1351,12 +1379,10 @@ mod yaml {
     }
 
     pub async fn extract_yaml_ex(
-        ValidEx(Yaml(parameters), args): ValidEx<
-            Yaml<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Yaml(parameters)): ValidEx<Yaml<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }
 
@@ -1366,7 +1392,8 @@ mod msgpack {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_serde::{MsgPack, MsgPackRaw};
 
@@ -1384,12 +1411,10 @@ mod msgpack {
     }
 
     pub async fn extract_msgpack_ex(
-        ValidEx(MsgPack(parameters), args): ValidEx<
-            MsgPack<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(MsgPack(parameters)): ValidEx<MsgPack<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 
     pub async fn extract_msgpack_raw(
@@ -1399,12 +1424,10 @@ mod msgpack {
     }
 
     pub async fn extract_msgpack_raw_ex(
-        ValidEx(MsgPackRaw(parameters), args): ValidEx<
-            MsgPackRaw<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(MsgPackRaw(parameters)): ValidEx<MsgPackRaw<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }
 
@@ -1414,7 +1437,8 @@ mod xml {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_serde::Xml;
 
@@ -1428,9 +1452,10 @@ mod xml {
     }
 
     pub async fn extract_xml_ex(
-        ValidEx(Xml(parameters), args): ValidEx<Xml<ParametersEx>, ParametersExValidationArguments>,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Xml(parameters)): ValidEx<Xml<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }
 
@@ -1440,7 +1465,8 @@ mod toml {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_serde::Toml;
 
@@ -1454,12 +1480,10 @@ mod toml {
     }
 
     pub async fn extract_toml_ex(
-        ValidEx(Toml(parameters), args): ValidEx<
-            Toml<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Toml(parameters)): ValidEx<Toml<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }
 
@@ -1469,7 +1493,8 @@ mod sonic {
         validate_again, validate_again_ex, Parameters, ParametersEx,
         ParametersExValidationArguments,
     };
-    use crate::{Arguments, Valid, ValidEx};
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
     use axum::http::StatusCode;
     use axum_serde::Sonic;
 
@@ -1483,11 +1508,9 @@ mod sonic {
     }
 
     pub async fn extract_sonic_ex(
-        ValidEx(Sonic(parameters), args): ValidEx<
-            Sonic<ParametersEx>,
-            ParametersExValidationArguments,
-        >,
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Sonic(parameters)): ValidEx<Sonic<ParametersEx>>,
     ) -> StatusCode {
-        validate_again_ex(parameters, args.get())
+        validate_again_ex(parameters, &arguments)
     }
 }

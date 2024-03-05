@@ -56,7 +56,7 @@ pub trait HasValidate {
 }
 
 #[cfg(feature = "validator")]
-pub use crate::validator::{Arguments, HasValidateArgs, Valid, ValidEx, ValidRejection};
+pub use crate::validator::{HasValidateArgs, Valid, ValidEx, ValidRejection};
 
 #[cfg(feature = "garde")]
 pub use crate::garde::{Garde, GardeRejection};

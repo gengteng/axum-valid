@@ -81,9 +81,9 @@ where
 /// Although current module documentation predominantly showcases `Valid` examples, the usage of `ValidEx` is analogous.
 ///
 #[derive(Debug, Clone, Copy, Default)]
-pub struct ValidEx<E, A>(pub E, pub A);
+pub struct ValidEx<E>(pub E);
 
-impl<E, A> Deref for ValidEx<E, A> {
+impl<E> Deref for ValidEx<E> {
     type Target = E;
 
     fn deref(&self) -> &Self::Target {
@@ -91,19 +91,19 @@ impl<E, A> Deref for ValidEx<E, A> {
     }
 }
 
-impl<E, A> DerefMut for ValidEx<E, A> {
+impl<E> DerefMut for ValidEx<E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<T: Display, A> Display for ValidEx<T, A> {
+impl<T: Display> Display for ValidEx<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl<E, A> ValidEx<E, A> {
+impl<E> ValidEx<E> {
     /// Consumes the `ValidEx` and returns the validated data within.
     ///
     /// This returns the `E` type which represents the data that has been
@@ -111,45 +111,16 @@ impl<E, A> ValidEx<E, A> {
     pub fn into_inner(self) -> E {
         self.0
     }
-
-    /// Returns a reference to the validation arguments.
-    ///
-    /// This provides access to the `A` type which contains the arguments used
-    /// to validate the data. These arguments were passed to the validation
-    /// function.
-    pub fn arguments<'a>(&'a self) -> <<A as Arguments<'a>>::T as ValidateArgs<'a>>::Args
-    where
-        A: Arguments<'a>,
-    {
-        self.1.get()
-    }
 }
 
 #[cfg(feature = "aide")]
-impl<T, A> aide::OperationInput for ValidEx<T, A>
+impl<T> aide::OperationInput for ValidEx<T>
 where
     T: aide::OperationInput,
 {
     fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
         T::operation_input(ctx, operation);
     }
-}
-
-/// `Arguments` provides the validation arguments for the data type `T`.
-///
-/// This trait has an associated type `T` which represents the data type to
-/// validate. `T` must implement the `ValidateArgs` trait which defines the
-/// validation logic.
-///
-/// It's important to mention that types implementing `Arguments` should be a part of the router's state
-/// (either through implementing `FromRef<StateType>` or by directly becoming the state)
-/// to enable automatic arguments retrieval during validation.
-///
-pub trait Arguments<'a> {
-    /// The data type to validate using this arguments
-    type T: ValidateArgs<'a>;
-    /// This method gets the arguments required by `ValidateArgs::validate_args`
-    fn get(&'a self) -> <<Self as Arguments<'a>>::T as ValidateArgs<'a>>::Args;
 }
 
 /// `ValidRejection` is returned when the `Valid` or `ValidEx` extractor fails.
@@ -210,14 +181,12 @@ where
 }
 
 #[async_trait]
-impl<State, Extractor, Args> FromRequest<State> for ValidEx<Extractor, Args>
+impl<State, Extractor, Args> FromRequest<State> for ValidEx<Extractor>
 where
     State: Send + Sync,
-    Args: Send
-        + Sync
-        + FromRef<State>
-        + for<'a> Arguments<'a, T = <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
+    Args: Send + Sync + FromRef<State>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequest<State>,
+    for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v, Args = &'v Args>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequest<State>>::Rejection>;
 
@@ -227,20 +196,18 @@ where
             .await
             .map_err(ValidRejection::Inner)?;
 
-        inner.get_validate_args().validate_args(arguments.get())?;
-        Ok(ValidEx(inner, arguments))
+        inner.get_validate_args().validate_with_args(&arguments)?;
+        Ok(ValidEx(inner))
     }
 }
 
 #[async_trait]
-impl<State, Extractor, Args> FromRequestParts<State> for ValidEx<Extractor, Args>
+impl<State, Extractor, Args> FromRequestParts<State> for ValidEx<Extractor>
 where
     State: Send + Sync,
-    Args: Send
-        + Sync
-        + FromRef<State>
-        + for<'a> Arguments<'a, T = <Extractor as HasValidateArgs<'a>>::ValidateArgs>,
+    Args: Send + Sync + FromRef<State>,
     Extractor: for<'v> HasValidateArgs<'v> + FromRequestParts<State>,
+    for<'v> <Extractor as HasValidateArgs<'v>>::ValidateArgs: ValidateArgs<'v, Args = &'v Args>,
 {
     type Rejection = ValidRejection<<Extractor as FromRequestParts<State>>::Rejection>;
 
@@ -249,8 +216,8 @@ where
         let inner = Extractor::from_request_parts(parts, state)
             .await
             .map_err(ValidRejection::Inner)?;
-        inner.get_validate_args().validate_args(arguments.get())?;
-        Ok(ValidEx(inner, arguments))
+        inner.get_validate_args().validate_with_args(&arguments)?;
+        Ok(ValidEx(inner))
     }
 }
 
@@ -278,20 +245,22 @@ pub mod tests {
     #[test]
     fn valid_ex_deref_deref_mut_into_inner_arguments() {
         let mut inner = String::from(TEST);
-        let mut v = ValidEx(inner.clone(), ());
+        let mut v = ValidEx(inner.clone());
         assert_eq!(&inner, v.deref());
         inner.push_str(TEST);
         v.deref_mut().push_str(TEST);
         assert_eq!(&inner, v.deref());
         assert_eq!(inner, v.into_inner());
 
-        fn validate(_v: i32, _args: i32) -> Result<(), ValidationError> {
+        fn validate(v: &i32, args: &DataVA) -> Result<(), ValidationError> {
+            assert!(*v < args.a);
             Ok(())
         }
 
         #[derive(Debug, Validate)]
+        #[validate(context = DataVA)]
         struct Data {
-            #[validate(custom(function = "validate", arg = "i32"))]
+            #[validate(custom(function = "validate", use_context))]
             v: i32,
         }
 
@@ -305,21 +274,13 @@ pub mod tests {
             a: i32,
         }
 
-        impl<'a> Arguments<'a> for DataVA {
-            type T = Data;
-
-            fn get(&'a self) -> <<Self as Arguments<'a>>::T as ValidateArgs<'a>>::Args {
-                self.a
-            }
-        }
-
-        let data = Data { v: 12 };
-        let args = DataVA { a: 123 };
-        let ve = ValidEx(data, args);
+        let v = 12;
+        let data = Data { v };
+        let args = DataVA { a: v + 1 };
+        let ve = ValidEx(data);
+        ve.validate_with_args(&args).expect("invalid");
         println!("{}", ve);
-        assert_eq!(ve.v, 12);
-        let a = ve.arguments();
-        assert_eq!(a, 123);
+        assert_eq!(ve.v, v);
     }
 
     #[test]

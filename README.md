@@ -9,7 +9,9 @@
 
 ## 📑 Overview
 
-**axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates **validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient validation and data handling extractors for Axum applications.
+**axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates *
+*validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient
+validation and data handling extractors for Axum applications.
 
 ## 🚀 Basic usage
 
@@ -66,7 +68,8 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-In case of inner extractor errors, it will first return the Rejection from the inner extractor. When validation errors occur, the outer extractor will automatically return 400 with validation errors as the HTTP message body.
+In case of inner extractor errors, it will first return the Rejection from the inner extractor. When validation errors
+occur, the outer extractor will automatically return 400 with validation errors as the HTTP message body.
 
 ### 📦 `Garde<E>`
 
@@ -239,11 +242,12 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-To see how each inner extractor can be used with validation extractors, please refer to the example in the [documentation](https://docs.rs/axum-valid) of the corresponding module.
+To see how each inner extractor can be used with validation extractors, please refer to the example in
+the [documentation](https://docs.rs/axum-valid) of the corresponding module.
 
 ## 🚀 Argument-Based Validation
 
-### 📦 `ValidEx<E, A>`
+### 📦 `ValidEx<E>`
 
 * Install
 
@@ -258,35 +262,34 @@ cargo add axum-valid
 ```rust,ignore
 use axum::routing::post;
 use axum::{Form, Router};
-use axum_valid::{Arguments, ValidEx};
+use axum_valid::ValidEx;
 use serde::Deserialize;
 use std::net::SocketAddr;
 use std::ops::{RangeFrom, RangeInclusive};
 use tokio::net::TcpListener;
-use validator::{Validate, ValidateArgs, ValidationError};
+use validator::{Validate, ValidationError};
 
 // NOTE: When some fields use custom validation functions with arguments,
 // `#[derive(Validate)]` will implement `ValidateArgs` instead of `Validate` for the type.
-// The validation arguments will be a tuple of all the field validation args.
-// In this example it is (&RangeInclusive<usize>, &RangeFrom<usize>).
-// For more detailed information and understanding of `ValidateArgs` and their argument types,
-// please refer to the `validator` crate documentation.
 #[derive(Debug, Validate, Deserialize)]
+#[validate(context = PagerValidArgs)] // context is required
 pub struct Pager {
-    #[validate(custom(function = "validate_page_size", arg = "&'v_a RangeInclusive<usize>"))]
+    #[validate(custom(function = "validate_page_size", use_context))]
     pub page_size: usize,
-    #[validate(custom(function = "validate_page_no", arg = "&'v_a RangeFrom<usize>"))]
+    #[validate(custom(function = "validate_page_no", use_context))]
     pub page_no: usize,
 }
 
-fn validate_page_size(v: usize, args: &RangeInclusive<usize>) -> Result<(), ValidationError> {
-    args.contains(&v)
+fn validate_page_size(v: &usize, args: &PagerValidArgs) -> Result<(), ValidationError> {
+    args.page_size_range
+        .contains(&v)
         .then_some(())
         .ok_or_else(|| ValidationError::new("page_size is out of range"))
 }
 
-fn validate_page_no(v: usize, args: &RangeFrom<usize>) -> Result<(), ValidationError> {
-    args.contains(&v)
+fn validate_page_no(v: &usize, args: &PagerValidArgs) -> Result<(), ValidationError> {
+    args.page_no_range
+        .contains(&v)
         .then_some(())
         .ok_or_else(|| ValidationError::new("page_no is out of range"))
 }
@@ -298,18 +301,7 @@ pub struct PagerValidArgs {
     page_no_range: RangeFrom<usize>,
 }
 
-// NOTE: This implementation allows PagerValidArgs to be the second member of ValidEx, and provides arguments for actual validation.
-// get() method returns the actual validation arguments to be used during validation.
-impl<'a> Arguments<'a> for PagerValidArgs {
-    type T = Pager;
-
-    // NOTE: <Pager as ValidateArgs<'a>>::Args == (&RangeInclusive<usize>, &RangeFrom<usize>)
-    fn get(&'a self) -> <Pager as ValidateArgs<'a>>::Args {
-        (&self.page_size_range, &self.page_no_range)
-    }
-}
-
-pub async fn pager_from_form_ex(ValidEx(Form(pager), _): ValidEx<Form<Pager>, PagerValidArgs>) {
+pub async fn pager_from_form_ex(ValidEx(Form(pager)): ValidEx<Form<Pager>>) {
     assert!((1..=50).contains(&pager.page_size));
     assert!((1..).contains(&pager.page_no));
 }
@@ -408,11 +400,10 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 
 ## 🗂️ Extractors List
 
-
 | Extractor             | Backend / Feature | Data's trait bound                                                              | Functionality                          | Benefits                                   | Drawbacks                                        |
 |-----------------------|-------------------|---------------------------------------------------------------------------------|----------------------------------------|--------------------------------------------|--------------------------------------------------|
 | `Valid<E>`	           | validator	        | `validator::Validate`                                                           | Validation	                            |                                            |                                                  |                                                 
-| `ValidEx<E, A>`	      | validator	        | `validator::ValidateArgs`                                                       | Validation with arguments              | 		                                         | More complex arguments coding                    |
+| `ValidEx<E>`	         | validator	        | `validator::ValidateArgs`                                                       | Validation with arguments              | 		                                         |                                                  |
 | `Garde<E>`	           | garde	            | `garde::Validate`                                                               | Validation with or without arguments	  |                                            | Require empty tuple as the argument if use state |                                  |
 | `Validated<E>`	       | validify	         | `validify::Validate`                                                            | Validation	                            |                                            |                                                  |
 | `Modified<E>`	        | validify	         | `validify::Modify`                                                              | Modification / Conversion to response  | 		                                         |                                                  |                                                  
@@ -437,6 +428,7 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 | yaml             | Enables support for `Yaml` from `axum-serde`                                                                                             | [`yaml`]                                     | ❌       | ✅       | ✅     |
 | xml              | Enables support for `Xml` from `axum-serde`                                                                                              | [`xml`]                                      | ❌       | ✅       | ✅     |
 | toml             | Enables support for `Toml` from `axum-serde`                                                                                             | [`toml`]                                     | ❌       | ✅       | ✅     |
+| sonic            | Enables support for `Sonic` from `axum-serde`                                                                                            | [`sonic`]                                    | ❌       | ✅       | ✅     |
 | extra            | Enables support for `Cached`, `WithRejection` from `axum-extra`                                                                          | [`extra`]                                    | ❌       | ✅       | ✅     |
 | extra_typed_path | Enables support for `T: TypedPath` from `axum-extra`                                                                                     | [`extra::typed_path`]                        | ❌       | ✅       | ✅     |
 | extra_query      | Enables support for `Query` from `axum-extra`                                                                                            | [`extra::query`]                             | ❌       | ✅       | ✅     |
@@ -454,9 +446,11 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 
 ## 🔌 Compatibility
 
-To determine the compatible versions of dependencies that work together, please refer to the dependencies listed in the `Cargo.toml` file. The version numbers listed there will indicate the compatible versions.
+To determine the compatible versions of dependencies that work together, please refer to the dependencies listed in
+the `Cargo.toml` file. The version numbers listed there will indicate the compatible versions.
 
-If you encounter code compilation problems, it could be attributed to either **missing trait bounds**, **unmet feature requirements**, or **incorrect dependency version selections**.
+If you encounter code compilation problems, it could be attributed to either **missing trait bounds**, **unmet feature
+requirements**, or **incorrect dependency version selections**.
 
 ## 📜 License
 
