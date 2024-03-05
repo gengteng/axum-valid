@@ -8,6 +8,17 @@
 
 ### Fixed
 
+## axum-valid 0.17.0 (2024-03-05)
+
+### Added
+
+### Changed
+
+* Upgrade validator to 0.17.0.
+* Refactor argument-based validation using validator.
+
+### Fixed
+
 ## axum-valid 0.16.0 (2024-03-01)
 
 ### Added
