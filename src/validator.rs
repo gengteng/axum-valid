@@ -252,8 +252,8 @@ pub mod tests {
         assert_eq!(&inner, v.deref());
         assert_eq!(inner, v.into_inner());
 
-        fn validate(v: &i32, args: &DataVA) -> Result<(), ValidationError> {
-            assert!(*v < args.a);
+        fn validate(v: i32, args: &DataVA) -> Result<(), ValidationError> {
+            assert!(v < args.a);
             Ok(())
         }
 

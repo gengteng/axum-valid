@@ -47,10 +47,10 @@ pub struct ParametersEx {
     v1: String,
 }
 
-fn validate_v0(v: &i32, args: &ParametersExValidationArguments) -> Result<(), ValidationError> {
+fn validate_v0(v: i32, args: &ParametersExValidationArguments) -> Result<(), ValidationError> {
     args.inner
         .v0_range
-        .contains(v)
+        .contains(&v)
         .then_some(())
         .ok_or_else(|| ValidationError::new("v0 is out of range"))
 }
@@ -1208,11 +1208,11 @@ mod extra_typed_path {
     }
 
     fn validate_v0(
-        v: &i32,
+        v: i32,
         args: &TypedPathParamExValidationArguments,
     ) -> Result<(), ValidationError> {
         args.v0_range
-            .contains(v)
+            .contains(&v)
             .then_some(())
             .ok_or_else(|| ValidationError::new("v0 is out of range"))
     }
