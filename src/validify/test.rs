@@ -383,6 +383,22 @@ async fn test_main() -> anyhow::Result<()> {
             post(sonic::extract_sonic_validified_by_ref),
         );
 
+    #[cfg(feature = "cbor")]
+    let router = router
+        .route(cbor::route::CBOR, post(cbor::extract_cbor))
+        .route(
+            cbor::route::CBOR_MODIFIED,
+            post(cbor::extract_cbor_modified),
+        )
+        .route(
+            cbor::route::CBOR_VALIDIFIED,
+            post(cbor::extract_cbor_validified),
+        )
+        .route(
+            cbor::route::CBOR_VALIDIFIED_BY_REF,
+            post(cbor::extract_cbor_validified_by_ref),
+        );
+
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
     let server_addr = listener.local_addr()?;
     let server = axum::serve(listener, router.into_make_service());
@@ -1063,6 +1079,31 @@ async fn test_main() -> anyhow::Result<()> {
                 Method::POST,
                 sonic::route::SONIC_VALIDIFIED_BY_REF,
             )
+            .await?;
+    }
+
+    #[cfg(feature = "cbor")]
+    {
+        use axum_serde::Cbor;
+
+        // Validated
+        test_executor
+            .execute::<Cbor<ParametersValidify>>(Method::POST, cbor::route::CBOR)
+            .await?;
+        // Modified
+        test_executor
+            .execute_modified::<Cbor<ParametersValidify>>(Method::POST, cbor::route::CBOR_MODIFIED)
+            .await?;
+        // Validified
+        test_executor
+            .execute_validified::<Cbor<ParametersValidify>>(
+                Method::POST,
+                cbor::route::CBOR_VALIDIFIED,
+            )
+            .await?;
+        // ValidifiedByRef
+        test_executor
+            .execute::<Cbor<ParametersValidify>>(Method::POST, cbor::route::CBOR_VALIDIFIED_BY_REF)
             .await?;
     }
 
@@ -2153,6 +2194,45 @@ mod sonic {
 
     pub async fn extract_sonic_validified_by_ref(
         ValidifiedByRef(Sonic(parameters)): ValidifiedByRef<Sonic<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validified(&parameters)
+    }
+}
+
+#[cfg(feature = "cbor")]
+mod cbor {
+    use super::{check_modified, check_validated, check_validified, ParametersValidify};
+    use crate::{Modified, Validated, Validified, ValidifiedByRef};
+    use axum::http::StatusCode;
+    use axum_serde::Cbor;
+
+    pub mod route {
+        pub const CBOR: &str = "/cbor";
+        pub const CBOR_MODIFIED: &str = "/cbor_modified";
+        pub const CBOR_VALIDIFIED: &str = "/cbor_validified";
+        pub const CBOR_VALIDIFIED_BY_REF: &str = "/cbor_validified_by_ref";
+    }
+
+    pub async fn extract_cbor(
+        Validated(Cbor(parameters)): Validated<Cbor<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validated(&parameters)
+    }
+
+    pub async fn extract_cbor_modified(
+        Modified(Cbor(parameters)): Modified<Cbor<ParametersValidify>>,
+    ) -> StatusCode {
+        check_modified(&parameters)
+    }
+
+    pub async fn extract_cbor_validified(
+        Validified(Cbor(parameters)): Validified<Cbor<ParametersValidify>>,
+    ) -> StatusCode {
+        check_validified(&parameters)
+    }
+
+    pub async fn extract_cbor_validified_by_ref(
+        ValidifiedByRef(Cbor(parameters)): ValidifiedByRef<Cbor<ParametersValidify>>,
     ) -> StatusCode {
         check_validified(&parameters)
     }

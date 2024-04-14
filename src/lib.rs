@@ -23,6 +23,8 @@ pub mod validify;
 #[cfg(feature = "yaml")]
 pub mod yaml;
 
+#[cfg(feature = "cbor")]
+pub mod cbor;
 #[cfg(feature = "sonic")]
 pub mod sonic;
 #[cfg(feature = "toml")]

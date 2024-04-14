@@ -8,6 +8,17 @@
 
 ### Fixed
 
+## axum-valid 0.18.0 (2024-04-14)
+
+### Added
+
+### Changed
+
+* Upgrade validator to 0.18.1.
+* Upgrade validify to 1.4.0.
+* Upgrade axum-serde to 0.4.1.
+    * Add support for `Cbor<T>`.
+
 ## axum-valid 0.17.0 (2024-03-05)
 
 ### Added

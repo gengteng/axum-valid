@@ -148,6 +148,9 @@ async fn test_main() -> anyhow::Result<()> {
     #[cfg(feature = "sonic")]
     let router = router.route(sonic::route::SONIC, post(sonic::extract_sonic));
 
+    #[cfg(feature = "cbor")]
+    let router = router.route(cbor::route::CBOR, post(cbor::extract_cbor));
+
     let router = router.with_state(MyState::default());
 
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
@@ -417,6 +420,14 @@ async fn test_main() -> anyhow::Result<()> {
         use axum_serde::Sonic;
         test_executor
             .execute::<Sonic<ParametersGarde>>(Method::POST, sonic::route::SONIC)
+            .await?;
+    }
+
+    #[cfg(feature = "cbor")]
+    {
+        use axum_serde::Cbor;
+        test_executor
+            .execute::<Cbor<ParametersGarde>>(Method::POST, cbor::route::CBOR)
             .await?;
     }
 
@@ -967,6 +978,22 @@ mod sonic {
     pub async fn extract_sonic(
         Garde(Sonic(parameters)): Garde<Sonic<ParametersGarde>>,
     ) -> StatusCode {
+        validate_again(parameters, ())
+    }
+}
+
+#[cfg(feature = "cbor")]
+mod cbor {
+    use super::{validate_again, ParametersGarde};
+    use crate::Garde;
+    use axum::http::StatusCode;
+    use axum_serde::Cbor;
+
+    pub mod route {
+        pub const CBOR: &str = "/cbor";
+    }
+
+    pub async fn extract_cbor(Garde(Cbor(parameters)): Garde<Cbor<ParametersGarde>>) -> StatusCode {
         validate_again(parameters, ())
     }
 }

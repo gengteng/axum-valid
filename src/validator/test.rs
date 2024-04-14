@@ -289,6 +289,11 @@ async fn test_main() -> anyhow::Result<()> {
         .route(sonic::route::SONIC, post(sonic::extract_sonic))
         .route(sonic::route::SONIC_EX, post(sonic::extract_sonic_ex));
 
+    #[cfg(feature = "cbor")]
+    let router = router
+        .route(cbor::route::CBOR, post(cbor::extract_cbor))
+        .route(cbor::route::CBOR_EX, post(cbor::extract_cbor_ex));
+
     let router = router.with_state(state);
 
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
@@ -641,6 +646,17 @@ async fn test_main() -> anyhow::Result<()> {
             .await?;
         test_executor
             .execute::<Sonic<Parameters>>(Method::POST, sonic::route::SONIC_EX)
+            .await?;
+    }
+
+    #[cfg(feature = "cbor")]
+    {
+        use axum_serde::Cbor;
+        test_executor
+            .execute::<Cbor<Parameters>>(Method::POST, cbor::route::CBOR)
+            .await?;
+        test_executor
+            .execute::<Cbor<Parameters>>(Method::POST, cbor::route::CBOR_EX)
             .await?;
     }
 
@@ -1510,6 +1526,34 @@ mod sonic {
     pub async fn extract_sonic_ex(
         State(arguments): State<ParametersExValidationArguments>,
         ValidEx(Sonic(parameters)): ValidEx<Sonic<ParametersEx>>,
+    ) -> StatusCode {
+        validate_again_ex(parameters, &arguments)
+    }
+}
+
+#[cfg(feature = "cbor")]
+mod cbor {
+    use super::{
+        validate_again, validate_again_ex, Parameters, ParametersEx,
+        ParametersExValidationArguments,
+    };
+    use crate::{Valid, ValidEx};
+    use axum::extract::State;
+    use axum::http::StatusCode;
+    use axum_serde::Cbor;
+
+    pub mod route {
+        pub const CBOR: &str = "/cbor";
+        pub const CBOR_EX: &str = "/cbor_ex";
+    }
+
+    pub async fn extract_cbor(Valid(Cbor(parameters)): Valid<Cbor<Parameters>>) -> StatusCode {
+        validate_again(parameters)
+    }
+
+    pub async fn extract_cbor_ex(
+        State(arguments): State<ParametersExValidationArguments>,
+        ValidEx(Cbor(parameters)): ValidEx<Cbor<ParametersEx>>,
     ) -> StatusCode {
         validate_again_ex(parameters, &arguments)
     }
