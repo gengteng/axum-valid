@@ -9,7 +9,8 @@
 
 ## 📑 Overview
 
-**axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates **validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient
+**axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates *
+*validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient
 validation and data handling extractors for Axum applications.
 
 ## 🚀 Basic usage
@@ -428,6 +429,7 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 | xml              | Enables support for `Xml` from `axum-serde`                                                                                              | [`xml`]                                      | ❌       | ✅       | ✅     |
 | toml             | Enables support for `Toml` from `axum-serde`                                                                                             | [`toml`]                                     | ❌       | ✅       | ✅     |
 | sonic            | Enables support for `Sonic` from `axum-serde`                                                                                            | [`sonic`]                                    | ❌       | ✅       | ✅     |
+| cbor             | Enables support for `Cbor` from `axum-serde`                                                                                             | [`cbor`]                                     | ❌       | ✅       | ✅     |
 | extra            | Enables support for `Cached`, `WithRejection` from `axum-extra`                                                                          | [`extra`]                                    | ❌       | ✅       | ✅     |
 | extra_typed_path | Enables support for `T: TypedPath` from `axum-extra`                                                                                     | [`extra::typed_path`]                        | ❌       | ✅       | ✅     |
 | extra_query      | Enables support for `Query` from `axum-extra`                                                                                            | [`extra::query`]                             | ❌       | ✅       | ✅     |
