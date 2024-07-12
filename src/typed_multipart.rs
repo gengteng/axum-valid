@@ -65,7 +65,7 @@
 //!     }
 //!
 //!     async fn handler(Garde(TypedMultipart(parameter)): Garde<TypedMultipart<Parameter>>) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!         // Support automatic dereferencing
 //!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
 //!     }
@@ -75,7 +75,7 @@
 //!             data: parameter, ..
 //!         }): Garde<BaseMultipart<Parameter, TypedMultipartError>>,
 //!     ) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!     }
 //!
 //!     #[derive(TryFromMultipart, Validate)]

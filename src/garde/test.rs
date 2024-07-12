@@ -541,7 +541,7 @@ fn validate_again<V: Validate>(validate: V, context: V::Context) -> StatusCode {
     // it should have returned `400 BAD REQUEST` if the `parameters` were invalid,
     // Let's validate them again to check if the `Garde` extractor works well.
     // If it works properly, this function will never return `500 INTERNAL SERVER ERROR`
-    match validate.validate(&context) {
+    match validate.validate_with(&context) {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }

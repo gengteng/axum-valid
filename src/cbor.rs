@@ -54,7 +54,7 @@
 //!     }
 //!
 //!     async fn handler(Garde(Cbor(parameter)): Garde<Cbor<Parameter>>) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!         // Support automatic dereferencing
 //!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
 //!     }

@@ -93,7 +93,7 @@ where
             .await
             .map_err(GardeRejection::Inner)?;
 
-        inner.get_validate().validate(&context)?;
+        inner.get_validate().validate_with(&context)?;
         Ok(Garde(inner))
     }
 }
@@ -113,7 +113,7 @@ where
         let inner = Extractor::from_request_parts(parts, state)
             .await
             .map_err(GardeRejection::Inner)?;
-        inner.get_validate().validate(&context)?;
+        inner.get_validate().validate_with(&context)?;
         Ok(Garde(inner))
     }
 }

@@ -50,7 +50,7 @@
 //!     }
 //!
 //!     async fn handler(Garde(Path(parameter)): Garde<Path<Parameter>>) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!         // Support automatic dereferencing
 //!         println!("v0 = {}, v1 = {}", parameter.v0, parameter.v1);
 //!     }

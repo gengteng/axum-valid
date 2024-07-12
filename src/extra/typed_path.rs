@@ -59,7 +59,7 @@
 //!     }
 //!
 //!     async fn handler(parameter: Garde<Parameter>) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!     }
 //!
 //!     #[derive(TypedPath, Deserialize, Validate)]

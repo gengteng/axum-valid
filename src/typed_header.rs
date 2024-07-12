@@ -74,7 +74,7 @@
 //!     }
 //!
 //!     async fn handler(Garde(TypedHeader(parameter)): Garde<TypedHeader<Parameter>>) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!     }
 //!
 //!     #[derive(Validate)]

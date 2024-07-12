@@ -59,11 +59,11 @@
 //!     }
 //!
 //!     async fn handler(Garde(MsgPack(parameter)): Garde<MsgPack<Parameter>>) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!     }
 //!
 //!     async fn raw_handler(Garde(MsgPackRaw(parameter)): Garde<MsgPackRaw<Parameter>>) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!     }
 //!     #[derive(Validate, Deserialize)]
 //!     pub struct Parameter {

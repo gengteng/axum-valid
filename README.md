@@ -9,8 +9,8 @@
 
 ## 📑 Overview
 
-**axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates *
-*validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient
+**axum-valid** is a library that provides data validation extractors for the Axum web framework. It integrates
+**validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer convenient
 validation and data handling extractors for Axum applications.
 
 ## 🚀 Basic usage

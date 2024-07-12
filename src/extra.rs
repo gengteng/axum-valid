@@ -89,7 +89,7 @@
 //!     }
 //!
 //!     async fn handler(Garde(Cached(parameter)): Garde<Cached<Parameter>>) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!     }
 //!
 //!     #[derive(Validate, Clone)]
@@ -223,7 +223,7 @@
 //!             WithRejection<Parameter, ValidWithRejectionRejection>,
 //!         >,
 //!     ) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!     }
 //!
 //!     #[derive(Validate)]
@@ -380,7 +380,7 @@
 //!             WithRejectionGardeRejection,
 //!         >,
 //!     ) {
-//!         assert!(parameter.validate(&()).is_ok());
+//!         assert!(parameter.validate_with(&()).is_ok());
 //!     }
 //!
 //!     #[derive(Validate)]
