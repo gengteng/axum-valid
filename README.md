@@ -11,8 +11,7 @@
 
 **axum-valid** is a library that provides data validation extractors for the Axum web framework.
 It integrates **validator**, **garde** and **validify**, three popular validation crates in the Rust ecosystem, to offer
-convenient
-validation and data handling extractors for Axum applications.
+convenient validation and data handling extractors for Axum applications.
 
 ## 🚀 Basic usage
 
@@ -39,30 +38,30 @@ use tokio::net::TcpListener;
 use validator::Validate;
 
 #[derive(Debug, Validate, Deserialize)]
-pub struct Pager {
+pub struct Paginator {
     #[validate(range(min = 1, max = 50))]
     pub page_size: usize,
     #[validate(range(min = 1))]
     pub page_no: usize,
 }
 
-pub async fn pager_from_query(Valid(Query(pager)): Valid<Query<Pager>>) {
-    assert!((1..=50).contains(&pager.page_size));
-    assert!((1..).contains(&pager.page_no));
+pub async fn paginator_from_query(Valid(Query(paginator)): Valid<Query<Paginator>>) {
+    assert!((1..=50).contains(&paginator.page_size));
+    assert!((1..).contains(&paginator.page_no));
 }
 
-pub async fn pager_from_json(pager: Valid<Json<Pager>>) {
-    assert!((1..=50).contains(&pager.page_size));
-    assert!((1..).contains(&pager.page_no));
+pub async fn paginator_from_json(paginator: Valid<Json<Paginator>>) {
+    assert!((1..=50).contains(&paginator.page_size));
+    assert!((1..).contains(&paginator.page_no));
     // NOTE: all extractors provided support automatic dereferencing
-    println!("page_no: {}, page_size: {}", pager.page_no, pager.page_size);
+    println!("page_no: {}, page_size: {}", paginator.page_no, paginator.page_size);
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let router = Router::new()
-        .route("/query", get(pager_from_query))
-        .route("/json", post(pager_from_json));
+        .route("/query", get(paginator_from_query))
+        .route("/json", post(paginator_from_json));
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
     axum::serve(listener, router.into_make_service()).await?;
     Ok(())
@@ -78,6 +77,7 @@ occur, the outer extractor will automatically return 400 with validation errors 
 
 ```shell
 cargo add garde --features derive
+cargo add axum --features macros # for FromRef derive macro
 cargo add axum-valid --features garde,basic --no-default-features
 # excluding validator
 ```
@@ -95,22 +95,22 @@ use std::net::SocketAddr;
 use tokio::net::TcpListener;
 
 #[derive(Debug, Validate, Deserialize)]
-pub struct Pager {
+pub struct Paginator {
     #[garde(range(min = 1, max = 50))]
     pub page_size: usize,
     #[garde(range(min = 1))]
     pub page_no: usize,
 }
 
-pub async fn pager_from_query(Garde(Query(pager)): Garde<Query<Pager>>) {
-    assert!((1..=50).contains(&pager.page_size));
-    assert!((1..).contains(&pager.page_no));
+pub async fn paginator_from_query(Garde(Query(paginator)): Garde<Query<Paginator>>) {
+    assert!((1..=50).contains(&paginator.page_size));
+    assert!((1..).contains(&paginator.page_no));
 }
 
-pub async fn pager_from_json(pager: Garde<Json<Pager>>) {
-    assert!((1..=50).contains(&pager.page_size));
-    assert!((1..).contains(&pager.page_no));
-    println!("page_no: {}, page_size: {}", pager.page_no, pager.page_size);
+pub async fn paginator_from_json(paginator: Garde<Json<Paginator>>) {
+    assert!((1..=50).contains(&paginator.page_size));
+    assert!((1..).contains(&paginator.page_no));
+    println!("page_no: {}, page_size: {}", paginator.page_no, paginator.page_size);
 }
 
 pub async fn get_state(_state: State<MyState>) {}
@@ -124,8 +124,8 @@ pub struct MyState {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let router = Router::new()
-        .route("/query", get(pager_from_query))
-        .route("/json", post(pager_from_json));
+        .route("/query", get(paginator_from_query))
+        .route("/json", post(paginator_from_json));
 
     // WARNING: If you are using Garde and also have a state,
     // even if that state is unrelated to Garde,
@@ -171,16 +171,16 @@ use tokio::net::TcpListener;
 use validify::{Payload, Validate, Validify};
 
 #[derive(Debug, Validify, Deserialize)]
-pub struct Pager {
+pub struct Paginator {
     #[validate(range(min = 1.0, max = 50.0))]
     pub page_size: usize,
     #[validate(range(min = 1.0))]
     pub page_no: usize,
 }
 
-pub async fn pager_from_query(Validated(Query(pager)): Validated<Query<Pager>>) {
-    assert!((1..=50).contains(&pager.page_size));
-    assert!((1..).contains(&pager.page_no));
+pub async fn paginator_from_query(Validated(Query(paginator)): Validated<Query<Paginator>>) {
+    assert!((1..=50).contains(&paginator.page_size));
+    assert!((1..).contains(&paginator.page_no));
 }
 
 // Payload is now required for Validified. (Added in validify 1.3.0)
@@ -233,7 +233,7 @@ pub async fn parameters_from_typed_multipart(
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let router = Router::new()
-        .route("/validated", get(pager_from_query))
+        .route("/validated", get(paginator_from_query))
         .route("/modified", post(parameters_from_json))
         .route("/validified", post(parameters_from_form))
         .route("/validified_by_ref", post(parameters_from_typed_multipart));
@@ -273,22 +273,22 @@ use validator::{Validate, ValidationError};
 // NOTE: When some fields use custom validation functions with arguments,
 // `#[derive(Validate)]` will implement `ValidateArgs` instead of `Validate` for the type.
 #[derive(Debug, Validate, Deserialize)]
-#[validate(context = PagerValidArgs)] // context is required
-pub struct Pager {
+#[validate(context = PaginatorValidArgs)] // context is required
+pub struct Paginator {
     #[validate(custom(function = "validate_page_size", use_context))]
     pub page_size: usize,
     #[validate(custom(function = "validate_page_no", use_context))]
     pub page_no: usize,
 }
 
-fn validate_page_size(v: &usize, args: &PagerValidArgs) -> Result<(), ValidationError> {
+fn validate_page_size(v: usize, args: &PaginatorValidArgs) -> Result<(), ValidationError> {
     args.page_size_range
         .contains(&v)
         .then_some(())
         .ok_or_else(|| ValidationError::new("page_size is out of range"))
 }
 
-fn validate_page_no(v: &usize, args: &PagerValidArgs) -> Result<(), ValidationError> {
+fn validate_page_no(v: usize, args: &PaginatorValidArgs) -> Result<(), ValidationError> {
     args.page_no_range
         .contains(&v)
         .then_some(())
@@ -297,25 +297,25 @@ fn validate_page_no(v: &usize, args: &PagerValidArgs) -> Result<(), ValidationEr
 
 // NOTE: Clone is required, consider using Arc to reduce deep copying costs.
 #[derive(Debug, Clone)]
-pub struct PagerValidArgs {
+pub struct PaginatorValidArgs {
     page_size_range: RangeInclusive<usize>,
     page_no_range: RangeFrom<usize>,
 }
 
-pub async fn pager_from_form_ex(ValidEx(Form(pager)): ValidEx<Form<Pager>>) {
-    assert!((1..=50).contains(&pager.page_size));
-    assert!((1..).contains(&pager.page_no));
+pub async fn paginator_from_form_ex(ValidEx(Form(paginator)): ValidEx<Form<Paginator>>) {
+    assert!((1..=50).contains(&paginator.page_size));
+    assert!((1..).contains(&paginator.page_no));
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let router = Router::new()
-        .route("/form", post(pager_from_form_ex))
-        .with_state(PagerValidArgs {
+        .route("/form", post(paginator_from_form_ex))
+        .with_state(PaginatorValidArgs {
             page_size_range: 1..=50,
             page_no_range: 1..,
         });
-    // NOTE: The PagerValidArgs can also be stored in a XxxState,
+    // NOTE: The PaginatorValidArgs can also be stored in a XxxState,
     // make sure it implements FromRef<XxxState>.
 
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
@@ -347,22 +347,22 @@ use std::ops::{RangeFrom, RangeInclusive};
 use tokio::net::TcpListener;
 
 #[derive(Debug, Validate, Deserialize)]
-#[garde(context(PagerValidContext))]
-pub struct Pager {
+#[garde(context(PaginatorValidContext))]
+pub struct Paginator {
     #[garde(custom(validate_page_size))]
     pub page_size: usize,
     #[garde(custom(validate_page_no))]
     pub page_no: usize,
 }
 
-fn validate_page_size(v: &usize, args: &PagerValidContext) -> garde::Result {
+fn validate_page_size(v: &usize, args: &PaginatorValidContext) -> garde::Result {
     args.page_size_range
         .contains(&v)
         .then_some(())
         .ok_or_else(|| garde::Error::new("page_size is out of range"))
 }
 
-fn validate_page_no(v: &usize, args: &PagerValidContext) -> garde::Result {
+fn validate_page_no(v: &usize, args: &PaginatorValidContext) -> garde::Result {
     args.page_no_range
         .contains(&v)
         .then_some(())
@@ -370,25 +370,25 @@ fn validate_page_no(v: &usize, args: &PagerValidContext) -> garde::Result {
 }
 
 #[derive(Debug, Clone)]
-pub struct PagerValidContext {
+pub struct PaginatorValidContext {
     page_size_range: RangeInclusive<usize>,
     page_no_range: RangeFrom<usize>,
 }
 
-pub async fn pager_from_form_garde(Garde(Form(pager)): Garde<Form<Pager>>) {
-    assert!((1..=50).contains(&pager.page_size));
-    assert!((1..).contains(&pager.page_no));
+pub async fn paginator_from_form_garde(Garde(Form(paginator)): Garde<Form<Paginator>>) {
+    assert!((1..=50).contains(&paginator.page_size));
+    assert!((1..).contains(&paginator.page_no));
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let router = Router::new()
-        .route("/form", post(pager_from_form_garde))
-        .with_state(PagerValidContext {
+        .route("/form", post(paginator_from_form_garde))
+        .with_state(PaginatorValidContext {
             page_size_range: 1..=50,
             page_no_range: 1..,
         });
-    // NOTE: The PagerValidContext can also be stored in a XxxState,
+    // NOTE: The PaginatorValidContext can also be stored in a XxxState,
     // make sure it implements FromRef<XxxState>.
     // Consider using Arc to reduce deep copying costs.
     let listener = TcpListener::bind(&SocketAddr::from(([0u8, 0, 0, 0], 0u16))).await?;
