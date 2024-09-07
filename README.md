@@ -442,7 +442,7 @@ Current module documentation predominantly showcases `Valid` examples, the usage
 | into_json        | Validation errors will be serialized into JSON format and returned as the HTTP body                                                      | N/A                                          | ❌       | ✅       | ✅     |
 | full_validator   | Enables `validator`, `all_types`, `422` and `into_json`                                                                                  | N/A                                          | ❌       | ✅       | ✅     |
 | full_garde       | Enables `garde`, `all_types`, `422` and `into_json`. Consider using `default-features = false` to exclude default `validator` support    | N/A                                          | ❌       | ✅       | ✅     |
-| full_garde       | Enables `validify`, `all_types`, `422` and `into_json`. Consider using `default-features = false` to exclude default `validator` support | N/A                                          | ❌       | ✅       | ✅     |
+| full_validify    | Enables `validify`, `all_types`, `422` and `into_json`. Consider using `default-features = false` to exclude default `validator` support | N/A                                          | ❌       | ✅       | ✅     |
 | full             | Enables all features above                                                                                                               | N/A                                          | ❌       | ✅       | ✅     |
 | aide             | Enables support for `aide`                                                                                                               | N/A                                          | ❌       | ❌       | ❌     | 
 
