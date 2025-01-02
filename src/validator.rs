@@ -9,7 +9,6 @@
 pub mod test;
 
 use crate::{HasValidate, ValidationRejection};
-use axum::async_trait;
 use axum::extract::{FromRef, FromRequest, FromRequestParts, Request};
 use axum::http::request::Parts;
 use std::fmt::Display;
@@ -144,7 +143,6 @@ pub trait HasValidateArgs<'v> {
     fn get_validate_args(&self) -> &Self::ValidateArgs;
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequest<State> for Valid<Extractor>
 where
     State: Send + Sync,
@@ -162,7 +160,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequestParts<State> for Valid<Extractor>
 where
     State: Send + Sync,
@@ -180,7 +177,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor, Args> FromRequest<State> for ValidEx<Extractor>
 where
     State: Send + Sync,
@@ -201,7 +197,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor, Args> FromRequestParts<State> for ValidEx<Extractor>
 where
     State: Send + Sync,

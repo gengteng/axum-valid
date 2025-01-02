@@ -9,7 +9,6 @@
 pub mod test;
 
 use crate::{HasValidate, ValidationRejection};
-use axum::async_trait;
 use axum::extract::{FromRef, FromRequest, FromRequestParts, Request};
 use axum::http::request::Parts;
 use garde::{Report, Validate};
@@ -77,7 +76,6 @@ impl<E> From<Report> for GardeRejection<E> {
     }
 }
 
-#[async_trait]
 impl<State, Extractor, Context> FromRequest<State> for Garde<Extractor>
 where
     State: Send + Sync,
@@ -98,7 +96,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor, Context> FromRequestParts<State> for Garde<Extractor>
 where
     State: Send + Sync,

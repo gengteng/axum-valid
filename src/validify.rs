@@ -9,7 +9,6 @@
 pub mod test;
 
 use crate::{HasValidate, ValidationRejection};
-use axum::async_trait;
 use axum::extract::{FromRequest, FromRequestParts, Request};
 use axum::http::request::Parts;
 use axum::response::{IntoResponse, Response};
@@ -301,7 +300,6 @@ pub trait HasValidify: Sized {
     fn from_validify(v: Self::Validify) -> Self;
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequest<State> for Validated<Extractor>
 where
     State: Send + Sync,
@@ -319,7 +317,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequestParts<State> for Validated<Extractor>
 where
     State: Send + Sync,
@@ -337,7 +334,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequest<State> for Modified<Extractor>
 where
     State: Send + Sync,
@@ -352,7 +348,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequestParts<State> for Modified<Extractor>
 where
     State: Send + Sync,
@@ -367,7 +362,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequest<State> for Validified<Extractor>
 where
     State: Send + Sync,
@@ -387,7 +381,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequestParts<State> for Validified<Extractor>
 where
     State: Send + Sync,
@@ -407,7 +400,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequest<State> for ValidifiedByRef<Extractor>
 where
     State: Send + Sync,
@@ -426,7 +418,6 @@ where
     }
 }
 
-#[async_trait]
 impl<State, Extractor> FromRequestParts<State> for ValidifiedByRef<Extractor>
 where
     State: Send + Sync,
