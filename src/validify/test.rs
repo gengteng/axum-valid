@@ -1,4 +1,8 @@
+//! # Test for validify
+//!
+
 #![cfg(feature = "validify")]
+#![allow(missing_docs)]
 
 use crate::tests::{ValidTest, ValidTestParameter};
 use crate::{
@@ -19,6 +23,8 @@ use std::ops::Deref;
 use tokio::net::TcpListener;
 use validify::{Modify, Payload, Validate, Validify};
 
+/// ParametersValidify
+///
 #[derive(Debug, Clone, Deserialize, Serialize, Validify, Payload, Eq, PartialEq)]
 pub struct ParametersValidify {
     #[validate(range(min = 5.0, max = 10.0))]
@@ -28,6 +34,8 @@ pub struct ParametersValidify {
     v1: String,
 }
 
+/// ParametersValidifyWithoutPayload
+///
 #[derive(Clone, Validify, Eq, PartialEq)]
 #[cfg_attr(feature = "extra_protobuf", derive(Message))]
 #[cfg_attr(
@@ -82,7 +90,7 @@ impl ValidTestParameter for ParametersValidify {
     }
 
     fn error() -> &'static [(&'static str, &'static str)] {
-        &[("not_v0_or_v1", "value")]
+        &[("v0", "not_a_number"), ("v1", "string")]
     }
 
     fn invalid() -> &'static Self {
@@ -1110,6 +1118,8 @@ async fn test_main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Test Executor
+///
 #[derive(Debug, Clone)]
 pub struct TestExecutor {
     client: reqwest::Client,
@@ -1156,7 +1166,7 @@ impl TestExecutor {
         .await
     }
 
-    /// Execute all tests for `Modified` without validation
+    /// Execute all tests for `Validified` without validation
     pub async fn execute_validified<T: ValidTest>(
         &self,
         method: Method,
@@ -1166,7 +1176,7 @@ impl TestExecutor {
             method,
             route,
             StatusCode::OK,
-            T::INVALID_STATUS_CODE,
+            T::ERROR_STATUS_CODE,
             T::INVALID_STATUS_CODE,
             false,
         )
@@ -1230,6 +1240,7 @@ impl TestExecutor {
         Ok(())
     }
 
+    /// Get reqwest client reference
     pub fn client(&self) -> &reqwest::Client {
         &self.client
     }
@@ -1248,23 +1259,23 @@ pub async fn check_json(type_name: &'static str, response: reqwest::Response) {
 }
 
 mod route {
-    pub const PATH: &str = "/path/:v0/:v1";
-    pub const PATH_MODIFIED: &str = "/path_modified/:v0/:v1";
-    pub const PATH_VALIDIFIED: &str = "/path_validified/:v0/:v1";
-    pub const PATH_VALIDIFIED_BY_REF: &str = "/path_validified_by_ref/:v0/:v1";
+    pub const PATH: &str = "/path/{v0}/{v1}";
+    pub const PATH_MODIFIED: &str = "/path_modified/{v0}/{v1}";
+    pub const PATH_VALIDIFIED: &str = "/path_validified/{v0}/{v1}";
+    pub const PATH_VALIDIFIED_BY_REF: &str = "/path_validified_by_ref/{v0}/{v1}";
     pub const QUERY: &str = "/query";
-    pub const QUERY_MODIFIED: &str = "/query_modified/:v0/:v1";
+    pub const QUERY_MODIFIED: &str = "/query_modified/{v0}/{v1}";
 
-    pub const QUERY_VALIDIFIED: &str = "/query_validified/:v0/:v1";
-    pub const QUERY_VALIDIFIED_BY_REF: &str = "/query_validified_by_ref/:v0/:v1";
+    pub const QUERY_VALIDIFIED: &str = "/query_validified/{v0}/{v1}";
+    pub const QUERY_VALIDIFIED_BY_REF: &str = "/query_validified_by_ref/{v0}/{v1}";
     pub const FORM: &str = "/form";
-    pub const FORM_MODIFIED: &str = "/form_modified/:v0/:v1";
-    pub const FORM_VALIDIFIED: &str = "/form_validified/:v0/:v1";
-    pub const FORM_VALIDIFIED_BY_REF: &str = "/form_validified_by_ref/:v0/:v1";
+    pub const FORM_MODIFIED: &str = "/form_modified/{v0}/{v1}";
+    pub const FORM_VALIDIFIED: &str = "/form_validified/{v0}/{v1}";
+    pub const FORM_VALIDIFIED_BY_REF: &str = "/form_validified_by_ref/{v0}/{v1}";
     pub const JSON: &str = "/json";
-    pub const JSON_MODIFIED: &str = "/json_modified/:v0/:v1";
-    pub const JSON_VALIDIFIED: &str = "/json_validified/:v0/:v1";
-    pub const JSON_VALIDIFIED_BY_REF: &str = "/json_validified_by_ref/:v0/:v1";
+    pub const JSON_MODIFIED: &str = "/json_modified/{v0}/{v1}";
+    pub const JSON_VALIDIFIED: &str = "/json_validified/{v0}/{v1}";
+    pub const JSON_VALIDIFIED_BY_REF: &str = "/json_validified_by_ref/{v0}/{v1}";
 }
 
 async fn extract_path(
@@ -1602,7 +1613,7 @@ mod extra {
     }
 
     //  1.3. Implement your extractor (`FromRequestParts` or `FromRequest`)
-    #[axum::async_trait]
+
     impl<S> FromRequestParts<S> for ParametersValidify
     where
         S: Send + Sync,
@@ -1776,14 +1787,14 @@ mod extra_typed_path {
     use validify::{Validate, Validify};
 
     pub mod route {
-        pub const EXTRA_TYPED_PATH: &str = "/extra_typed_path/:v0/:v1";
-        pub const EXTRA_TYPED_PATH_MODIFIED: &str = "/extra_typed_path_modified/:v0/:v1";
+        pub const EXTRA_TYPED_PATH: &str = "/extra_typed_path/{v0}/{v1}";
+        pub const EXTRA_TYPED_PATH_MODIFIED: &str = "/extra_typed_path_modified/{v0}/{v1}";
         pub const EXTRA_TYPED_PATH_VALIDIFIED_BY_REF: &str =
-            "/extra_typed_path_validified_by_ref/:v0/:v1";
+            "/extra_typed_path_validified_by_ref/{v0}/{v1}";
     }
 
     #[derive(Validate, TypedPath, Deserialize)]
-    #[typed_path("/extra_typed_path/:v0/:v1")]
+    #[typed_path("/extra_typed_path/{v0}/{v1}")]
     pub struct TypedPathParam {
         #[validate(range(min = 5.0, max = 10.0))]
         v0: i32,
@@ -1800,7 +1811,7 @@ mod extra_typed_path {
     }
 
     #[derive(Validify, TypedPath, Deserialize, Clone, PartialEq, Eq)]
-    #[typed_path("/extra_typed_path_validified_by_ref/:v0/:v1")]
+    #[typed_path("/extra_typed_path_validified_by_ref/{v0}/{v1}")]
     pub struct TypedPathParamValidifiedByRef {
         #[validate(range(min = 5.0, max = 10.0))]
         v0: i32,
@@ -1826,7 +1837,7 @@ mod extra_typed_path {
     }
 
     #[derive(Validify, TypedPath, Deserialize, Clone, PartialEq, Eq)]
-    #[typed_path("/extra_typed_path_modified/:v0/:v1")]
+    #[typed_path("/extra_typed_path_modified/{v0}/{v1}")]
     pub struct TypedPathParamModified {
         #[validate(range(min = 5.0, max = 10.0))]
         v0: i32,

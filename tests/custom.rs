@@ -46,7 +46,7 @@ impl IntoResponse for MyDataRejection {
 }
 
 //  1.3. Implement your extractor (`FromRequestParts` or `FromRequest`)
-#[axum::async_trait]
+
 impl<S> FromRequestParts<S> for MyData
 where
     S: Send + Sync,

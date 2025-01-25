@@ -61,7 +61,10 @@ impl<T> aide::OperationInput for Valid<T>
 where
     T: aide::OperationInput,
 {
-    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+    fn operation_input(
+        ctx: &mut aide::generate::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) {
         T::operation_input(ctx, operation);
     }
 }
@@ -117,7 +120,10 @@ impl<T> aide::OperationInput for ValidEx<T>
 where
     T: aide::OperationInput,
 {
-    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+    fn operation_input(
+        ctx: &mut aide::generate::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) {
         T::operation_input(ctx, operation);
     }
 }
@@ -216,6 +222,7 @@ where
     }
 }
 
+/// basic tests for validator
 #[cfg(test)]
 pub mod tests {
     use super::*;

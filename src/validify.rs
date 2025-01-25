@@ -60,7 +60,10 @@ impl<T> aide::OperationInput for Validated<T>
 where
     T: aide::OperationInput,
 {
-    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+    fn operation_input(
+        ctx: &mut aide::generate::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) {
         T::operation_input(ctx, operation);
     }
 }
@@ -126,7 +129,10 @@ impl<T> aide::OperationInput for Modified<T>
 where
     T: aide::OperationInput,
 {
-    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+    fn operation_input(
+        ctx: &mut aide::generate::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) {
         T::operation_input(ctx, operation);
     }
 }
@@ -139,14 +145,14 @@ where
     type Inner = T::Inner;
 
     fn operation_response(
-        ctx: &mut aide::gen::GenContext,
+        ctx: &mut aide::generate::GenContext,
         operation: &mut aide::openapi::Operation,
     ) -> Option<aide::openapi::Response> {
         T::operation_response(ctx, operation)
     }
 
     fn inferred_responses(
-        ctx: &mut aide::gen::GenContext,
+        ctx: &mut aide::generate::GenContext,
         operation: &mut aide::openapi::Operation,
     ) -> Vec<(Option<u16>, aide::openapi::Response)> {
         T::inferred_responses(ctx, operation)
@@ -199,7 +205,10 @@ impl<T> aide::OperationInput for Validified<T>
 where
     T: aide::OperationInput,
 {
-    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+    fn operation_input(
+        ctx: &mut aide::generate::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) {
         T::operation_input(ctx, operation);
     }
 }
@@ -248,7 +257,10 @@ impl<T> aide::OperationInput for ValidifiedByRef<T>
 where
     T: aide::OperationInput,
 {
-    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+    fn operation_input(
+        ctx: &mut aide::generate::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) {
         T::operation_input(ctx, operation);
     }
 }

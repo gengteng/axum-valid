@@ -143,7 +143,7 @@ mod tests {
     use serde::Serialize;
 
     impl<T: ValidTestParameter + Serialize> ValidTest for Form<T> {
-        const ERROR_STATUS_CODE: StatusCode = StatusCode::BAD_REQUEST;
+        const ERROR_STATUS_CODE: StatusCode = StatusCode::UNPROCESSABLE_ENTITY;
 
         fn set_valid_request(builder: RequestBuilder) -> RequestBuilder {
             builder.form(T::valid())

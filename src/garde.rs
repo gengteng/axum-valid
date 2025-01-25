@@ -61,7 +61,10 @@ impl<T> aide::OperationInput for Garde<T>
 where
     T: aide::OperationInput,
 {
-    fn operation_input(ctx: &mut aide::gen::GenContext, operation: &mut aide::openapi::Operation) {
+    fn operation_input(
+        ctx: &mut aide::generate::GenContext,
+        operation: &mut aide::openapi::Operation,
+    ) {
         T::operation_input(ctx, operation);
     }
 }

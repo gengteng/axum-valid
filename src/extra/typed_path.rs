@@ -29,7 +29,7 @@
 //!     }
 //!
 //!     #[derive(TypedPath, Deserialize, Validate)]
-//!     #[typed_path("/extra_typed_path/:v0/:v1")]
+//!     #[typed_path("/extra_typed_path/{v0}/{v1}")]
 //!     struct Parameter {
 //!         #[validate(range(min = 5, max = 10))]
 //!         v0: i32,
@@ -63,7 +63,7 @@
 //!     }
 //!
 //!     #[derive(TypedPath, Deserialize, Validate)]
-//!     #[typed_path("/extra_typed_path/:v0/:v1")]
+//!     #[typed_path("/extra_typed_path/{v0}/{v1}")]
 //!     struct Parameter {
 //!         #[garde(range(min = 5, max = 10))]
 //!         v0: i32,
