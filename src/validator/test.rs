@@ -124,7 +124,7 @@ impl HasValidate for Parameters {
     }
 }
 
-impl<'v> HasValidateArgs<'v> for ParametersEx {
+impl HasValidateArgs<'_> for ParametersEx {
     type ValidateArgs = ParametersEx;
 
     fn get_validate_args(&self) -> &Self::ValidateArgs {
@@ -1263,7 +1263,7 @@ mod extra_typed_path {
         v1: String,
     }
 
-    impl<'v> HasValidateArgs<'v> for TypedPathParamEx {
+    impl HasValidateArgs<'_> for TypedPathParamEx {
         type ValidateArgs = Self;
 
         fn get_validate_args(&self) -> &Self::ValidateArgs {
