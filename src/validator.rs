@@ -307,7 +307,7 @@ pub mod tests {
         );
 
         // ValidRejection::Valid Error
-        let vr = ValidRejection::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, TEST));
+        let vr = ValidRejection::<io::Error>::Inner(io::Error::other(TEST));
         assert!(
             matches!(vr.source(), Some(source) if source.downcast_ref::<io::Error>().is_some())
         );

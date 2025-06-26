@@ -160,7 +160,7 @@ mod tests {
         assert!(matches!(vr.source(), Some(source) if source.downcast_ref::<Report>().is_some()));
 
         // GardeRejection::Valid Error
-        let vr = GardeRejection::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, GARDE));
+        let vr = GardeRejection::<io::Error>::Inner(io::Error::other(GARDE));
         assert!(
             matches!(vr.source(), Some(source) if source.downcast_ref::<io::Error>().is_some())
         );

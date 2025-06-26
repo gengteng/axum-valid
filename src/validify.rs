@@ -520,8 +520,7 @@ mod tests {
         );
 
         // ValidifyRejection::Valid Error
-        let vr =
-            ValidifyRejection::<io::Error>::Inner(io::Error::new(io::ErrorKind::Other, VALIDIFY));
+        let vr = ValidifyRejection::<io::Error>::Inner(io::Error::other(VALIDIFY));
         assert!(
             matches!(vr.source(), Some(source) if source.downcast_ref::<io::Error>().is_some())
         );
