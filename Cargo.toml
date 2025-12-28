@@ -48,7 +48,7 @@ version = "1.0.219"
 optional = true
 
 [dependencies.aide]
-version = "0.15.0"
+version = "0.16.0-alpha.1"
 optional = true
 
 [dev-dependencies]
