@@ -1,6 +1,6 @@
 [package]
 name = "axum-valid"
-version = "0.24.0"
+version = "0.25.0"
 description = "Provides validation extractors for your Axum application, allowing you to validate data using validator, garde, validify or all of them."
 authors = ["GengTeng <me@gteng.org>"]
 license = "MIT"
@@ -20,27 +20,28 @@ categories = [
     "web-programming",
 ]
 edition = "2021"
+rust-version = "1.88"
 
 [package.metadata.docs.rs]
 features = ["full", "aide"]
 
 [dependencies]
 axum = { version = "0.8", default-features = false }
-garde = { version = "0.22.0", optional = true }
+garde = { version = "0.23.0", optional = true }
 validator = { version = "0.20.0", optional = true }
 validify = { version = "2.0.0", optional = true }
 
 [dependencies.axum-extra]
-version = "0.10"
+version = "0.12"
 default-features = false
 optional = true
 
 [dependencies.axum-serde]
-version = "0.9.0"
+version = "0.10.0"
 optional = true
 
 [dependencies.axum_typed_multipart]
-version = "0.16.3"
+version = "0.16.6"
 optional = true
 
 [dependencies.serde]
@@ -52,22 +53,22 @@ version = "0.15.0"
 optional = true
 
 [dev-dependencies]
-anyhow = "1.0.87"
+anyhow = "1"
 axum = { version = "0.8", features = ["macros"] }
-tokio = { version = "1.43.0", features = ["full"] }
-reqwest = { version = "0.12.3", features = ["json", "multipart"] }
-serde = { version = "1.0.195", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }
-garde = { version = "0.22.0", features = ["serde", "derive"] }
-serde_json = "1.0.108"
-serde_yaml = "0.9.33"
-quick-xml = { version = "0.37.1", features = ["serialize"] }
-ciborium = { version = "0.2.2" }
-toml = "0.8.14"
-mime = "0.3.17"
-prost = "0.13.4"
-once_cell = "1.20.2"
-rmp-serde = "1.3.0"
+garde = { version = "0.23.0", features = ["serde", "derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+quick-xml = { version = "0.38", features = ["serialize"] }
+ciborium = "0.2"
+toml = "0.8"
+mime = "0.3"
+prost = "0.14"
+once_cell = "1"
+rmp-serde = "1"
 
 [features]
 default = ["basic", "validator"]
@@ -88,7 +89,7 @@ cbor = ["dep:axum-serde", "axum-serde/cbor"]
 typed_multipart = ["dep:axum_typed_multipart"]
 into_json = ["json", "dep:serde", "garde?/serde"]
 422 = []
-extra = ["dep:axum-extra"]
+extra = ["dep:axum-extra", "axum-extra/cached", "axum-extra/with-rejection"]
 extra_typed_path = ["extra", "axum-extra/typed-routing"]
 extra_query = ["extra", "axum-extra/query"]
 extra_form = ["extra", "axum-extra/form"]

@@ -8,6 +8,28 @@
 
 ### Fixed
 
+## axum-valid 0.25.0 (2026-06-30)
+
+### Added
+
+* Add `rust-version = "1.88"` (MSRV) and `rust-toolchain.toml`.
+* Add MSRV check job to CI.
+
+### Changed
+
+* Upgrade `axum-extra` from 0.10 to 0.12.
+    * Enable `cached` and `with-rejection` features required by axum-extra 0.12.
+* Upgrade `axum-serde` from 0.9.0 to 0.10.0.
+* Upgrade `garde` from 0.22.0 to 0.23.0.
+* Upgrade `axum_typed_multipart` from 0.16.3 to 0.16.6.
+* Modernize CI workflow:
+    * Replace deprecated `actions-rs/*` actions with `dtolnay/rust-toolchain` and native cargo commands.
+    * Update `actions/checkout` to v4 and `codecov-action` to v5.
+    * Add `Swatinem/rust-cache` for faster builds.
+* Update dev-dependencies (`reqwest` now uses `rustls-tls`, `prost` upgraded to 0.14 for axum-extra protobuf compatibility).
+
+### Fixed
+
 ## axum-valid 0.18.0 (2024-04-14)
 
 ### Added
