@@ -150,7 +150,8 @@ mod tests {
         }
 
         fn set_error_request(builder: RequestBuilder) -> RequestBuilder {
-            builder.json(&serde_json::json!({ "a" : 1}))
+            // Valid JSON syntax but invalid data shape: axum returns 422 for deserialization errors.
+            builder.json(&serde_json::json!({ "v0": "not-a-number", "v1": "ok" }))
         }
 
         fn set_invalid_request(builder: RequestBuilder) -> RequestBuilder {

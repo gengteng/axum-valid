@@ -61,6 +61,8 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin --locked
 

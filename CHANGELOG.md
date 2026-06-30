@@ -27,9 +27,11 @@
     * Update `actions/checkout` to v4 and `codecov-action` to v5.
     * Add `Swatinem/rust-cache` for faster builds.
 * Update dev-dependencies (`reqwest` now uses `rustls-tls`, `prost` upgraded to 0.14 for axum-extra protobuf compatibility).
+* Fix coverage CI: align `tarpaulin.toml` feature set with integration test expectations.
 
 ### Fixed
 
+* Fix `Json` integration test error request to trigger deserialization failures consistently under axum 0.8.
 ## axum-valid 0.18.0 (2024-04-14)
 
 ### Added

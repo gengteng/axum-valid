@@ -1,7 +1,7 @@
 [feature_default]
 
 [feature_all_types_into_json]
-features = "validator garde validify all_types into_json"
+features = "validator garde validify all_types into_json 422"
 
 [feature_all_types_422]
 features = "validator garde validify all_types 422"
